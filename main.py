@@ -1,6 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes import auth, chat, documents
+from routes.auth import router as auth_router
+from routes.chat import router as chat_router
+from routes.documents import router as documents_router
+
 
 app = FastAPI(title="SNTF Assistant API", version="2.0.0")
 
@@ -11,9 +14,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
-app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
-app.include_router(documents.router, prefix="/api/documents", tags=["Documents"])
+app.include_router(auth_router, prefix="/api/auth", tags=["Auth"])
+app.include_router(chat_router, prefix="/api/chat", tags=["Chat"])
+app.include_router(documents_router, prefix="/api/documents", tags=["Documents"])
+
 
 @app.get("/")
 def root():
