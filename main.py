@@ -33,3 +33,7 @@ def health():
 @app.get("/")
 def root():
     return {"status": "SNTF API en ligne", "version": "2.0.0"}
+
+@app.get("/upload.html")
+def upload_page():
+    return FileResponse("static/upload.html")
