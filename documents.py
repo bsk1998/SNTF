@@ -4,39 +4,76 @@ import os
 import requests
 import numpy as np
 import io
+import json
 
 router = APIRouter()
 
 HF_API_KEY = os.environ.get("HF_API_KEY")
 HF_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 ADMIN_KEY = os.environ.get("ADMIN_KEY", "sntf_admin_2024")
-
-# Même table que dans n8n
 VECTOR_TABLE = "n8n_vectors"
-
-# Même paramètres que dans n8n : chunkSize=512, chunkOverlap=50
 CHUNK_SIZE = 512
 CHUNK_OVERLAP = 50
 
 def extract_text_from_pdf(file_bytes: bytes) -> str:
-    """Equivalent du nœud 'Extraction Texte PDF' dans n8n"""
+    """Essaie plusieurs librairies PDF pour extraire le texte"""
+    text = ""
+
+    # Méthode 1 : pypdf (nouveau nom de PyPDF2)
     try:
         import pypdf
         reader = pypdf.PdfReader(io.BytesIO(file_bytes))
-        text = ""
         for page in reader.pages:
             extracted = page.extract_text()
             if extracted:
                 text += extracted + "\n"
-        return text.strip()
+        if text.strip():
+            print(f"✅ pypdf: {len(text)} caractères extraits")
+            return text.strip()
     except Exception as e:
-        raise HTTPException(400, f"Impossible de lire le PDF: {str(e)}")
+        print(f"pypdf failed: {e}")
+
+    # Méthode 2 : PyPDF2 (ancien nom)
+    try:
+        import PyPDF2
+        reader = PyPDF2.PdfReader(io.BytesIO(file_bytes))
+        for page in reader.pages:
+            extracted = page.extract_text()
+            if extracted:
+                text += extracted + "\n"
+        if text.strip():
+            print(f"✅ PyPDF2: {len(text)} caractères extraits")
+            return text.strip()
+    except Exception as e:
+        print(f"PyPDF2 failed: {e}")
+
+    # Méthode 3 : pdfminer
+    try:
+        from pdfminer.high_level import extract_text as pdfminer_extract
+        text = pdfminer_extract(io.BytesIO(file_bytes))
+        if text and text.strip():
+            print(f"✅ pdfminer: {len(text)} caractères extraits")
+            return text.strip()
+    except Exception as e:
+        print(f"pdfminer failed: {e}")
+
+    # Méthode 4 : pdfplumber
+    try:
+        import pdfplumber
+        with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
+            for page in pdf.pages:
+                extracted = page.extract_text()
+                if extracted:
+                    text += extracted + "\n"
+        if text.strip():
+            print(f"✅ pdfplumber: {len(text)} caractères extraits")
+            return text.strip()
+    except Exception as e:
+        print(f"pdfplumber failed: {e}")
+
+    raise HTTPException(400, "Impossible d'extraire le texte du PDF. Vérifiez que le PDF contient du texte sélectionnable.")
 
 def split_into_chunks(text: str) -> list:
-    """
-    Equivalent du nœud 'Découpage en Chunks' dans n8n
-    chunkSize: 512 tokens, chunkOverlap: 50
-    """
     words = text.split()
     chunks = []
     i = 0
@@ -48,10 +85,6 @@ def split_into_chunks(text: str) -> list:
     return chunks
 
 def get_embedding(text: str) -> list:
-    """
-    Equivalent du nœud 'Embeddings HuggingFace Inference1' dans n8n
-    Modèle: sentence-transformers/all-MiniLM-L6-v2
-    """
     headers = {"Authorization": f"Bearer {HF_API_KEY}"}
     try:
         response = requests.post(
@@ -76,42 +109,33 @@ async def upload_document(
     category: str = Form(default="General"),
     admin_key: str = Form(...)
 ):
-    """
-    Equivalent du flux Upload dans n8n :
-    Formulaire → Extraction PDF → Vérifier texte → Préparer →
-    Charger pour Découpage → Découpage en Chunks → Stocker dans Supabase →
-    Confirmation Upload
-    """
-    # Vérification clé admin
     if admin_key != ADMIN_KEY:
         raise HTTPException(403, "Clé admin incorrecte")
 
-    # Vérifier que c'est un PDF
     if not file.filename.lower().endswith('.pdf'):
         raise HTTPException(400, "Seuls les fichiers PDF sont acceptés")
 
-    # Extraction du texte (nœud 'Extraction Texte PDF')
     file_bytes = await file.read()
+    print(f"📄 Fichier reçu: {file.filename} ({len(file_bytes)} bytes)")
+
     text = extract_text_from_pdf(file_bytes)
+    print(f"📝 Texte extrait: {len(text)} caractères")
 
-    # Vérification texte extrait (nœud 'Texte Extrait ?')
     if not text:
-        raise HTTPException(400, "Impossible d'extraire le texte du PDF. Vérifiez que le PDF n'est pas scanné.")
+        raise HTTPException(400, "Impossible d'extraire le texte du PDF.")
 
-    # Préparer le document (nœud 'Préparer Document')
     metadata_base = {
         "filename": document_name,
         "category": category,
         "source": file.filename
     }
 
-    # Découpage en chunks (nœud 'Découpage en Chunks')
     chunks = split_into_chunks(text)
+    print(f"🔪 Chunks créés: {len(chunks)}")
 
     if not chunks:
         raise HTTPException(400, "Le document est trop court ou vide")
 
-    # Stocker dans Supabase (nœud 'Stocker dans Supabase')
     conn = get_db()
     cur = conn.cursor()
     stored = 0
@@ -121,24 +145,18 @@ async def upload_document(
             embedding = get_embedding(chunk)
             if not embedding:
                 continue
-
-            metadata = {
-                **metadata_base,
-                "chunk_index": i,
-                "total_chunks": len(chunks)
-            }
-
+            metadata = {**metadata_base, "chunk_index": i, "total_chunks": len(chunks)}
             embedding_str = "[" + ",".join(map(str, embedding)) + "]"
             cur.execute(
                 f"""INSERT INTO {VECTOR_TABLE} (content, metadata, embedding)
                    VALUES (%s, %s::jsonb, %s::vector)""",
-                (chunk, str(metadata).replace("'", '"'), embedding_str)
+                (chunk, json.dumps(metadata), embedding_str)
             )
             stored += 1
 
         conn.commit()
+        print(f"✅ {stored} chunks sauvegardés dans Supabase")
 
-        # Confirmation Upload (nœud 'Confirmation Upload')
         return {
             "success": True,
             "message": f"✅ Document '{document_name}' indexé avec succès !",
@@ -157,10 +175,8 @@ async def upload_document(
 
 @router.get("/list")
 def list_documents(admin_key: str):
-    """Liste tous les documents indexés dans n8n_vectors"""
     if admin_key != ADMIN_KEY:
         raise HTTPException(403, "Clé admin incorrecte")
-
     conn = get_db()
     cur = conn.cursor()
     try:
@@ -191,10 +207,8 @@ def list_documents(admin_key: str):
 
 @router.delete("/delete")
 def delete_document(filename: str, admin_key: str):
-    """Supprimer un document de la base vectorielle"""
     if admin_key != ADMIN_KEY:
         raise HTTPException(403, "Clé admin incorrecte")
-
     conn = get_db()
     cur = conn.cursor()
     try:
@@ -204,11 +218,7 @@ def delete_document(filename: str, admin_key: str):
         )
         deleted = cur.rowcount
         conn.commit()
-        return {
-            "success": True,
-            "message": f"Document '{filename}' supprimé",
-            "chunks_deleted": deleted
-        }
+        return {"success": True, "message": f"Document '{filename}' supprimé", "chunks_deleted": deleted}
     except Exception as e:
         conn.rollback()
         raise HTTPException(500, str(e))
