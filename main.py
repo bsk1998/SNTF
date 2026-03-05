@@ -19,7 +19,7 @@ app.include_router(auth_router, prefix="/api/auth", tags=["Auth"])
 app.include_router(chat_router, prefix="/api/chat", tags=["Chat"])
 app.include_router(documents_router, prefix="/api/documents", tags=["Documents"])
 
-# Servir les fichiers statiques (upload.html)
+# Servir les fichiers statiques
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/upload.html")
@@ -33,7 +33,3 @@ def health():
 @app.get("/")
 def root():
     return {"status": "SNTF API en ligne", "version": "2.0.0"}
-
-@app.get("/upload.html")
-def upload_page():
-    return FileResponse("static/upload.html")
