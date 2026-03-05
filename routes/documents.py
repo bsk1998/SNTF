@@ -17,23 +17,29 @@ VECTOR_TABLE = "n8n_vectors"
 def get_embedding(text: str) -> list:
     headers = {"Authorization": f"Bearer {HF_API_KEY}"}
     try:
+        print(f"🔄 Appel HuggingFace... (clé: {HF_API_KEY[:10] if HF_API_KEY else 'MANQUANTE'})")
         response = requests.post(
             f"https://api-inference.huggingface.co/pipeline/feature-extraction/{HF_MODEL}",
             headers=headers,
-            json={"inputs": text, "options": {"wait_for_model": True}},
-            timeout=30
+            json={"inputs": text[:200], "options": {"wait_for_model": True}},
+            timeout=60
         )
+        print(f"📡 HuggingFace status: {response.status_code}")
+        print(f"📡 HuggingFace réponse: {response.text[:300]}")
+        
         if response.status_code == 200:
             embedding = response.json()
             if isinstance(embedding[0], list):
                 embedding = np.mean(embedding, axis=0).tolist()
+            print(f"✅ Embedding OK: {len(embedding)} dimensions")
             return embedding
+        else:
+            print(f"❌ HuggingFace erreur {response.status_code}: {response.text[:200]}")
     except Exception as e:
-        print(f"Embedding error: {e}")
+        print(f"❌ Embedding exception: {e}")
     return None
 
 def extract_text_from_pdf(pdf_bytes: bytes) -> str:
-    # Méthode 1 : pypdf
     try:
         reader = PdfReader(io.BytesIO(pdf_bytes))
         text = ""
@@ -46,32 +52,6 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
             return text.strip()
     except Exception as e:
         print(f"pypdf failed: {e}")
-
-    # Méthode 2 : pdfminer
-    try:
-        from pdfminer.high_level import extract_text as pdfminer_extract
-        text = pdfminer_extract(io.BytesIO(pdf_bytes))
-        if text and text.strip():
-            print(f"✅ pdfminer: {len(text)} caractères extraits")
-            return text.strip()
-    except Exception as e:
-        print(f"pdfminer failed: {e}")
-
-    # Méthode 3 : pdfplumber
-    try:
-        import pdfplumber
-        text = ""
-        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-            for page in pdf.pages:
-                extracted = page.extract_text()
-                if extracted:
-                    text += extracted + "\n"
-        if text.strip():
-            print(f"✅ pdfplumber: {len(text)} caractères extraits")
-            return text.strip()
-    except Exception as e:
-        print(f"pdfplumber failed: {e}")
-
     return ""
 
 def split_text_into_chunks(text: str, chunk_size: int = 500) -> list:
@@ -104,7 +84,7 @@ async def upload_pdf(
         print(f"📝 Texte extrait: {len(text)} caractères")
 
         if not text:
-            raise HTTPException(400, "Impossible d'extraire le texte. PDF scanné ou protégé ?")
+            raise HTTPException(400, "Impossible d'extraire le texte.")
 
         chunks = split_text_into_chunks(text)
         print(f"🔪 Chunks créés: {len(chunks)}")
@@ -114,6 +94,12 @@ async def upload_pdf(
 
         doc_name = document_name if document_name else file.filename.replace('.pdf', '')
 
+        # Test embedding sur le premier chunk seulement
+        print(f"🧪 Test embedding sur premier chunk...")
+        test_emb = get_embedding(chunks[0])
+        if not test_emb:
+            raise HTTPException(500, "HuggingFace API ne répond pas — vérifiez HF_API_KEY sur Render")
+
         conn = get_db()
         cur = conn.cursor()
         stored = 0
@@ -121,6 +107,7 @@ async def upload_pdf(
         for i, chunk in enumerate(chunks):
             embedding = get_embedding(chunk)
             if not embedding:
+                print(f"⚠️ Chunk {i} — embedding échoué, on passe")
                 continue
 
             embedding_str = "[" + ",".join(map(str, embedding)) + "]"
@@ -138,11 +125,12 @@ async def upload_pdf(
                 (chunk, metadata, embedding_str)
             )
             stored += 1
+            print(f"💾 Chunk {i+1}/{len(chunks)} sauvegardé")
 
         conn.commit()
         cur.close()
         conn.close()
-        print(f"✅ {stored} chunks sauvegardés")
+        print(f"✅ TOTAL: {stored} chunks sauvegardés dans Supabase")
 
         return {
             "success": True,
@@ -155,6 +143,7 @@ async def upload_pdf(
     except HTTPException:
         raise
     except Exception as e:
+        print(f"❌ Erreur générale: {e}")
         raise HTTPException(500, f"Erreur: {str(e)}")
 
 @router.get("/list")
