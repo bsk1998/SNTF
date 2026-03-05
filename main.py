@@ -22,9 +22,9 @@ app.include_router(documents_router, prefix="/api/documents", tags=["Documents"]
 # Servir les fichiers statiques
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-@app.get("/")
-def root():
-    return FileResponse("static/index.html")
+@app.get("/upload.html")
+def upload_page():
+    return FileResponse("static/upload.html")
 
 @app.get("/health")
 def health():
