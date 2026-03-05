@@ -1,246 +1,551 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Assistant SNTF</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        
-        .chat-container {
-            width: 100%;
-            max-width: 600px;
-            height: 90vh;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        
-        .chat-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            text-align: center;
-            font-size: 24px;
-            font-weight: bold;
-        }
-        
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        
-        .message {
-            max-width: 80%;
-            padding: 12px 16px;
-            border-radius: 18px;
-            word-wrap: break-word;
-            animation: fadeIn 0.3s ease-in;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .message.user {
-            background: #667eea;
-            color: white;
-            align-self: flex-end;
-            border-bottom-right-radius: 4px;
-        }
-        
-        .message.bot {
-            background: #f1f3f5;
-            color: #333;
-            align-self: flex-start;
-            border-bottom-left-radius: 4px;
-        }
-        
-        .message.bot.loading {
-            background: #e9ecef;
-        }
-        
-        .typing-indicator {
-            display: inline-flex;
-            gap: 4px;
-        }
-        
-        .typing-indicator span {
-            width: 8px;
-            height: 8px;
-            background: #667eea;
-            border-radius: 50%;
-            animation: bounce 1.4s infinite ease-in-out both;
-        }
-        
-        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
-        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
-        
-        @keyframes bounce {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1); }
-        }
-        
-        .chat-input-container {
-            padding: 20px;
-            background: #f8f9fa;
-            border-top: 1px solid #dee2e6;
-            display: flex;
-            gap: 10px;
-        }
-        
-        .chat-input {
-            flex: 1;
-            padding: 12px 16px;
-            border: 2px solid #dee2e6;
-            border-radius: 25px;
-            font-size: 16px;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-        
-        .chat-input:focus {
-            border-color: #667eea;
-        }
-        
-        .send-button {
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 25px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .send-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-        
-        .send-button:active {
-            transform: translateY(0);
-        }
-        
-        .send-button:disabled {
-            background: #adb5bd;
-            cursor: not-allowed;
-            transform: none;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SNTF — Assistant Intelligent</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;700&family=Cairo:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --black: #080808;
+  --black2: #111;
+  --black3: #1a1a1a;
+  --red: #C0392B;
+  --red2: #922B21;
+  --red3: #E74C3C;
+  --gold: #C8A84B;
+  --gold2: #E8C96A;
+  --white: #F5F0E8;
+  --gray: #777;
+  --gray2: #444;
+  --border: rgba(200,168,75,0.15);
+  --border2: rgba(192,57,43,0.2);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Cairo',sans-serif;background:var(--black);color:var(--white);height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 40% at 10% 0%,rgba(192,57,43,0.07) 0%,transparent 60%),radial-gradient(ellipse 40% 50% at 90% 100%,rgba(200,168,75,0.05) 0%,transparent 50%);pointer-events:none;z-index:0;}
+.rail{position:fixed;bottom:0;left:0;right:0;height:2px;background:repeating-linear-gradient(90deg,var(--gold) 0,var(--gold) 25px,transparent 25px,transparent 45px);opacity:0.15;z-index:0;}
+
+/* SCREENS */
+.screen{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;transition:opacity .35s,transform .35s;}
+.screen.out{opacity:0;pointer-events:none;transform:scale(.97);}
+
+/* ===== AUTH ===== */
+#auth{background:var(--black);}
+.aw{width:100%;max-width:400px;padding:20px;}
+
+/* Locomotive */
+.loco-anim{display:inline-block;animation:loco 3s ease-in-out infinite;}
+@keyframes loco{0%,100%{transform:translateX(0);}30%{transform:translateX(3px);}70%{transform:translateX(-3px);}}
+.s1{animation:sm 1.4s ease-out infinite;}
+.s2{animation:sm 1.4s ease-out infinite .3s;}
+.s3{animation:sm 1.4s ease-out infinite .6s;}
+@keyframes sm{0%{opacity:.7;transform:translateY(0) scale(.4);}100%{opacity:0;transform:translateY(-18px) scale(1.4);}}
+
+.atitle{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:700;text-align:center;letter-spacing:.1em;}
+.asub{font-size:11px;color:var(--gold);letter-spacing:.22em;text-transform:uppercase;text-align:center;margin-top:4px;margin-bottom:22px;}
+
+.tabs{display:flex;background:var(--black3);border:1px solid var(--border);border-radius:10px;padding:3px;margin-bottom:18px;}
+.tab{flex:1;padding:9px;text-align:center;font-size:13px;font-weight:500;cursor:pointer;border-radius:8px;transition:all .2s;color:var(--gray);border:none;background:transparent;font-family:'Cairo',sans-serif;}
+.tab.on{background:linear-gradient(135deg,var(--red2),var(--red));color:#fff;box-shadow:0 3px 10px rgba(192,57,43,.3);}
+
+.form{display:flex;flex-direction:column;gap:12px;}
+.fg{display:flex;flex-direction:column;gap:5px;}
+.fg label{font-size:11px;color:var(--gray);letter-spacing:.06em;text-transform:uppercase;}
+.fg input,.fg select{background:var(--black3);border:1px solid var(--border);border-radius:9px;padding:11px 14px;color:var(--white);font-family:'Cairo',sans-serif;font-size:14px;outline:none;transition:border-color .2s;width:100%;}
+.fg input:focus,.fg select:focus{border-color:var(--gold);}
+.fg input::placeholder{color:var(--gray2);}
+.fg select option{background:var(--black3);}
+.btnm{background:linear-gradient(135deg,var(--red2),var(--red));color:#fff;border:none;border-radius:9px;padding:13px;font-family:'Cairo',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 4px 14px rgba(192,57,43,.3);margin-top:2px;}
+.btnm:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(192,57,43,.45);}
+.btnm:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none;}
+.amsg{text-align:center;font-size:12.5px;padding:9px 12px;border-radius:8px;margin-top:2px;display:none;}
+.amsg.ok{background:rgba(39,174,96,.1);border:1px solid rgba(39,174,96,.3);color:#2ecc71;}
+.amsg.err{background:rgba(192,57,43,.1);border:1px solid var(--border2);color:var(--red3);}
+.amsg.wait{background:rgba(200,168,75,.1);border:1px solid var(--border);color:var(--gold2);}
+.admlink{text-align:center;margin-top:12px;}
+.admlink button{background:transparent;border:none;color:var(--gray2);font-size:11px;cursor:pointer;font-family:'Cairo',sans-serif;transition:color .2s;}
+.admlink button:hover{color:var(--gold);}
+
+/* ===== APP ===== */
+#app{flex-direction:column;align-items:stretch;}
+
+/* HEADER */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:13px 24px;background:rgba(8,8,8,.97);border-bottom:1px solid var(--border);backdrop-filter:blur(20px);flex-shrink:0;z-index:50;position:relative;}
+.hlogo{display:flex;align-items:center;gap:12px;}
+.hloco{animation:loco 4s ease-in-out infinite;font-size:22px;display:inline-block;}
+.hname h1{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;letter-spacing:.07em;line-height:1.1;}
+.hname span{font-size:10px;color:var(--gold);letter-spacing:.18em;text-transform:uppercase;}
+.hright{display:flex;align-items:center;gap:11px;}
+.ubdg{display:flex;align-items:center;gap:7px;background:var(--black3);border:1px solid var(--border);border-radius:18px;padding:5px 12px 5px 7px;font-size:12.5px;}
+.uav{width:24px;height:24px;background:linear-gradient(135deg,var(--gold),var(--gold2));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--black);font-weight:700;}
+.ibtn{background:transparent;border:1px solid var(--border);border-radius:7px;width:34px;height:34px;color:var(--gray);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .2s;}
+.ibtn:hover{border-color:var(--red);color:var(--red3);}
+.lbtn{background:var(--black3);border:1px solid var(--border);border-radius:18px;padding:5px 11px;color:var(--gold);font-size:11px;cursor:pointer;font-family:'Cairo',sans-serif;transition:all .2s;}
+.lbtn:hover{border-color:var(--gold);}
+
+/* BODY */
+.body{flex:1;display:flex;overflow:hidden;position:relative;}
+
+/* SIDEBAR */
+.sb{width:248px;background:var(--black2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;}
+.sb::-webkit-scrollbar{width:3px;}
+.sb::-webkit-scrollbar-thumb{background:var(--border);}
+.sbsec{padding:15px 13px;border-bottom:1px solid rgba(255,255,255,.04);}
+.sblbl{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--gray2);margin-bottom:8px;padding:0 3px;}
+.hi{display:flex;gap:8px;align-items:flex-start;padding:8px 9px;border-radius:8px;cursor:pointer;transition:all .2s;border:1px solid transparent;margin-bottom:3px;}
+.hi:hover{background:rgba(192,57,43,.06);border-color:var(--border2);}
+.hi-text{font-size:12px;color:var(--gray);line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.qq{width:100%;background:transparent;border:1px solid transparent;border-radius:8px;padding:8px 9px;color:var(--gray);font-family:'Cairo',sans-serif;font-size:12px;cursor:pointer;text-align:left;transition:all .2s;line-height:1.5;margin-bottom:3px;}
+.qq:hover{background:rgba(192,57,43,.07);border-color:var(--border2);color:var(--white);transform:translateX(3px);}
+
+/* Upload */
+.uplbox{background:var(--black3);border:1px dashed var(--border);border-radius:9px;padding:13px;text-align:center;cursor:pointer;transition:all .2s;}
+.uplbox:hover{border-color:var(--gold);background:rgba(200,168,75,0.08);}
+.uplbox .ui{font-size:20px;margin-bottom:4px;}
+.uplbox .ut{font-size:11.5px;color:var(--gray);line-height:1.4;}
+input[type=file]{display:none;}
+.uplinps{display:none;flex-direction:column;gap:7px;margin-top:9px;}
+.uplinps input,.uplinps select{background:var(--black3);border:1px solid var(--border);border-radius:7px;padding:8px 11px;color:var(--white);font-family:'Cairo',sans-serif;font-size:12px;outline:none;width:100%;}
+.uplinps input::placeholder{color:var(--gray2);}
+.uplinps select option{background:var(--black3);}
+.btnupl{background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--black);border:none;border-radius:7px;padding:9px;font-family:'Cairo',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;width:100%;}
+.btnupl:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(200,168,75,.3);}
+.btnupl:disabled{opacity:.45;cursor:not-allowed;transform:none;}
+.uplst{font-size:11px;text-align:center;margin-top:7px;padding:5px;border-radius:6px;display:none;}
+
+/* Pending */
+.pu{background:var(--black3);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:7px;}
+.pu-em{color:var(--white);font-size:12px;font-weight:500;margin-bottom:2px;word-break:break-all;}
+.pu-dp{color:var(--gray);font-size:11px;margin-bottom:7px;}
+.pu-ac{display:flex;gap:5px;}
+.btnok{flex:1;background:rgba(39,174,96,.12);border:1px solid rgba(39,174,96,.28);color:#2ecc71;border-radius:6px;padding:5px;font-size:11px;cursor:pointer;font-family:'Cairo',sans-serif;}
+.btnok:hover{background:rgba(39,174,96,.22);}
+.btnno{flex:1;background:rgba(192,57,43,.1);border:1px solid var(--border2);color:var(--red3);border-radius:6px;padding:5px;font-size:11px;cursor:pointer;font-family:'Cairo',sans-serif;}
+.btnno:hover{background:rgba(192,57,43,.2);}
+
+/* CHAT */
+.chat{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.wel{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;gap:16px;text-align:center;}
+.wloco{font-size:50px;animation:loco 3s ease-in-out infinite;display:inline-block;}
+.wel h2{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;background:linear-gradient(135deg,var(--white) 30%,var(--gold2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.wel p{color:var(--gray);font-size:13.5px;max-width:380px;line-height:1.7;}
+.wgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;max-width:430px;width:100%;}
+.wcard{background:var(--black3);border:1px solid var(--border);border-radius:11px;padding:12px;cursor:pointer;transition:all .25s;text-align:left;}
+.wcard:hover{border-color:rgba(192,57,43,.35);background:rgba(192,57,43,.05);transform:translateY(-2px);}
+.wcard .wi{font-size:17px;margin-bottom:4px;}
+.wcard .wl{font-size:12.5px;color:var(--white);font-weight:500;}
+.wcard .ws{font-size:11px;color:var(--gray);margin-top:2px;}
+
+/* Messages */
+.msgs{flex:1;overflow-y:auto;padding:20px 24px;display:none;flex-direction:column;gap:16px;scroll-behavior:smooth;}
+.msgs.on{display:flex;}
+.msgs::-webkit-scrollbar{width:3px;}
+.msgs::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.msg{display:flex;gap:10px;max-width:740px;animation:mi .3s ease;}
+@keyframes mi{from{opacity:0;transform:translateY(7px);}to{opacity:1;transform:translateY(0);}}
+.msg.u{align-self:flex-end;flex-direction:row-reverse;}
+.av{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;margin-top:2px;}
+.av.b{background:linear-gradient(135deg,var(--red2),var(--red));box-shadow:0 3px 10px rgba(192,57,43,.28);}
+.av.u2{background:linear-gradient(135deg,var(--gold),var(--gold2));}
+.bub{padding:11px 15px;border-radius:13px;font-size:13.5px;line-height:1.75;max-width:540px;}
+.bub.b{background:var(--black3);border:1px solid var(--border);color:var(--white);border-radius:3px 13px 13px 13px;}
+.bub.u{background:linear-gradient(135deg,var(--red2),var(--red));color:#fff;border-radius:13px 3px 13px 13px;}
+.mmeta{font-size:10px;color:var(--gray2);margin-top:3px;padding:0 3px;display:flex;align-items:center;gap:5px;}
+.msg.u .mmeta{justify-content:flex-end;}
+.spdf{background:rgba(200,168,75,.1);border:1px solid var(--border);border-radius:10px;padding:2px 7px;font-size:10px;color:var(--gold);}
+.sweb{background:rgba(39,174,96,.1);border:1px solid rgba(39,174,96,.25);border-radius:10px;padding:2px 7px;font-size:10px;color:#2ecc71;}
+.sboth{background:rgba(100,100,200,.1);border:1px solid rgba(100,100,200,.25);border-radius:10px;padding:2px 7px;font-size:10px;color:#7B8BE8;}
+
+/* Typing */
+.typing .bub{display:flex;align-items:center;gap:5px;padding:14px 15px;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--gold);animation:bl 1.2s infinite;}
+.dot:nth-child(2){animation-delay:.2s;}
+.dot:nth-child(3){animation-delay:.4s;}
+@keyframes bl{0%,100%{opacity:.3;transform:scale(.8);}50%{opacity:1;transform:scale(1.2);}}
+
+/* INPUT */
+.inpa{padding:13px 24px 17px;background:rgba(8,8,8,.95);border-top:1px solid var(--border);backdrop-filter:blur(20px);}
+.inpr{display:flex;gap:9px;align-items:flex-end;background:var(--black3);border:1px solid var(--border);border-radius:13px;padding:9px 12px;transition:border-color .2s;}
+.inpr:focus-within{border-color:rgba(192,57,43,.4);box-shadow:0 0 0 3px rgba(192,57,43,.04);}
+#mi{flex:1;background:transparent;border:none;outline:none;color:var(--white);font-family:'Cairo',sans-serif;font-size:14px;line-height:1.6;resize:none;max-height:100px;min-height:24px;overflow-y:auto;}
+#mi::placeholder{color:var(--gray2);}
+.sbtn{width:36px;height:36px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--red2),var(--red));color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .2s;flex-shrink:0;box-shadow:0 3px 10px rgba(192,57,43,.28);}
+.sbtn:hover{transform:scale(1.06);}
+.sbtn:active{transform:scale(.95);}
+.sbtn:disabled{opacity:.3;cursor:not-allowed;transform:none;box-shadow:none;}
+.ihint{font-size:10.5px;color:var(--gray2);text-align:center;margin-top:7px;}
+.ndot{width:7px;height:7px;background:var(--red3);border-radius:50%;display:inline-block;animation:bl 2s infinite;box-shadow:0 0 5px var(--red3);margin-left:5px;vertical-align:middle;}
+
+body.rtl{direction:rtl;}
+body.rtl .msg.u{flex-direction:row;}
+body.rtl .msg:not(.u){flex-direction:row-reverse;}
+body.rtl .bub.b{border-radius:13px 3px 13px 13px;}
+body.rtl .bub.u{border-radius:3px 13px 13px 13px;}
+body.rtl .qq:hover{transform:translateX(-3px);}
+
+@media(max-width:700px){
+  .sb{display:none;}
+  .hdr{padding:10px 14px;}
+  .msgs{padding:14px;}
+  .inpa{padding:10px 14px 14px;}
+  .wel{padding:20px;}
+  .wgrid{grid-template-columns:1fr;}
+}
+</style>
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            🚂 Assistant SNTF
-        </div>
-        
-        <div class="chat-messages" id="messages">
-            <div class="message bot">
-                Bonjour ! Je suis l'assistant virtuel de la SNTF. Posez-moi vos questions sur les services ferroviaires en Algérie.
-            </div>
-        </div>
-        
-        <div class="chat-input-container">
-            <input 
-                type="text" 
-                class="chat-input" 
-                id="userInput" 
-                placeholder="Posez votre question..."
-                autocomplete="off"
-            >
-            <button class="send-button" id="sendButton">Envoyer</button>
-        </div>
+<div class="rail"></div>
+
+<!-- AUTH -->
+<div class="screen" id="auth">
+  <div class="aw">
+    <div style="text-align:center;margin-bottom:22px;">
+      <svg class="loco-anim" width="100" height="65" viewBox="0 0 100 65" style="display:inline-block;">
+        <circle class="s1" cx="24" cy="9" r="3.5" fill="rgba(200,168,75,0.55)"/>
+        <circle class="s2" cx="30" cy="5" r="4.5" fill="rgba(200,168,75,0.35)"/>
+        <circle class="s3" cx="20" cy="3" r="3" fill="rgba(200,168,75,0.2)"/>
+        <rect x="6" y="24" width="72" height="22" rx="5" fill="#C0392B"/>
+        <rect x="9" y="19" width="38" height="11" rx="3" fill="#922B21"/>
+        <rect x="22" y="11" width="7" height="10" rx="2" fill="#666"/>
+        <rect x="13" y="27" width="12" height="10" rx="2" fill="#111" stroke="#C8A84B" stroke-width="1.2"/>
+        <rect x="29" y="27" width="12" height="10" rx="2" fill="#111" stroke="#C8A84B" stroke-width="1.2"/>
+        <rect x="45" y="27" width="12" height="10" rx="2" fill="#111" stroke="#C8A84B" stroke-width="1.2"/>
+        <rect x="6" y="40" width="72" height="3" rx="1" fill="#C8A84B"/>
+        <circle cx="20" cy="50" r="8" fill="#111" stroke="#C8A84B" stroke-width="2.2"/>
+        <circle cx="20" cy="50" r="3.5" fill="#C8A84B"/>
+        <circle cx="42" cy="50" r="8" fill="#111" stroke="#C8A84B" stroke-width="2.2"/>
+        <circle cx="42" cy="50" r="3.5" fill="#C8A84B"/>
+        <circle cx="64" cy="50" r="8" fill="#111" stroke="#C8A84B" stroke-width="2.2"/>
+        <circle cx="64" cy="50" r="3.5" fill="#C8A84B"/>
+        <rect x="0" y="59" width="100" height="2.5" rx="1" fill="#333"/>
+        <rect x="0" y="62" width="100" height="2.5" rx="1" fill="#333"/>
+      </svg>
     </div>
+    <div class="atitle">SNTF</div>
+    <div class="asub">Assistant Intelligent</div>
+    <div class="tabs">
+      <button class="tab on" id="tl" onclick="stab('l')">Connexion</button>
+      <button class="tab" id="tr" onclick="stab('r')">Inscription</button>
+    </div>
+    <div id="lf">
+      <div class="form">
+        <div class="fg"><label>Email professionnel</label><input type="email" id="le" placeholder="nom@sntf.dz" onkeydown="if(event.key==='Enter')doLogin()"></div>
+        <div class="fg"><label>Mot de passe</label><input type="password" id="lp" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+        <button class="btnm" id="blg" onclick="doLogin()">Se connecter</button>
+        <div class="amsg" id="lmsg"></div>
+      </div>
+    </div>
+    <div id="rf" style="display:none;">
+      <div class="form">
+        <div class="fg"><label>Email professionnel</label><input type="email" id="re" placeholder="nom@sntf.dz"></div>
+        <div class="fg"><label>Nom complet</label><input type="text" id="rn" placeholder="Prénom Nom"></div>
+        <div class="fg"><label>Département</label>
+          <select id="rd">
+            <option value="">-- Sélectionner --</option>
+            <option>Exploitation</option><option>Sécurité</option><option>Technique</option>
+            <option>Ressources Humaines</option><option>Finance</option><option>Informatique</option><option>Direction</option>
+          </select>
+        </div>
+        <div class="fg"><label>Mot de passe</label><input type="password" id="rp" placeholder="Min. 6 caractères"></div>
+        <button class="btnm" id="brg" onclick="doRegister()">Demander l'accès</button>
+        <div class="amsg" id="rmsg"></div>
+      </div>
+    </div>
+    <div class="admlink"><button onclick="adminLogin()">Accès administrateur</button></div>
+  </div>
+</div>
 
-    <script>
-        const messagesDiv = document.getElementById('messages');
-        const userInput = document.getElementById('userInput');
-        const sendButton = document.getElementById('sendButton');
+<!-- APP -->
+<div class="screen out" id="app" style="flex-direction:column;align-items:stretch;">
+  <div class="hdr">
+    <div class="hlogo">
+      <span class="hloco">🚂</span>
+      <div class="hname"><h1>SNTF</h1><span>Assistant Intelligent</span></div>
+    </div>
+    <div class="hright">
+      <button class="lbtn" id="lbtn" onclick="toggleLang()">عربي</button>
+      <div class="ubdg"><div class="uav" id="uav">U</div><span id="uname">utilisateur</span></div>
+      <button class="ibtn" onclick="logout()" title="Déconnexion">⏻</button>
+    </div>
+  </div>
+  <div class="body">
+    <div class="sb">
+      <div class="sbsec">
+        <div class="sblbl">Historique</div>
+        <div id="hlist"><div style="color:var(--gray2);font-size:11.5px;text-align:center;padding:6px;">Aucune conversation</div></div>
+      </div>
+      <div class="sbsec">
+        <div class="sblbl">Questions rapides</div>
+        <button class="qq" onclick="ask('Quels sont les règlements de sécurité ferroviaire ?')">🛡️ Règlements de sécurité</button>
+        <button class="qq" onclick="ask('Procédures exploitation des trains ?')">🚆 Procédures exploitation</button>
+        <button class="qq" onclick="ask('Procédures RH et congés ?')">👥 Procédures RH</button>
+        <button class="qq" onclick="ask('Normes maintenance technique ?')">🔧 Normes techniques</button>
+        <button class="qq" onclick="ask('Procédures administratives internes ?')">📋 Procédures administratives</button>
+      </div>
+      <div class="sbsec" id="aup" style="display:none;">
+        <div class="sblbl">Ajouter un document</div>
+        <div class="uplbox" onclick="document.getElementById('pf').click()">
+          <div class="ui">📄</div>
+          <div class="ut" id="utxt">Cliquer pour sélectionner un PDF</div>
+        </div>
+        <input type="file" id="pf" accept=".pdf" onchange="onFile(this)">
+        <div class="uplinps" id="uinp">
+          <input type="text" id="dname" placeholder="Nom du document">
+          <select id="dcat"><option>Sécurité</option><option>Exploitation</option><option>Ressources Humaines</option><option>Technique</option><option>Administrative</option></select>
+          <button class="btnupl" id="bupl" onclick="uploadDoc()">📤 Indexer le document</button>
+        </div>
+        <div class="uplst" id="ust"></div>
+      </div>
+      <div class="sbsec" id="apnd" style="display:none;">
+        <div class="sblbl" id="plbl">Comptes en attente</div>
+        <div id="plist"><div style="color:var(--gray2);font-size:11.5px;text-align:center;padding:6px;">Aucune demande</div></div>
+      </div>
+    </div>
+    <div class="chat">
+      <div class="wel" id="wel">
+        <div class="wloco">🚂</div>
+        <h2 id="wtitle">Bonjour, comment puis-je vous aider ?</h2>
+        <p id="wdesc">Posez vos questions sur les règlements, procédures et documents officiels de la SNTF.</p>
+        <div class="wgrid">
+          <div class="wcard" onclick="ask('Règlements sécurité ferroviaire ?')"><div class="wi">🛡️</div><div class="wl">Sécurité</div><div class="ws">Règlements et normes</div></div>
+          <div class="wcard" onclick="ask('Procédures exploitation ?')"><div class="wi">🚆</div><div class="wl">Exploitation</div><div class="ws">Procédures opérationnelles</div></div>
+          <div class="wcard" onclick="ask('Procédures RH ?')"><div class="wi">👥</div><div class="wl">Ressources Humaines</div><div class="ws">Politiques et procédures</div></div>
+          <div class="wcard" onclick="ask('Normes techniques maintenance ?')"><div class="wi">🔧</div><div class="wl">Technique</div><div class="ws">Maintenance et normes</div></div>
+        </div>
+      </div>
+      <div class="msgs" id="msgs"></div>
+      <div class="inpa">
+        <div class="inpr">
+          <textarea id="mi" rows="1" placeholder="Posez votre question sur les documents SNTF..." onkeydown="onKey(event)" oninput="rsz(this)"></textarea>
+          <button class="sbtn" id="sbtn" onclick="sendMsg()">➤</button>
+        </div>
+        <div class="ihint" id="ihint">Entrée pour envoyer · Shift+Entrée pour nouvelle ligne</div>
+      </div>
+    </div>
+  </div>
+</div>
 
-        function addMessage(text, isUser) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
-            messageDiv.textContent = text;
-            messagesDiv.appendChild(messageDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
+<script>
+const API='https://sntf.onrender.com';
+const AKEY='sntf2024admin';
+let user=null,isAdmin=false,lang='fr';
+let pending=JSON.parse(localStorage.getItem('sp')||'[]');
+let approved=JSON.parse(localStorage.getItem('sa')||'[]');
+let hist=[],selFile=null;
 
-        function showTyping() {
-            const typingDiv = document.createElement('div');
-            typingDiv.className = 'message bot loading';
-            typingDiv.id = 'typing';
-            typingDiv.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
-            messagesDiv.appendChild(typingDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
+function stab(t){
+  document.getElementById('lf').style.display=t==='l'?'block':'none';
+  document.getElementById('rf').style.display=t==='r'?'block':'none';
+  document.getElementById('tl').className='tab'+(t==='l'?' on':'');
+  document.getElementById('tr').className='tab'+(t==='r'?' on':'');
+}
 
-        function removeTyping() {
-            const typing = document.getElementById('typing');
-            if (typing) typing.remove();
-        }
+async function doLogin(){
+  const e=document.getElementById('le').value.trim().toLowerCase();
+  const p=document.getElementById('lp').value;
+  const btn=document.getElementById('blg'),msg=document.getElementById('lmsg');
+  if(!e||!p)return;
+  if(e==='admin'&&p===AKEY){user={email:'admin'};isAdmin=true;enterApp();return;}
+  if(pending.find(u=>u.email===e)){showM(msg,"Votre compte est en attente de validation par l'administrateur.",'wait');return;}
+  btn.disabled=true;btn.textContent='...';
+  try{
+    const r=await fetch(`${API}/api/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e,password:p})});
+    const d=await r.json();
+    if(r.ok&&d.success){user=d.user;isAdmin=false;enterApp();}
+    else showM(msg,'Email ou mot de passe incorrect','err');
+  }catch{showM(msg,'Erreur de connexion au serveur','err');}
+  btn.disabled=false;btn.textContent='Se connecter';
+}
 
-        async function sendMessage() {
-            const question = userInput.value.trim();
-            if (!question) return;
+async function doRegister(){
+  const e=document.getElementById('re').value.trim().toLowerCase();
+  const n=document.getElementById('rn').value.trim();
+  const d=document.getElementById('rd').value;
+  const p=document.getElementById('rp').value;
+  const btn=document.getElementById('brg'),msg=document.getElementById('rmsg');
+  if(!e||!n||!d||!p){showM(msg,'Tous les champs sont requis','err');return;}
+  if(p.length<6){showM(msg,'Mot de passe trop court (min 6 caractères)','err');return;}
+  if(pending.find(u=>u.email===e)||approved.find(u=>u.email===e)){showM(msg,'Cet email est déjà utilisé','err');return;}
+  pending.push({email:e,name:n,dept:d,password:p});
+  localStorage.setItem('sp',JSON.stringify(pending));
+  showM(msg,"Demande envoyée ! En attente de validation par l'administrateur.",'ok');
+  btn.disabled=true;setTimeout(()=>btn.disabled=false,4000);
+}
 
-            addMessage(question, true);
-            userInput.value = '';
-            sendButton.disabled = true;
-            showTyping();
+function adminLogin(){
+  const k=prompt('Clé administrateur :');
+  if(k===AKEY){user={email:'admin'};isAdmin=true;enterApp();}
+  else if(k!==null)alert('Clé incorrecte');
+}
 
-            try {
-                const response = await fetch('/api/chat/message', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chatInput: question })
-                });
+function enterApp(){
+  document.getElementById('auth').classList.add('out');
+  document.getElementById('app').classList.remove('out');
+  document.getElementById('uav').textContent=user.email[0].toUpperCase();
+  document.getElementById('uname').textContent=isAdmin?'👑 Admin':user.email.split('@')[0];
+  if(isAdmin){
+    document.getElementById('aup').style.display='block';
+    document.getElementById('apnd').style.display='block';
+    renderPending();
+  }
+}
 
-                const data = await response.json();
-                removeTyping();
-                
-                if (data.output) {
-                    addMessage(data.output, false);
-                } else {
-                    addMessage("Désolé, une erreur s'est produite.", false);
-                }
-            } catch (error) {
-                removeTyping();
-                addMessage("Erreur de connexion. Veuillez réessayer.", false);
-            } finally {
-                sendButton.disabled = false;
-                userInput.focus();
-            }
-        }
+function logout(){
+  user=null;isAdmin=false;
+  document.getElementById('app').classList.add('out');
+  document.getElementById('auth').classList.remove('out');
+  document.getElementById('msgs').innerHTML='';
+  document.getElementById('msgs').classList.remove('on');
+  document.getElementById('wel').style.display='flex';
+  hist=[];renderHist();
+}
 
-        sendButton.addEventListener('click', sendMessage);
-        userInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
-        });
-    </script>
+function showM(el,txt,type){
+  el.textContent=txt;el.className='amsg '+type;el.style.display='block';
+  setTimeout(()=>el.style.display='none',5000);
+}
+
+function renderPending(){
+  const l=document.getElementById('plist');
+  document.getElementById('plbl').innerHTML='Comptes en attente'+(pending.length?` <span class="ndot"></span>`:'');
+  if(!pending.length){l.innerHTML='<div style="color:var(--gray2);font-size:11.5px;text-align:center;padding:6px;">Aucune demande</div>';return;}
+  l.innerHTML=pending.map((u,i)=>`
+    <div class="pu">
+      <div class="pu-em">${u.email}</div>
+      <div class="pu-dp">${u.name} — ${u.dept}</div>
+      <div class="pu-ac">
+        <button class="btnok" onclick="approveUser(${i})">✓ Approuver</button>
+        <button class="btnno" onclick="rejectUser(${i})">✗ Rejeter</button>
+      </div>
+    </div>`).join('');
+}
+
+async function approveUser(i){
+  const u=pending[i];
+  try{await fetch(`${API}/api/auth/register`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:u.email,password:u.password})});}catch{}
+  approved.push(u);localStorage.setItem('sa',JSON.stringify(approved));
+  pending.splice(i,1);localStorage.setItem('sp',JSON.stringify(pending));
+  renderPending();
+}
+
+function rejectUser(i){
+  pending.splice(i,1);localStorage.setItem('sp',JSON.stringify(pending));
+  renderPending();
+}
+
+function onFile(inp){
+  selFile=inp.files[0];
+  if(selFile){
+    document.getElementById('utxt').textContent='📄 '+selFile.name;
+    document.getElementById('uinp').style.display='flex';
+    document.getElementById('dname').value=selFile.name.replace('.pdf','');
+  }
+}
+
+async function uploadDoc(){
+  if(!selFile)return;
+  const name=document.getElementById('dname').value.trim(),cat=document.getElementById('dcat').value;
+  if(!name)return;
+  const btn=document.getElementById('bupl'),st=document.getElementById('ust');
+  btn.disabled=true;btn.textContent='⏳ Indexation...';
+  st.style.display='block';st.style.color='var(--gold)';st.textContent='⏳ Indexation en cours...';
+  const fd=new FormData();
+  fd.append('file',selFile);fd.append('document_name',name);fd.append('category',cat);fd.append('admin_key',AKEY);
+  try{
+    const r=await fetch(`${API}/api/documents/upload`,{method:'POST',body:fd});
+    const d=await r.json();
+    if(r.ok&&d.success){
+      st.style.color='#2ecc71';st.textContent=`✅ Indexé ! (${d.chunks_stored} chunks)`;
+      selFile=null;document.getElementById('pf').value='';
+      document.getElementById('uinp').style.display='none';
+      document.getElementById('utxt').textContent='Cliquer pour sélectionner un PDF';
+    }else{st.style.color='var(--red3)';st.textContent='❌ Erreur: '+(d.detail||'Vérifier la clé admin');}
+  }catch{st.style.color='var(--red3)';st.textContent='❌ Erreur de connexion';}
+  btn.disabled=false;btn.textContent='📤 Indexer le document';
+}
+
+function ask(q){document.getElementById('mi').value=q;sendMsg();}
+function onKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}}
+function rsz(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';}
+
+function renderHist(){
+  const l=document.getElementById('hlist');
+  if(!hist.length){l.innerHTML='<div style="color:var(--gray2);font-size:11.5px;text-align:center;padding:6px;">Aucune conversation</div>';return;}
+  l.innerHTML=hist.slice(-6).reverse().map(h=>`
+    <div class="hi" onclick="ask(${JSON.stringify(h)})">
+      <span style="font-size:12px;color:var(--gray)">💬</span>
+      <span class="hi-text">${h}</span>
+    </div>`).join('');
+}
+
+async function sendMsg(){
+  const inp=document.getElementById('mi'),q=inp.value.trim();
+  if(!q)return;
+  document.getElementById('wel').style.display='none';
+  const msgs=document.getElementById('msgs');
+  msgs.classList.add('on');
+  inp.value='';inp.style.height='auto';
+  document.getElementById('sbtn').disabled=true;
+  addMsg('u',q);
+  hist.push(q);renderHist();
+  const tid=addTyping();
+  try{
+    const r=await fetch(`${API}/api/chat/ask`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,bot_id:1})});
+    const d=await r.json();
+    removeTyping(tid);
+    if(r.ok&&d.success)addMsg('b',d.answer,d.sources_found,d.source_type);
+    else addMsg('b','Erreur de connexion au serveur. Veuillez réessayer.',0,'');
+  }catch{removeTyping(tid);addMsg('b','Erreur de connexion au serveur. Veuillez réessayer.',0,'');}
+  document.getElementById('sbtn').disabled=false;
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function addMsg(role,text,src=0,stype=''){
+  const msgs=document.getElementById('msgs');
+  const now=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const isU=role==='u';
+  let tag='';
+  if(!isU&&src>0){
+    if(stype==='pdf')tag=`<span class="spdf">📄 ${src} doc${src>1?'s':''}</span>`;
+    else if(stype==='web')tag=`<span class="sweb">🌐 Internet</span>`;
+    else if(stype==='both')tag=`<span class="sboth">📄+🌐 PDF & Web</span>`;
+  }
+  const el=document.createElement('div');
+  el.className='msg'+(isU?' u':'');
+  el.innerHTML=`
+    <div class="av ${isU?'u2':'b'}">${isU?'👤':'🚂'}</div>
+    <div>
+      <div class="bub ${isU?'u':'b'}">${text.replace(/\n/g,'<br>')}</div>
+      <div class="mmeta">${now} ${tag}</div>
+    </div>`;
+  msgs.appendChild(el);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function addTyping(){
+  const msgs=document.getElementById('msgs');
+  const id='t'+Date.now();
+  const el=document.createElement('div');
+  el.className='msg typing';el.id=id;
+  el.innerHTML=`<div class="av b">🚂</div><div class="bub b"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  msgs.appendChild(el);msgs.scrollTop=msgs.scrollHeight;
+  return id;
+}
+
+function removeTyping(id){const el=document.getElementById(id);if(el)el.remove();}
+
+function toggleLang(){
+  lang=lang==='fr'?'ar':'fr';
+  const ar=lang==='ar';
+  document.body.classList.toggle('rtl',ar);
+  document.documentElement.setAttribute('dir',ar?'rtl':'ltr');
+  document.getElementById('lbtn').textContent=ar?'Français':'عربي';
+  document.getElementById('mi').placeholder=ar?'اطرح سؤالك حول وثائق الشركة...':'Posez votre question sur les documents SNTF...';
+  document.getElementById('wtitle').textContent=ar?'مرحباً، كيف يمكنني مساعدتك؟':'Bonjour, comment puis-je vous aider ?';
+  document.getElementById('wdesc').textContent=ar?'اطرح أسئلتك حول اللوائح والإجراءات الرسمية للشركة الوطنية للنقل بالسكك الحديدية.':'Posez vos questions sur les règlements, procédures et documents officiels de la SNTF.';
+  document.getElementById('ihint').textContent=ar?'اضغط Enter للإرسال':'Entrée pour envoyer · Shift+Entrée pour nouvelle ligne';
+}
+</script>
 </body>
 </html>
