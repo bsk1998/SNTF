@@ -5,14 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload PDF - SNTF</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
@@ -20,7 +15,6 @@
             align-items: center;
             padding: 20px;
         }
-        
         .upload-container {
             background: white;
             border-radius: 20px;
@@ -29,23 +23,60 @@
             max-width: 600px;
             width: 100%;
         }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { color: #667eea; font-size: 28px; margin-bottom: 10px; }
+        .header p { color: #666; font-size: 16px; }
+
+        /* Auth box */
+        .auth-box {
+            background: #f8f9ff;
+            border: 2px solid #667eea;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
         }
-        
-        .header h1 {
-            color: #667eea;
-            font-size: 28px;
-            margin-bottom: 10px;
+        .auth-box label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
-        
-        .header p {
-            color: #666;
-            font-size: 16px;
+        .auth-box input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
         }
-        
+        .auth-box input:focus { border-color: #667eea; }
+
+        /* Form fields */
+        .field { margin-bottom: 16px; }
+        .field label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .field input, .field select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .field input:focus, .field select:focus { border-color: #667eea; }
+
         .upload-area {
             border: 3px dashed #667eea;
             border-radius: 15px;
@@ -55,42 +86,14 @@
             transition: all 0.3s;
             margin-bottom: 20px;
         }
-        
-        .upload-area:hover {
-            background: #f8f9ff;
-            border-color: #764ba2;
-        }
-        
-        .upload-area.dragging {
-            background: #f0f4ff;
-            border-color: #764ba2;
-            transform: scale(1.02);
-        }
-        
-        .upload-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-        }
-        
-        .upload-text {
-            color: #333;
-            font-size: 18px;
-            margin-bottom: 10px;
-        }
-        
-        .upload-subtext {
-            color: #999;
-            font-size: 14px;
-        }
-        
-        input[type="file"] {
-            display: none;
-        }
-        
-        .file-list {
-            margin-top: 20px;
-        }
-        
+        .upload-area:hover { background: #f8f9ff; border-color: #764ba2; }
+        .upload-area.dragging { background: #f0f4ff; border-color: #764ba2; transform: scale(1.02); }
+        .upload-icon { font-size: 48px; margin-bottom: 15px; }
+        .upload-text { color: #333; font-size: 18px; margin-bottom: 10px; }
+        .upload-subtext { color: #999; font-size: 14px; }
+        input[type="file"] { display: none; }
+
+        .file-list { margin-top: 20px; }
         .file-item {
             background: #f8f9fa;
             padding: 15px;
@@ -100,12 +103,7 @@
             justify-content: space-between;
             align-items: center;
         }
-        
-        .file-name {
-            color: #333;
-            font-weight: 500;
-        }
-        
+        .file-name { color: #333; font-weight: 500; }
         .remove-btn {
             background: #dc3545;
             color: white;
@@ -115,7 +113,6 @@
             cursor: pointer;
             font-size: 12px;
         }
-        
         .upload-btn {
             width: 100%;
             padding: 15px;
@@ -129,31 +126,10 @@
             transition: transform 0.2s;
             margin-top: 20px;
         }
-        
-        .upload-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-        
-        .upload-btn:disabled {
-            background: #adb5bd;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .progress {
-            margin-top: 20px;
-            display: none;
-        }
-        
-        .progress-bar {
-            width: 100%;
-            height: 30px;
-            background: #e9ecef;
-            border-radius: 15px;
-            overflow: hidden;
-        }
-        
+        .upload-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102,126,234,0.4); }
+        .upload-btn:disabled { background: #adb5bd; cursor: not-allowed; transform: none; }
+        .progress { margin-top: 20px; display: none; }
+        .progress-bar { width: 100%; height: 30px; background: #e9ecef; border-radius: 15px; overflow: hidden; }
         .progress-fill {
             height: 100%;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -165,33 +141,11 @@
             color: white;
             font-weight: bold;
         }
-        
-        .status {
-            margin-top: 15px;
-            text-align: center;
-            font-size: 14px;
-        }
-        
-        .status.success {
-            color: #28a745;
-        }
-        
-        .status.error {
-            color: #dc3545;
-        }
-        
-        .back-link {
-            display: block;
-            text-align: center;
-            margin-top: 20px;
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        
-        .back-link:hover {
-            text-decoration: underline;
-        }
+        .status { margin-top: 15px; text-align: center; font-size: 14px; }
+        .status.success { color: #28a745; font-weight: 600; }
+        .status.error { color: #dc3545; font-weight: 600; }
+        .back-link { display: block; text-align: center; margin-top: 20px; color: #667eea; text-decoration: none; font-weight: 500; }
+        .back-link:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -200,28 +154,51 @@
             <h1>📤 Upload PDF SNTF</h1>
             <p>Ajoutez vos documents officiels SNTF à la base de connaissances</p>
         </div>
-        
+
+        <!-- Clé Admin -->
+        <div class="auth-box">
+            <label>🔑 Clé Administrateur</label>
+            <input type="password" id="adminKey" placeholder="Entrez votre clé admin...">
+        </div>
+
+        <!-- Nom et catégorie -->
+        <div class="field">
+            <label>📄 Nom du document</label>
+            <input type="text" id="docName" placeholder="Ex: Règlement sécurité 2024">
+        </div>
+        <div class="field">
+            <label>📁 Catégorie</label>
+            <select id="docCat">
+                <option value="Sécurité">🛡️ Sécurité</option>
+                <option value="Exploitation">🚆 Exploitation</option>
+                <option value="Ressources Humaines">👥 Ressources Humaines</option>
+                <option value="Technique">🔧 Technique</option>
+                <option value="Administrative">📋 Administrative</option>
+                <option value="General">📂 Général</option>
+            </select>
+        </div>
+
+        <!-- Zone drop -->
         <div class="upload-area" id="uploadArea">
             <div class="upload-icon">📄</div>
-            <div class="upload-text">Cliquez ou glissez vos fichiers PDF ici</div>
+            <div class="upload-text" id="uploadText">Cliquez ou glissez votre fichier PDF ici</div>
             <div class="upload-subtext">Formats acceptés : PDF uniquement</div>
         </div>
-        
-        <input type="file" id="fileInput" accept=".pdf" multiple>
-        
+        <input type="file" id="fileInput" accept=".pdf">
+
         <div class="file-list" id="fileList"></div>
-        
+
         <button class="upload-btn" id="uploadBtn" disabled>
-            Uploader les fichiers
+            📤 Uploader et indexer le PDF
         </button>
-        
+
         <div class="progress" id="progress">
             <div class="progress-bar">
                 <div class="progress-fill" id="progressFill">0%</div>
             </div>
             <div class="status" id="status"></div>
         </div>
-        
+
         <a href="/" class="back-link">← Retour au chat</a>
     </div>
 
@@ -233,103 +210,105 @@
         const progress = document.getElementById('progress');
         const progressFill = document.getElementById('progressFill');
         const status = document.getElementById('status');
-        
-        let selectedFiles = [];
+
+        let selectedFile = null;
 
         uploadArea.addEventListener('click', () => fileInput.click());
-        
+
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadArea.classList.add('dragging');
         });
-        
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragging');
-        });
-        
+        uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragging'));
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadArea.classList.remove('dragging');
-            handleFiles(e.dataTransfer.files);
-        });
-        
-        fileInput.addEventListener('change', (e) => {
-            handleFiles(e.target.files);
-        });
-        
-        function handleFiles(files) {
-            for (let file of files) {
-                if (file.type === 'application/pdf') {
-                    selectedFiles.push(file);
-                }
+            if (e.dataTransfer.files[0]?.type === 'application/pdf') {
+                handleFile(e.dataTransfer.files[0]);
             }
-            updateFileList();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) handleFile(e.target.files[0]);
+        });
+
+        function handleFile(file) {
+            selectedFile = file;
+            document.getElementById('uploadText').textContent = '📄 ' + file.name;
+            document.getElementById('docName').value = file.name.replace('.pdf', '');
+            fileList.innerHTML = `
+                <div class="file-item">
+                    <span class="file-name">📄 ${file.name}</span>
+                    <button class="remove-btn" onclick="removeFile()">Supprimer</button>
+                </div>`;
+            uploadBtn.disabled = false;
         }
-        
-        function updateFileList() {
+
+        function removeFile() {
+            selectedFile = null;
             fileList.innerHTML = '';
-            selectedFiles.forEach((file, index) => {
-                const fileItem = document.createElement('div');
-                fileItem.className = 'file-item';
-                fileItem.innerHTML = `
-                    <span class="file-name">${file.name}</span>
-                    <button class="remove-btn" onclick="removeFile(${index})">Supprimer</button>
-                `;
-                fileList.appendChild(fileItem);
-            });
-            uploadBtn.disabled = selectedFiles.length === 0;
+            uploadBtn.disabled = true;
+            document.getElementById('uploadText').textContent = 'Cliquez ou glissez votre fichier PDF ici';
+            fileInput.value = '';
         }
-        
-        function removeFile(index) {
-            selectedFiles.splice(index, 1);
-            updateFileList();
-        }
-        
+
         uploadBtn.addEventListener('click', async () => {
-            if (selectedFiles.length === 0) return;
-            
+            const adminKey = document.getElementById('adminKey').value.trim();
+            const docName = document.getElementById('docName').value.trim();
+            const docCat = document.getElementById('docCat').value;
+
+            if (!adminKey) {
+                alert('⚠️ Entrez votre clé administrateur !');
+                return;
+            }
+            if (!selectedFile) {
+                alert('⚠️ Sélectionnez un fichier PDF !');
+                return;
+            }
+            if (!docName) {
+                alert('⚠️ Entrez un nom pour le document !');
+                return;
+            }
+
             uploadBtn.disabled = true;
             progress.style.display = 'block';
-            status.textContent = 'Upload en cours...';
+            status.textContent = '⏳ Indexation en cours... (peut prendre 1-2 minutes)';
             status.className = 'status';
-            
-            let completed = 0;
-            
-            for (let file of selectedFiles) {
-                try {
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    
-                    const response = await fetch('/api/documents/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    if (!response.ok) throw new Error('Upload failed');
-                    
-                    completed++;
-                    const percent = Math.round((completed / selectedFiles.length) * 100);
-                    progressFill.style.width = percent + '%';
-                    progressFill.textContent = percent + '%';
-                    
-                } catch (error) {
-                    status.textContent = `Erreur lors de l'upload de ${file.name}`;
+            progressFill.style.width = '30%';
+            progressFill.textContent = '...';
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('document_name', docName);
+            formData.append('category', docCat);
+            formData.append('admin_key', adminKey);
+
+            try {
+                const response = await fetch('/api/documents/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    progressFill.style.width = '100%';
+                    progressFill.textContent = '100%';
+                    status.textContent = `✅ Indexé avec succès ! ${data.chunks_stored} chunks sauvegardés dans Supabase`;
+                    status.className = 'status success';
+                    removeFile();
+                } else {
+                    status.textContent = '❌ Erreur : ' + (data.detail || JSON.stringify(data));
                     status.className = 'status error';
-                    uploadBtn.disabled = false;
-                    return;
+                    progressFill.style.width = '0%';
                 }
-            }
-            
-            status.textContent = `✅ ${completed} fichier(s) uploadé(s) avec succès!`;
-            status.className = 'status success';
-            selectedFiles = [];
-            updateFileList();
-            uploadBtn.disabled = false;
-            
-            setTimeout(() => {
-                progress.style.display = 'none';
+            } catch (error) {
+                status.textContent = '❌ Erreur de connexion au serveur';
+                status.className = 'status error';
                 progressFill.style.width = '0%';
-            }, 3000);
+            }
+
+            uploadBtn.disabled = false;
         });
     </script>
 </body>
