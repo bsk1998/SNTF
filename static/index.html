@@ -6,49 +6,28 @@
 <title>SNTF — Assistant Intelligent</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;700&family=Cairo:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-:root {
-  --black: #080808;
-  --black2: #111;
-  --black3: #1a1a1a;
-  --red: #C0392B;
-  --red2: #922B21;
-  --red3: #E74C3C;
-  --gold: #C8A84B;
-  --gold2: #E8C96A;
-  --white: #F5F0E8;
-  --gray: #777;
-  --gray2: #444;
-  --border: rgba(200,168,75,0.15);
-  --border2: rgba(192,57,43,0.2);
-}
+:root{--black:#080808;--black2:#111;--black3:#1a1a1a;--red:#C0392B;--red2:#922B21;--red3:#E74C3C;--gold:#C8A84B;--gold2:#E8C96A;--white:#F5F0E8;--gray:#777;--gray2:#444;--border:rgba(200,168,75,0.15);--border2:rgba(192,57,43,0.2);}
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Cairo',sans-serif;background:var(--black);color:var(--white);height:100vh;overflow:hidden;display:flex;flex-direction:column;}
 body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 40% at 10% 0%,rgba(192,57,43,0.07) 0%,transparent 60%),radial-gradient(ellipse 40% 50% at 90% 100%,rgba(200,168,75,0.05) 0%,transparent 50%);pointer-events:none;z-index:0;}
 .rail{position:fixed;bottom:0;left:0;right:0;height:2px;background:repeating-linear-gradient(90deg,var(--gold) 0,var(--gold) 25px,transparent 25px,transparent 45px);opacity:0.15;z-index:0;}
-
-/* SCREENS */
 .screen{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;transition:opacity .35s,transform .35s;}
 .screen.out{opacity:0;pointer-events:none;transform:scale(.97);}
 
-/* ===== AUTH ===== */
+/* AUTH */
 #auth{background:var(--black);}
 .aw{width:100%;max-width:400px;padding:20px;}
-
-/* Locomotive */
 .loco-anim{display:inline-block;animation:loco 3s ease-in-out infinite;}
 @keyframes loco{0%,100%{transform:translateX(0);}30%{transform:translateX(3px);}70%{transform:translateX(-3px);}}
 .s1{animation:sm 1.4s ease-out infinite;}
 .s2{animation:sm 1.4s ease-out infinite .3s;}
 .s3{animation:sm 1.4s ease-out infinite .6s;}
 @keyframes sm{0%{opacity:.7;transform:translateY(0) scale(.4);}100%{opacity:0;transform:translateY(-18px) scale(1.4);}}
-
 .atitle{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:700;text-align:center;letter-spacing:.1em;}
 .asub{font-size:11px;color:var(--gold);letter-spacing:.22em;text-transform:uppercase;text-align:center;margin-top:4px;margin-bottom:22px;}
-
 .tabs{display:flex;background:var(--black3);border:1px solid var(--border);border-radius:10px;padding:3px;margin-bottom:18px;}
 .tab{flex:1;padding:9px;text-align:center;font-size:13px;font-weight:500;cursor:pointer;border-radius:8px;transition:all .2s;color:var(--gray);border:none;background:transparent;font-family:'Cairo',sans-serif;}
 .tab.on{background:linear-gradient(135deg,var(--red2),var(--red));color:#fff;box-shadow:0 3px 10px rgba(192,57,43,.3);}
-
 .form{display:flex;flex-direction:column;gap:12px;}
 .fg{display:flex;flex-direction:column;gap:5px;}
 .fg label{font-size:11px;color:var(--gray);letter-spacing:.06em;text-transform:uppercase;}
@@ -56,9 +35,20 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .fg input:focus,.fg select:focus{border-color:var(--gold);}
 .fg input::placeholder{color:var(--gray2);}
 .fg select option{background:var(--black3);}
-.btnm{background:linear-gradient(135deg,var(--red2),var(--red));color:#fff;border:none;border-radius:9px;padding:13px;font-family:'Cairo',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 4px 14px rgba(192,57,43,.3);margin-top:2px;}
+.btnm{background:linear-gradient(135deg,var(--red2),var(--red));color:#fff;border:none;border-radius:9px;padding:13px;font-family:'Cairo',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 4px 14px rgba(192,57,43,.3);margin-top:2px;width:100%;}
 .btnm:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(192,57,43,.45);}
 .btnm:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none;}
+
+/* Google Button */
+.btn-google{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#333;border:1px solid #ddd;border-radius:9px;padding:12px;font-family:'Cairo',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;width:100%;margin-top:4px;}
+.btn-google:hover{background:#f5f5f5;box-shadow:0 4px 12px rgba(0,0,0,.15);transform:translateY(-1px);}
+.btn-google:disabled{opacity:.45;cursor:not-allowed;transform:none;}
+.btn-google img{width:20px;height:20px;}
+
+.divider{display:flex;align-items:center;gap:12px;margin:4px 0;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.divider span{font-size:11px;color:var(--gray2);}
+
 .amsg{text-align:center;font-size:12.5px;padding:9px 12px;border-radius:8px;margin-top:2px;display:none;}
 .amsg.ok{background:rgba(39,174,96,.1);border:1px solid rgba(39,174,96,.3);color:#2ecc71;}
 .amsg.err{background:rgba(192,57,43,.1);border:1px solid var(--border2);color:var(--red3);}
@@ -67,10 +57,8 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .admlink button{background:transparent;border:none;color:var(--gray2);font-size:11px;cursor:pointer;font-family:'Cairo',sans-serif;transition:color .2s;}
 .admlink button:hover{color:var(--gold);}
 
-/* ===== APP ===== */
+/* APP */
 #app{flex-direction:column;align-items:stretch;}
-
-/* HEADER */
 .hdr{display:flex;align-items:center;justify-content:space-between;padding:13px 24px;background:rgba(8,8,8,.97);border-bottom:1px solid var(--border);backdrop-filter:blur(20px);flex-shrink:0;z-index:50;position:relative;}
 .hlogo{display:flex;align-items:center;gap:12px;}
 .hloco{animation:loco 4s ease-in-out infinite;font-size:22px;display:inline-block;}
@@ -78,16 +66,13 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .hname span{font-size:10px;color:var(--gold);letter-spacing:.18em;text-transform:uppercase;}
 .hright{display:flex;align-items:center;gap:11px;}
 .ubdg{display:flex;align-items:center;gap:7px;background:var(--black3);border:1px solid var(--border);border-radius:18px;padding:5px 12px 5px 7px;font-size:12.5px;}
-.uav{width:24px;height:24px;background:linear-gradient(135deg,var(--gold),var(--gold2));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--black);font-weight:700;}
+.uav{width:28px;height:28px;border-radius:50%;object-fit:cover;}
+.uav-txt{width:28px;height:28px;background:linear-gradient(135deg,var(--gold),var(--gold2));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--black);font-weight:700;}
 .ibtn{background:transparent;border:1px solid var(--border);border-radius:7px;width:34px;height:34px;color:var(--gray);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .2s;}
 .ibtn:hover{border-color:var(--red);color:var(--red3);}
 .lbtn{background:var(--black3);border:1px solid var(--border);border-radius:18px;padding:5px 11px;color:var(--gold);font-size:11px;cursor:pointer;font-family:'Cairo',sans-serif;transition:all .2s;}
 .lbtn:hover{border-color:var(--gold);}
-
-/* BODY */
 .body{flex:1;display:flex;overflow:hidden;position:relative;}
-
-/* SIDEBAR */
 .sb{width:248px;background:var(--black2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;}
 .sb::-webkit-scrollbar{width:3px;}
 .sb::-webkit-scrollbar-thumb{background:var(--border);}
@@ -98,8 +83,6 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .hi-text{font-size:12px;color:var(--gray);line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
 .qq{width:100%;background:transparent;border:1px solid transparent;border-radius:8px;padding:8px 9px;color:var(--gray);font-family:'Cairo',sans-serif;font-size:12px;cursor:pointer;text-align:left;transition:all .2s;line-height:1.5;margin-bottom:3px;}
 .qq:hover{background:rgba(192,57,43,.07);border-color:var(--border2);color:var(--white);transform:translateX(3px);}
-
-/* Upload */
 .uplbox{background:var(--black3);border:1px dashed var(--border);border-radius:9px;padding:13px;text-align:center;cursor:pointer;transition:all .2s;}
 .uplbox:hover{border-color:var(--gold);background:rgba(200,168,75,0.08);}
 .uplbox .ui{font-size:20px;margin-bottom:4px;}
@@ -113,8 +96,6 @@ input[type=file]{display:none;}
 .btnupl:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(200,168,75,.3);}
 .btnupl:disabled{opacity:.45;cursor:not-allowed;transform:none;}
 .uplst{font-size:11px;text-align:center;margin-top:7px;padding:5px;border-radius:6px;display:none;}
-
-/* Pending */
 .pu{background:var(--black3);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:7px;}
 .pu-em{color:var(--white);font-size:12px;font-weight:500;margin-bottom:2px;word-break:break-all;}
 .pu-dp{color:var(--gray);font-size:11px;margin-bottom:7px;}
@@ -123,8 +104,6 @@ input[type=file]{display:none;}
 .btnok:hover{background:rgba(39,174,96,.22);}
 .btnno{flex:1;background:rgba(192,57,43,.1);border:1px solid var(--border2);color:var(--red3);border-radius:6px;padding:5px;font-size:11px;cursor:pointer;font-family:'Cairo',sans-serif;}
 .btnno:hover{background:rgba(192,57,43,.2);}
-
-/* CHAT */
 .chat{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .wel{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;gap:16px;text-align:center;}
 .wloco{font-size:50px;animation:loco 3s ease-in-out infinite;display:inline-block;}
@@ -136,8 +115,6 @@ input[type=file]{display:none;}
 .wcard .wi{font-size:17px;margin-bottom:4px;}
 .wcard .wl{font-size:12.5px;color:var(--white);font-weight:500;}
 .wcard .ws{font-size:11px;color:var(--gray);margin-top:2px;}
-
-/* Messages */
 .msgs{flex:1;overflow-y:auto;padding:20px 24px;display:none;flex-direction:column;gap:16px;scroll-behavior:smooth;}
 .msgs.on{display:flex;}
 .msgs::-webkit-scrollbar{width:3px;}
@@ -156,15 +133,11 @@ input[type=file]{display:none;}
 .spdf{background:rgba(200,168,75,.1);border:1px solid var(--border);border-radius:10px;padding:2px 7px;font-size:10px;color:var(--gold);}
 .sweb{background:rgba(39,174,96,.1);border:1px solid rgba(39,174,96,.25);border-radius:10px;padding:2px 7px;font-size:10px;color:#2ecc71;}
 .sboth{background:rgba(100,100,200,.1);border:1px solid rgba(100,100,200,.25);border-radius:10px;padding:2px 7px;font-size:10px;color:#7B8BE8;}
-
-/* Typing */
 .typing .bub{display:flex;align-items:center;gap:5px;padding:14px 15px;}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--gold);animation:bl 1.2s infinite;}
 .dot:nth-child(2){animation-delay:.2s;}
 .dot:nth-child(3){animation-delay:.4s;}
 @keyframes bl{0%,100%{opacity:.3;transform:scale(.8);}50%{opacity:1;transform:scale(1.2);}}
-
-/* INPUT */
 .inpa{padding:13px 24px 17px;background:rgba(8,8,8,.95);border-top:1px solid var(--border);backdrop-filter:blur(20px);}
 .inpr{display:flex;gap:9px;align-items:flex-end;background:var(--black3);border:1px solid var(--border);border-radius:13px;padding:9px 12px;transition:border-color .2s;}
 .inpr:focus-within{border-color:rgba(192,57,43,.4);box-shadow:0 0 0 3px rgba(192,57,43,.04);}
@@ -176,22 +149,13 @@ input[type=file]{display:none;}
 .sbtn:disabled{opacity:.3;cursor:not-allowed;transform:none;box-shadow:none;}
 .ihint{font-size:10.5px;color:var(--gray2);text-align:center;margin-top:7px;}
 .ndot{width:7px;height:7px;background:var(--red3);border-radius:50%;display:inline-block;animation:bl 2s infinite;box-shadow:0 0 5px var(--red3);margin-left:5px;vertical-align:middle;}
-
 body.rtl{direction:rtl;}
 body.rtl .msg.u{flex-direction:row;}
 body.rtl .msg:not(.u){flex-direction:row-reverse;}
 body.rtl .bub.b{border-radius:13px 3px 13px 13px;}
 body.rtl .bub.u{border-radius:3px 13px 13px 13px;}
 body.rtl .qq:hover{transform:translateX(-3px);}
-
-@media(max-width:700px){
-  .sb{display:none;}
-  .hdr{padding:10px 14px;}
-  .msgs{padding:14px;}
-  .inpa{padding:10px 14px 14px;}
-  .wel{padding:20px;}
-  .wgrid{grid-template-columns:1fr;}
-}
+@media(max-width:700px){.sb{display:none;}.hdr{padding:10px 14px;}.msgs{padding:14px;}.inpa{padding:10px 14px 14px;}.wel{padding:20px;}.wgrid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -224,20 +188,37 @@ body.rtl .qq:hover{transform:translateX(-3px);}
     </div>
     <div class="atitle">SNTF</div>
     <div class="asub">Assistant Intelligent</div>
+
     <div class="tabs">
       <button class="tab on" id="tl" onclick="stab('l')">Connexion</button>
       <button class="tab" id="tr" onclick="stab('r')">Inscription</button>
     </div>
+
+    <!-- LOGIN -->
     <div id="lf">
       <div class="form">
+        <!-- Google Button -->
+        <button class="btn-google" id="btn-google-login" onclick="googleLogin()">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+          Continuer avec Google
+        </button>
+        <div class="divider"><span>ou</span></div>
         <div class="fg"><label>Email professionnel</label><input type="email" id="le" placeholder="nom@sntf.dz" onkeydown="if(event.key==='Enter')doLogin()"></div>
         <div class="fg"><label>Mot de passe</label><input type="password" id="lp" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
         <button class="btnm" id="blg" onclick="doLogin()">Se connecter</button>
         <div class="amsg" id="lmsg"></div>
       </div>
     </div>
+
+    <!-- REGISTER -->
     <div id="rf" style="display:none;">
       <div class="form">
+        <!-- Google Button -->
+        <button class="btn-google" id="btn-google-reg" onclick="googleLogin()">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+          S'inscrire avec Google
+        </button>
+        <div class="divider"><span>ou</span></div>
         <div class="fg"><label>Email professionnel</label><input type="email" id="re" placeholder="nom@sntf.dz"></div>
         <div class="fg"><label>Nom complet</label><input type="text" id="rn" placeholder="Prénom Nom"></div>
         <div class="fg"><label>Département</label>
@@ -252,6 +233,7 @@ body.rtl .qq:hover{transform:translateX(-3px);}
         <div class="amsg" id="rmsg"></div>
       </div>
     </div>
+
     <div class="admlink"><button onclick="adminLogin()">Accès administrateur</button></div>
   </div>
 </div>
@@ -265,7 +247,10 @@ body.rtl .qq:hover{transform:translateX(-3px);}
     </div>
     <div class="hright">
       <button class="lbtn" id="lbtn" onclick="toggleLang()">عربي</button>
-      <div class="ubdg"><div class="uav" id="uav">U</div><span id="uname">utilisateur</span></div>
+      <div class="ubdg">
+        <div id="uav-wrap"></div>
+        <span id="uname">utilisateur</span>
+      </div>
       <button class="ibtn" onclick="logout()" title="Déconnexion">⏻</button>
     </div>
   </div>
@@ -326,64 +311,127 @@ body.rtl .qq:hover{transform:translateX(-3px);}
   </div>
 </div>
 
-<script>
-const API='https://sntf.onrender.com';
-const AKEY='sntf2024admin';
-let user=null,isAdmin=false,lang='fr';
-let pending=JSON.parse(localStorage.getItem('sp')||'[]');
-let approved=JSON.parse(localStorage.getItem('sa')||'[]');
-let hist=[],selFile=null;
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-function stab(t){
-  document.getElementById('lf').style.display=t==='l'?'block':'none';
-  document.getElementById('rf').style.display=t==='r'?'block':'none';
-  document.getElementById('tl').className='tab'+(t==='l'?' on':'');
-  document.getElementById('tr').className='tab'+(t==='r'?' on':'');
-}
+const firebaseConfig = {
+  apiKey: "AIzaSyD8sVXQs5mtLthcbZIe_JWBURH1mkBumFs",
+  authDomain: "sntf-assistan.firebaseapp.com",
+  projectId: "sntf-assistan",
+  storageBucket: "sntf-assistan.firebasestorage.app",
+  messagingSenderId: "388691776105",
+  appId: "1:388691776105:web:c9ec06bfced2e015af08f8"
+};
 
-async function doLogin(){
-  const e=document.getElementById('le').value.trim().toLowerCase();
-  const p=document.getElementById('lp').value;
-  const btn=document.getElementById('blg'),msg=document.getElementById('lmsg');
-  if(!e||!p)return;
-  if(e==='admin'&&p===AKEY){user={email:'admin'};isAdmin=true;enterApp();return;}
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+const API = 'https://sntf.onrender.com';
+const AKEY = 'sntf2024admin';
+let isAdmin = false;
+let lang = 'fr';
+let hist = [];
+let selFile = null;
+let pending = JSON.parse(localStorage.getItem('sp')||'[]');
+let approved = JSON.parse(localStorage.getItem('sa')||'[]');
+
+// Expose functions to window
+window.stab = (t) => {
+  document.getElementById('lf').style.display = t==='l'?'block':'none';
+  document.getElementById('rf').style.display = t==='r'?'block':'none';
+  document.getElementById('tl').className = 'tab'+(t==='l'?' on':'');
+  document.getElementById('tr').className = 'tab'+(t==='r'?' on':'');
+};
+
+window.googleLogin = async () => {
+  try {
+    document.getElementById('btn-google-login').disabled = true;
+    document.getElementById('btn-google-reg').disabled = true;
+    const result = await signInWithPopup(auth, provider);
+    const u = result.user;
+    // Check if approved or pending
+    const email = u.email.toLowerCase();
+    const isPending = pending.find(x => x.email === email);
+    if (isPending) {
+      await signOut(auth);
+      showM(document.getElementById('lmsg'), "Votre compte Google est en attente de validation par l'administrateur.", 'wait');
+      document.getElementById('btn-google-login').disabled = false;
+      document.getElementById('btn-google-reg').disabled = false;
+      return;
+    }
+    // First time Google user → add to pending
+    if (!approved.find(x => x.email === email)) {
+      pending.push({email, name: u.displayName||email, dept: 'Non spécifié', password:'', method:'google', photo: u.photoURL});
+      localStorage.setItem('sp', JSON.stringify(pending));
+      await signOut(auth);
+      showM(document.getElementById('lmsg'), "Demande envoyée ! En attente de validation par l'administrateur.", 'ok');
+      document.getElementById('btn-google-login').disabled = false;
+      document.getElementById('btn-google-reg').disabled = false;
+      return;
+    }
+    // Approved → enter app
+    enterApp({email, name: u.displayName||email, photo: u.photoURL});
+  } catch(e) {
+    console.error(e);
+    showM(document.getElementById('lmsg'), 'Erreur Google: '+e.message, 'err');
+    document.getElementById('btn-google-login').disabled = false;
+    document.getElementById('btn-google-reg').disabled = false;
+  }
+};
+
+window.doLogin = async () => {
+  const e = document.getElementById('le').value.trim().toLowerCase();
+  const p = document.getElementById('lp').value;
+  const btn = document.getElementById('blg');
+  const msg = document.getElementById('lmsg');
+  if(!e||!p) return;
+  if(e==='admin'&&p===AKEY){isAdmin=true;enterApp({email:'admin',name:'Admin'});return;}
   if(pending.find(u=>u.email===e)){showM(msg,"Votre compte est en attente de validation par l'administrateur.",'wait');return;}
   btn.disabled=true;btn.textContent='...';
-  try{
-    const r=await fetch(`${API}/api/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e,password:p})});
-    const d=await r.json();
-    if(r.ok&&d.success){user=d.user;isAdmin=false;enterApp();}
-    else showM(msg,'Email ou mot de passe incorrect','err');
-  }catch{showM(msg,'Erreur de connexion au serveur','err');}
+  try {
+    await signInWithEmailAndPassword(auth, e, p);
+    enterApp({email:e, name:e.split('@')[0]});
+  } catch(err) {
+    showM(msg,'Email ou mot de passe incorrect','err');
+  }
   btn.disabled=false;btn.textContent='Se connecter';
-}
+};
 
-async function doRegister(){
-  const e=document.getElementById('re').value.trim().toLowerCase();
-  const n=document.getElementById('rn').value.trim();
-  const d=document.getElementById('rd').value;
-  const p=document.getElementById('rp').value;
-  const btn=document.getElementById('brg'),msg=document.getElementById('rmsg');
+window.doRegister = async () => {
+  const e = document.getElementById('re').value.trim().toLowerCase();
+  const n = document.getElementById('rn').value.trim();
+  const d = document.getElementById('rd').value;
+  const p = document.getElementById('rp').value;
+  const btn = document.getElementById('brg');
+  const msg = document.getElementById('rmsg');
   if(!e||!n||!d||!p){showM(msg,'Tous les champs sont requis','err');return;}
   if(p.length<6){showM(msg,'Mot de passe trop court (min 6 caractères)','err');return;}
   if(pending.find(u=>u.email===e)||approved.find(u=>u.email===e)){showM(msg,'Cet email est déjà utilisé','err');return;}
-  pending.push({email:e,name:n,dept:d,password:p});
+  pending.push({email:e,name:n,dept:d,password:p,method:'email'});
   localStorage.setItem('sp',JSON.stringify(pending));
   showM(msg,"Demande envoyée ! En attente de validation par l'administrateur.",'ok');
   btn.disabled=true;setTimeout(()=>btn.disabled=false,4000);
-}
+};
 
-function adminLogin(){
-  const k=prompt('Clé administrateur :');
-  if(k===AKEY){user={email:'admin'};isAdmin=true;enterApp();}
-  else if(k!==null)alert('Clé incorrecte');
-}
+window.adminLogin = () => {
+  const k = prompt('Clé administrateur :');
+  if(k===AKEY){isAdmin=true;enterApp({email:'admin',name:'Admin'});}
+  else if(k!==null) alert('Clé incorrecte');
+};
 
-function enterApp(){
+function enterApp(u) {
   document.getElementById('auth').classList.add('out');
   document.getElementById('app').classList.remove('out');
-  document.getElementById('uav').textContent=user.email[0].toUpperCase();
-  document.getElementById('uname').textContent=isAdmin?'👑 Admin':user.email.split('@')[0];
+  const wrap = document.getElementById('uav-wrap');
+  if(u.photo) {
+    wrap.innerHTML = `<img src="${u.photo}" class="uav" referrerpolicy="no-referrer">`;
+  } else {
+    wrap.innerHTML = `<div class="uav-txt">${(u.name||u.email)[0].toUpperCase()}</div>`;
+  }
+  document.getElementById('uname').textContent = isAdmin ? '👑 Admin' : (u.name||u.email.split('@')[0]);
   if(isAdmin){
     document.getElementById('aup').style.display='block';
     document.getElementById('apnd').style.display='block';
@@ -391,59 +439,71 @@ function enterApp(){
   }
 }
 
-function logout(){
-  user=null;isAdmin=false;
+window.logout = async () => {
+  try { await signOut(auth); } catch(e){}
+  isAdmin=false;
   document.getElementById('app').classList.add('out');
   document.getElementById('auth').classList.remove('out');
   document.getElementById('msgs').innerHTML='';
   document.getElementById('msgs').classList.remove('on');
   document.getElementById('wel').style.display='flex';
   hist=[];renderHist();
-}
+};
 
 function showM(el,txt,type){
   el.textContent=txt;el.className='amsg '+type;el.style.display='block';
-  setTimeout(()=>el.style.display='none',5000);
+  setTimeout(()=>el.style.display='none',6000);
 }
 
 function renderPending(){
+  pending = JSON.parse(localStorage.getItem('sp')||'[]');
   const l=document.getElementById('plist');
   document.getElementById('plbl').innerHTML='Comptes en attente'+(pending.length?` <span class="ndot"></span>`:'');
   if(!pending.length){l.innerHTML='<div style="color:var(--gray2);font-size:11.5px;text-align:center;padding:6px;">Aucune demande</div>';return;}
   l.innerHTML=pending.map((u,i)=>`
     <div class="pu">
       <div class="pu-em">${u.email}</div>
-      <div class="pu-dp">${u.name} — ${u.dept}</div>
+      <div class="pu-dp">${u.name} — ${u.dept||'Google'} ${u.method==='google'?'🔵':''}</div>
       <div class="pu-ac">
-        <button class="btnok" onclick="approveUser(${i})">✓ Approuver</button>
-        <button class="btnno" onclick="rejectUser(${i})">✗ Rejeter</button>
+        <button class="btnok" onclick="window.approveUser(${i})">✓ Approuver</button>
+        <button class="btnno" onclick="window.rejectUser(${i})">✗ Rejeter</button>
       </div>
     </div>`).join('');
 }
 
-async function approveUser(i){
-  const u=pending[i];
-  try{await fetch(`${API}/api/auth/register`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:u.email,password:u.password})});}catch{}
-  approved.push(u);localStorage.setItem('sa',JSON.stringify(approved));
-  pending.splice(i,1);localStorage.setItem('sp',JSON.stringify(pending));
+window.approveUser = async (i) => {
+  pending = JSON.parse(localStorage.getItem('sp')||'[]');
+  const u = pending[i];
+  if(u.method !== 'google' && u.password) {
+    try {
+      await createUserWithEmailAndPassword(auth, u.email, u.password);
+      await signOut(auth);
+    } catch(e){ console.log('User may already exist'); }
+  }
+  approved.push(u);
+  localStorage.setItem('sa',JSON.stringify(approved));
+  pending.splice(i,1);
+  localStorage.setItem('sp',JSON.stringify(pending));
   renderPending();
-}
+};
 
-function rejectUser(i){
-  pending.splice(i,1);localStorage.setItem('sp',JSON.stringify(pending));
+window.rejectUser = (i) => {
+  pending = JSON.parse(localStorage.getItem('sp')||'[]');
+  pending.splice(i,1);
+  localStorage.setItem('sp',JSON.stringify(pending));
   renderPending();
-}
+};
 
-function onFile(inp){
+window.onFile = (inp) => {
   selFile=inp.files[0];
   if(selFile){
     document.getElementById('utxt').textContent='📄 '+selFile.name;
     document.getElementById('uinp').style.display='flex';
     document.getElementById('dname').value=selFile.name.replace('.pdf','');
   }
-}
+};
 
-async function uploadDoc(){
+window.uploadDoc = async () => {
   if(!selFile)return;
   const name=document.getElementById('dname').value.trim(),cat=document.getElementById('dcat').value;
   if(!name)return;
@@ -460,26 +520,26 @@ async function uploadDoc(){
       selFile=null;document.getElementById('pf').value='';
       document.getElementById('uinp').style.display='none';
       document.getElementById('utxt').textContent='Cliquer pour sélectionner un PDF';
-    }else{st.style.color='var(--red3)';st.textContent='❌ Erreur: '+(d.detail||'Vérifier la clé admin');}
+    }else{st.style.color='var(--red3)';st.textContent='❌ Erreur: '+(d.detail||'');}
   }catch{st.style.color='var(--red3)';st.textContent='❌ Erreur de connexion';}
   btn.disabled=false;btn.textContent='📤 Indexer le document';
-}
+};
 
-function ask(q){document.getElementById('mi').value=q;sendMsg();}
-function onKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}}
-function rsz(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';}
+window.ask = (q) => { document.getElementById('mi').value=q; window.sendMsg(); };
+window.onKey = (e) => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();window.sendMsg();} };
+window.rsz = (el) => { el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px'; };
 
 function renderHist(){
   const l=document.getElementById('hlist');
   if(!hist.length){l.innerHTML='<div style="color:var(--gray2);font-size:11.5px;text-align:center;padding:6px;">Aucune conversation</div>';return;}
   l.innerHTML=hist.slice(-6).reverse().map(h=>`
-    <div class="hi" onclick="ask(${JSON.stringify(h)})">
+    <div class="hi" onclick="window.ask(${JSON.stringify(h)})">
       <span style="font-size:12px;color:var(--gray)">💬</span>
       <span class="hi-text">${h}</span>
     </div>`).join('');
 }
 
-async function sendMsg(){
+window.sendMsg = async () => {
   const inp=document.getElementById('mi'),q=inp.value.trim();
   if(!q)return;
   document.getElementById('wel').style.display='none';
@@ -499,7 +559,7 @@ async function sendMsg(){
   }catch{removeTyping(tid);addMsg('b','Erreur de connexion au serveur. Veuillez réessayer.',0,'');}
   document.getElementById('sbtn').disabled=false;
   msgs.scrollTop=msgs.scrollHeight;
-}
+};
 
 function addMsg(role,text,src=0,stype=''){
   const msgs=document.getElementById('msgs');
@@ -535,7 +595,7 @@ function addTyping(){
 
 function removeTyping(id){const el=document.getElementById(id);if(el)el.remove();}
 
-function toggleLang(){
+window.toggleLang = () => {
   lang=lang==='fr'?'ar':'fr';
   const ar=lang==='ar';
   document.body.classList.toggle('rtl',ar);
@@ -543,9 +603,9 @@ function toggleLang(){
   document.getElementById('lbtn').textContent=ar?'Français':'عربي';
   document.getElementById('mi').placeholder=ar?'اطرح سؤالك حول وثائق الشركة...':'Posez votre question sur les documents SNTF...';
   document.getElementById('wtitle').textContent=ar?'مرحباً، كيف يمكنني مساعدتك؟':'Bonjour, comment puis-je vous aider ?';
-  document.getElementById('wdesc').textContent=ar?'اطرح أسئلتك حول اللوائح والإجراءات الرسمية للشركة الوطنية للنقل بالسكك الحديدية.':'Posez vos questions sur les règlements, procédures et documents officiels de la SNTF.';
+  document.getElementById('wdesc').textContent=ar?'اطرح أسئلتك حول اللوائح والإجراءات الرسمية للشركة.':'Posez vos questions sur les règlements, procédures et documents officiels de la SNTF.';
   document.getElementById('ihint').textContent=ar?'اضغط Enter للإرسال':'Entrée pour envoyer · Shift+Entrée pour nouvelle ligne';
-}
+};
 </script>
 </body>
 </html>
