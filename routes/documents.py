@@ -146,7 +146,7 @@ async def upload_pdf(
             })
 
             cur.execute(
-                f"""INSERT INTO {VECTOR_TABLE} (content, metadata, embedding)
+                f"""INSERT INTO {VECTOR_TABLE} (text, metadata, embedding)
                    VALUES (%s, %s::jsonb, %s::vector)""",
                 (chunk, metadata, embedding_str)
             )
