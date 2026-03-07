@@ -1580,21 +1580,9 @@ input[type=file] { display: none; }
           </div>
         </div>
         <div class="chat-input-area">
-          <!-- Preview image avant envoi -->
-          <div id="img-preview-wrap" style="display:none;padding:0 0 12px 0">
-            <div style="display:inline-flex;align-items:center;gap:10px;background:var(--noir3);border:1px solid rgba(201,168,76,0.2);border-radius:4px;padding:8px 12px">
-              <img id="img-preview" style="height:52px;width:auto;border-radius:3px;object-fit:cover;max-width:120px">
-              <div>
-                <div id="img-preview-name" style="font-size:12px;color:var(--or);letter-spacing:1px;margin-bottom:3px"></div>
-                <div style="font-size:11px;color:var(--gris);letter-spacing:1px">Prête à envoyer</div>
-              </div>
-              <button onclick="clearImage()" style="background:rgba(192,0,26,0.2);border:1px solid rgba(192,0,26,0.3);color:#ff6666;padding:4px 10px;border-radius:2px;cursor:pointer;font-size:12px;font-family:'Rajdhani',sans-serif">✕</button>
-            </div>
-          </div>
+
           <div class="input-row">
-            <button class="btn-icon" id="btn-img" onclick="document.getElementById('chat-img-input').click()" title="Envoyer une photo/image" style="flex-shrink:0;height:50px;width:44px">📷</button>
-            <input type="file" id="chat-img-input" accept="image/*,.pdf" style="display:none">
-            <textarea class="chat-input" id="chat-input" placeholder="Posez votre question ou envoyez une image..." rows="1"
+            <textarea class="chat-input" id="chat-input" placeholder="Posez votre question sur la SNTF..." rows="1"
               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"
               oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
             <button class="btn-send" id="btn-send" onclick="sendChat()">➤</button>
@@ -1606,7 +1594,7 @@ input[type=file] { display: none; }
       <div class="panel" id="panel-pdf">
         <div class="panel-pdf">
           <div class="section-title">Gestion des Documents</div>
-          <div class="section-sub">Ajoutez et gérez vos documents PDF dans la base de connaissances</div>
+          <div class="section-sub">Ajoutez des PDF et images dans la base de connaissances du chatbot</div>
 
           <div class="admin-section">
             <span style="color:var(--or);font-size:12px;letter-spacing:2px;text-transform:uppercase;white-space:nowrap">🔑 Clé Admin</span>
@@ -1614,11 +1602,11 @@ input[type=file] { display: none; }
           </div>
 
           <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
-            <div class="upload-icon-big">📄</div>
-            <h3>Glissez ou cliquez pour ajouter un PDF</h3>
-            <p>Formats acceptés : PDF uniquement • Max 50 MB</p>
+            <div class="upload-icon-big" id="upload-icon">📄</div>
+            <h3 id="upload-title">Glissez ou cliquez pour ajouter un fichier</h3>
+            <p>Formats acceptés : PDF, JPG, PNG • Max 50 MB</p>
           </div>
-          <input type="file" id="file-input" accept=".pdf">
+          <input type="file" id="file-input" accept=".pdf,image/jpeg,image/png,image/jpg">
 
           <div class="upload-fields">
             <div class="field-group">
@@ -1638,6 +1626,7 @@ input[type=file] { display: none; }
             </div>
           </div>
 
+          <div id="upload-img-preview"></div>
           <div id="selected-file-display" style="display:none" class="selected-file">
             <span class="selected-file-name" id="selected-file-name">—</span>
             <button class="btn-remove" onclick="clearFile()">✕ Supprimer</button>
@@ -1797,7 +1786,6 @@ function showApp(user) {
   document.getElementById('sb-questions').textContent = questionCount;
   document.getElementById('stat-qs').textContent = questionCount;
   currentUserEmail = user.email || '';
-  startDikrTimer();
   updateHistoryList();
   if (currentUserEmail && currentUserEmail !== 'admin') loadPersistentHistory();
 }
@@ -1908,15 +1896,7 @@ async function sendChat() {
   input.value = '';
   input.style.height = 'auto';
 
-  const imgToSend = selectedImage;
-  clearImage();
-
-  // Afficher message user avec image si présente
-  if (imgToSend) {
-    addMessageWithImage(q || '(image)', 'user', imgToSend.base64);
-  } else {
-    addMessage(q, 'user');
-  }
+  addMessage(q, 'user');
 
   const typing = addTyping();
   document.getElementById('btn-send').disabled = true;
@@ -1929,31 +1909,11 @@ async function sendChat() {
     let body, headers;
     const memCtx = getMemoryContext();
 
-    if (imgToSend) {
-      const base64data = imgToSend.base64.split(',')[1];
-      body = JSON.stringify({
-        question: q || 'Décris et analyse cette image.',
-        image: base64data,
-        image_type: imgToSend.type,
-        memory: memCtx,
-        user_email: currentUserEmail
-      });
-      headers = {'Content-Type': 'application/json'};
-    } else {
-      body = JSON.stringify({ question: q, memory: memCtx, user_email: currentUserEmail });
-      headers = {'Content-Type': 'application/json'};
-    }
+    body = JSON.stringify({ question: q, memory: memCtx, user_email: currentUserEmail });
+    headers = {'Content-Type': 'application/json'};
 
-    // ── Image : pas de streaming ──
-    if (imgToSend) {
-      const r = await fetch('/api/chat/ask', { method:'POST', headers, body });
-      const d = await r.json();
-      typing.remove();
-      hideDikrThinking();
-      const answer = d.answer || d.response || JSON.stringify(d);
-      addMessage(answer, 'bot', true);
-      saveToMemory(q || '(image)', answer);
-    } else {
+    // ── STREAMING ──
+    {
       // ── STREAMING pour les questions texte ──
       const r = await fetch('/api/chat/ask', { method:'POST', headers, body });
       if (!r.ok) throw new Error('Erreur serveur');
@@ -2211,17 +2171,32 @@ uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag
 uploadZone.addEventListener('drop', e => {
   e.preventDefault();
   uploadZone.classList.remove('drag-over');
-  if (e.dataTransfer.files[0]?.type === 'application/pdf') setFile(e.dataTransfer.files[0]);
+  const f = e.dataTransfer.files[0];
+  if (f && (f.type === 'application/pdf' || f.type.startsWith('image/'))) setFile(f);
 });
 fileInput.addEventListener('change', e => { if (e.target.files[0]) setFile(e.target.files[0]); });
 
 function setFile(file) {
   selectedFile = file;
+  const isImage = file.type.startsWith('image/');
+  const icon = isImage ? '🖼️' : '📄';
   document.getElementById('selected-file-display').style.display = 'flex';
-  document.getElementById('selected-file-name').textContent = '📄 ' + file.name;
-  document.getElementById('pdf-name').value = file.name.replace('.pdf','');
+  document.getElementById('selected-file-name').textContent = icon + ' ' + file.name;
+  document.getElementById('pdf-name').value = file.name.replace(/\.[^.]+$/, '');
   document.getElementById('btn-upload').disabled = false;
   uploadZone.querySelector('h3').textContent = file.name;
+
+  // Prévisualisation si image
+  const previewZone = document.getElementById('upload-img-preview');
+  if (isImage && previewZone) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      previewZone.innerHTML = '<img src="'+e.target.result+'" style="max-height:120px;max-width:100%;border-radius:4px;margin-top:10px;border:1px solid rgba(201,168,76,0.2)">';
+    };
+    reader.readAsDataURL(file);
+  } else if (previewZone) {
+    previewZone.innerHTML = '';
+  }
 }
 
 function clearFile() {
@@ -2229,7 +2204,7 @@ function clearFile() {
   fileInput.value = '';
   document.getElementById('selected-file-display').style.display = 'none';
   document.getElementById('btn-upload').disabled = true;
-  uploadZone.querySelector('h3').textContent = 'Glissez ou cliquez pour ajouter un PDF';
+  uploadZone.querySelector('h3').textContent = 'Glissez ou cliquez pour ajouter un fichier';
 }
 
 async function uploadPDF() {
@@ -2249,22 +2224,27 @@ async function uploadPDF() {
   msg.className = 'progress-msg';
   document.getElementById('btn-upload').disabled = true;
 
+  const isImage = selectedFile.type.startsWith('image/');
   const fd = new FormData();
   fd.append('file', selectedFile);
-  fd.append('document_name', docName || selectedFile.name.replace('.pdf',''));
+  fd.append('document_name', docName || selectedFile.name.replace(/\.(pdf|jpg|jpeg|png)$/i,''));
   fd.append('category', category);
   fd.append('admin_key', adminKey);
 
   fill.style.width = '40%';
-  msg.textContent = '⚙️ Indexation en cours... (1-2 min)';
+  msg.textContent = isImage ? '🖼️ Analyse de l\'image par IA... (30 sec)' : '⚙️ Indexation en cours... (1-2 min)';
 
   try {
-    const r = await fetch('/api/documents/upload', { method:'POST', body: fd });
+    const endpoint = isImage ? '/api/documents/upload-image' : '/api/documents/upload';
+    const r = await fetch(endpoint, { method:'POST', body: fd });
     const d = await r.json();
 
     if (r.ok && d.success) {
       fill.style.width = '100%';
-      msg.textContent = `✅ ${d.chunks_stored} chunks indexés avec succès !`;
+      const isImg = selectedFile && selectedFile.type.startsWith('image/');
+      msg.textContent = isImg
+        ? `✅ Image analysée et indexée ! (${d.chunks_stored} chunks)`
+        : `✅ ${d.chunks_stored} chunks indexés avec succès !`;
       msg.className = 'progress-msg success';
       clearFile();
       showToast('🎉 PDF indexé : ' + d.chunks_stored + ' chunks', 'success');
@@ -2325,7 +2305,7 @@ async function loadDocs() {
       row.onmouseover = () => row.style.background = 'rgba(201,168,76,0.04)';
       row.onmouseout  = () => row.style.background = 'rgba(255,255,255,0.01)';
       row.innerHTML = `
-        <div style="font-size:22px">📄</div>
+        <div style="font-size:22px">${doc.file_type === "image" ? "🖼️" : "📄"}</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:14px;color:var(--blanc);letter-spacing:0.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${doc.filename || 'Sans nom'}</div>
           <div style="font-size:11px;color:#555;letter-spacing:1px;margin-top:3px">📁 ${doc.category || 'Général'} &nbsp;•&nbsp; <span style="color:var(--or)">${doc.chunks} chunks</span></div>
@@ -2504,9 +2484,111 @@ function deleteAllConvs() {
   showToast('🗑 Toutes les conversations supprimées', 'success');
 }
 
+// ═══════════ 🕌 DIKR PENDANT RÉFLEXION ═══════════
+function showDikrThinking() {
+  const item = islamicContent[Math.floor(Math.random() * islamicContent.length)];
+  document.getElementById('dikr-thinking-text').textContent = item.arabic;
+  document.getElementById('dikr-thinking').classList.add('visible');
+}
+
+function hideDikrThinking() {
+  document.getElementById('dikr-thinking').classList.remove('visible');
+}
+
+// ═══════════ 🗑 SUPPRIMER PDF ═══════════
+async function deleteDoc(filename, idx) {
+  const adminKey = document.getElementById('pdf-admin-key').value.trim();
+  if (!adminKey) { showToast('⚠️ Entrez la clé admin', 'error'); return; }
+  if (!confirm('Supprimer "' + filename + '" de la base ?')) return;
+
+  const row = document.getElementById('doc-row-' + idx);
+  if (row) row.style.opacity = '0.4';
+
+  try {
+    const r = await fetch('/api/documents/delete', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ filename, admin_key: adminKey })
+    });
+    const d = await r.json();
+    if (d.success) {
+      showToast('🗑 "' + filename + '" supprimé !', 'success');
+      loadDocs(); // Rafraîchir la liste
+    } else {
+      showToast('❌ ' + (d.detail || 'Erreur'), 'error');
+      if (row) row.style.opacity = '1';
+    }
+  } catch(e) {
+    showToast('❌ Erreur de connexion', 'error');
+    if (row) row.style.opacity = '1';
+  }
+}
+
+// ═══════════ 🗑 SUPPRIMER CONVERSATION ═══════════
+function showConvManager() {
+  if (!conversationMemory.length) { showToast('Aucune conversation à supprimer', 'error'); return; }
+
+  // Créer modal
+  const modal = document.createElement('div');
+  modal.id = 'conv-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease';
+  modal.innerHTML = `
+    <div style="background:#0e0e0e;border:1px solid rgba(201,168,76,0.2);border-radius:6px;width:90vw;max-width:520px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden">
+      <div style="padding:20px 24px;border-bottom:1px solid rgba(201,168,76,0.1);display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:15px;letter-spacing:2px;color:var(--or)">GÉRER LES CONVERSATIONS</div>
+        <button onclick="document.getElementById('conv-modal').remove()" style="background:none;border:none;color:#555;cursor:pointer;font-size:18px">✕</button>
+      </div>
+      <div style="overflow-y:auto;padding:16px 24px;flex:1" id="conv-modal-list"></div>
+      <div style="padding:16px 24px;border-top:1px solid rgba(201,168,76,0.08);display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="deleteAllConvs()" style="background:rgba(192,0,26,0.1);border:1px solid rgba(192,0,26,0.2);color:#ff4444;border-radius:3px;padding:8px 18px;cursor:pointer;font-size:12px;letter-spacing:1px">🗑 Tout supprimer</button>
+        <button onclick="document.getElementById('conv-modal').remove()" style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.15);color:var(--or);border-radius:3px;padding:8px 18px;cursor:pointer;font-size:12px;letter-spacing:1px">Fermer</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  renderConvList();
+}
+
+function renderConvList() {
+  const list = document.getElementById('conv-modal-list');
+  if (!list) return;
+  if (!conversationMemory.length) {
+    list.innerHTML = '<div style="color:#555;text-align:center;padding:20px;letter-spacing:1px">Aucune conversation</div>';
+    return;
+  }
+  list.innerHTML = '';
+  [...conversationMemory].reverse().forEach((m, i) => {
+    const realIdx = conversationMemory.length - 1 - i;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(201,168,76,0.06)';
+    const date = new Date(m.t).toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    row.innerHTML = `
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;color:var(--blanc);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.q.substring(0,55)}${m.q.length>55?'…':''}</div>
+        <div style="font-size:11px;color:#444;margin-top:3px;letter-spacing:0.5px">${date}</div>
+      </div>
+      <button onclick="deleteOneConv(${realIdx})" style="background:rgba(192,0,26,0.08);border:1px solid rgba(192,0,26,0.15);color:#cc3333;border-radius:3px;padding:4px 10px;cursor:pointer;font-size:11px;white-space:nowrap">🗑 Suppr.</button>`;
+    list.appendChild(row);
+  });
+}
+
+function deleteOneConv(idx) {
+  conversationMemory.splice(idx, 1);
+  localStorage.setItem('sntf_memory', JSON.stringify(conversationMemory));
+  updateHistoryList();
+  renderConvList();
+  showToast('Conversation supprimée', 'success');
+}
+
+function deleteAllConvs() {
+  if (!confirm('Supprimer toutes les conversations ?')) return;
+  conversationMemory = [];
+  localStorage.removeItem('sntf_memory');
+  updateHistoryList();
+  document.getElementById('conv-modal').remove();
+  showToast('🗑 Toutes les conversations supprimées', 'success');
+}
+
 // ═══════════ 🕌 DIKR AUTOMATIQUE DANS LE CHAT ═══════════
-const dikrInterval = 5 * 60 * 1000; // toutes les 5 minutes
-let dikrTimer = null;
 
 function showDikrInChat() {
   const item = islamicContent[Math.floor(Math.random() * islamicContent.length)];
