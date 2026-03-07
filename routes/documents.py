@@ -212,3 +212,23 @@ def delete_document(filename: str, admin_key: str = ""):
         return {"success": True, "chunks_deleted": deleted}
     except Exception as e:
         raise HTTPException(500, str(e))
+
+class DeleteRequest(BaseModel):
+    filename: str
+    admin_key: str = ""
+
+@router.post("/delete")
+def delete_document_post(req: DeleteRequest):
+    if req.admin_key != ADMIN_KEY:
+        raise HTTPException(403, "Clé admin incorrecte")
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(f"DELETE FROM {VECTOR_TABLE} WHERE metadata->>'filename' = %s", (req.filename,))
+        deleted = cur.rowcount
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"success": True, "chunks_deleted": deleted, "filename": req.filename}
+    except Exception as e:
+        raise HTTPException(500, str(e))
