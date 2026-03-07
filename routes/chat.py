@@ -1,149 +1,185 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from typing import Optional
+import os, requests, json, base64
 from database import get_db
-import os
-import requests
-import numpy as np
 
 router = APIRouter()
 
-# Même modèle que dans n8n : llama-3.3-70b-versatile, température 0.1
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-GROQ_MODEL = "llama-3.3-70b-versatile"
-
-# Même modèle embeddings que dans n8n : sentence-transformers/all-MiniLM-L6-v2
-HF_API_KEY = os.environ.get("HF_API_KEY")
-HF_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
-
-# Même table que dans n8n : n8n_vectors
+HF_API_KEY   = os.environ.get("HF_API_KEY")
 VECTOR_TABLE = "n8n_vectors"
 
-# Même prompt système que dans n8n
-SYSTEM_PROMPT = """Tu es l'assistant officiel de la SNTF (Société Nationale des Transports Ferroviaires d'Algérie).
-Tu réponds UNIQUEMENT en te basant sur les documents officiels SNTF disponibles.
-Tu cites toujours tes sources avec le nom du document et la page.
-Si tu ne trouves pas l'information dans les documents, dis-le clairement.
-Tu réponds en français. Tu es professionnel, précis et utile."""
+# ─── Embedding identique à documents.py ───
+def get_embedding(text: str):
+    try:
+        from sentence_transformers import SentenceTransformer
+        model = SentenceTransformer('all-MiniLM-L6-v2')
+        return model.encode(text).tolist()
+    except: pass
+    if HF_API_KEY:
+        try:
+            import numpy as np
+            r = requests.post(
+                "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",
+                headers={"Authorization": f"Bearer {HF_API_KEY}"},
+                json={"inputs": text[:500], "options": {"wait_for_model": True}},
+                timeout=60
+            )
+            if r.status_code == 200:
+                emb = r.json()
+                if isinstance(emb[0], list):
+                    emb = np.mean(emb, axis=0).tolist()
+                return emb
+        except: pass
+    # Fallback
+    import hashlib, math
+    words = text.lower().split()
+    vector = [0.0] * 384
+    for i, word in enumerate(words[:384]):
+        h = int(hashlib.md5(word.encode()).hexdigest(), 16)
+        vector[h % 384] += 1.0 / (i + 1)
+    norm = math.sqrt(sum(x**2 for x in vector)) or 1.0
+    return [x/norm for x in vector]
 
+# ─── Recherche vectorielle ───
+def search_docs(question: str, limit=4):
+    try:
+        emb = get_embedding(question)
+        if not emb: return []
+        emb_str = "[" + ",".join(map(str, emb)) + "]"
+        conn = get_db()
+        cur  = conn.cursor()
+        cur.execute(f"""
+            SELECT text, metadata, 1-(embedding <=> %s::vector) AS score
+            FROM {VECTOR_TABLE}
+            ORDER BY embedding <=> %s::vector
+            LIMIT %s
+        """, (emb_str, emb_str, limit))
+        rows = cur.fetchall()
+        cur.close(); conn.close()
+        return [{"text": r[0], "metadata": r[1], "score": float(r[2])} for r in rows]
+    except Exception as e:
+        print(f"search_docs error: {e}")
+        return []
+
+# ─── Appel Groq (texte seul ou avec image via vision) ───
+def call_groq(messages: list) -> str:
+    if not GROQ_API_KEY:
+        return "⚠️ Clé Groq manquante."
+    try:
+        r = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "llama-3.3-70b-versatile",
+                "messages": messages,
+                "max_tokens": 1024,
+                "temperature": 0.3
+            },
+            timeout=60
+        )
+        data = r.json()
+        if r.status_code == 200:
+            return data["choices"][0]["message"]["content"]
+        return f"Erreur Groq {r.status_code}: {data}"
+    except Exception as e:
+        return f"Erreur: {e}"
+
+# ─── Groq Vision pour images ───
+def call_groq_vision(question: str, image_b64: str, image_type: str) -> str:
+    if not GROQ_API_KEY:
+        return "⚠️ Clé Groq manquante."
+    try:
+        r = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "llama-3.2-90b-vision-preview",
+                "messages": [{
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:{image_type};base64,{image_b64}"
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "text": f"Tu es l'assistant intelligent de la SNTF (Société Nationale des Transports Ferroviaires d'Algérie). {question}"
+                        }
+                    ]
+                }],
+                "max_tokens": 1024
+            },
+            timeout=60
+        )
+        data = r.json()
+        if r.status_code == 200:
+            return data["choices"][0]["message"]["content"]
+        print(f"Groq vision error: {data}")
+        # Fallback texte si vision échoue
+        return call_groq([{
+            "role": "user",
+            "content": f"L'utilisateur a envoyé une image (modèle vision indisponible). Question: {question}\n\nRéponds que tu as bien reçu l'image mais que l'analyse visuelle nécessite une connexion au modèle vision."
+        }])
+    except Exception as e:
+        return f"Erreur vision: {e}"
+
+# ─── Schémas ───
 class ChatRequest(BaseModel):
-    chatInput: str  # Compatible avec l'interface chat n8n
-    bot_id: int = 1
-
-class AskRequest(BaseModel):
     question: str
-    bot_id: int = 1
+    image: Optional[str] = None       # base64 sans préfixe
+    image_type: Optional[str] = None  # ex: image/jpeg
 
-def get_embedding(text: str) -> list:
-    """
-    Même que le nœud 'Embeddings HuggingFace Inference' dans n8n
-    Modèle: sentence-transformers/all-MiniLM-L6-v2
-    """
-    headers = {"Authorization": f"Bearer {HF_API_KEY}"}
-    try:
-        response = requests.post(
-            f"https://api-inference.huggingface.co/pipeline/feature-extraction/{HF_MODEL}",
-            headers=headers,
-            json={"inputs": text, "options": {"wait_for_model": True}},
-            timeout=30
-        )
-        if response.status_code == 200:
-            embedding = response.json()
-            if isinstance(embedding[0], list):
-                embedding = np.mean(embedding, axis=0).tolist()
-            return embedding
-    except Exception as e:
-        print(f"Embedding error: {e}")
-    return None
-
-def search_documents(question: str, limit: int = 5) -> list:
-    """
-    Equivalent du nœud 'Recherche Documents SNTF' (retrieve-as-tool)
-    Table: n8n_vectors
-    """
-    embedding = get_embedding(question)
-    if not embedding:
-        return []
-
-    conn = get_db()
-    cur = conn.cursor()
-    try:
-        embedding_str = "[" + ",".join(map(str, embedding)) + "]"
-        cur.execute(
-            f"""SELECT content, metadata,
-               1 - (embedding <=> %s::vector) as similarity
-               FROM {VECTOR_TABLE}
-               ORDER BY embedding <=> %s::vector
-               LIMIT %s""",
-            (embedding_str, embedding_str, limit)
-        )
-        results = cur.fetchall()
-        return [
-            {"content": r[0], "metadata": r[1], "similarity": float(r[2])}
-            for r in results
-            if float(r[2]) > 0.3
-        ]
-    except Exception as e:
-        print(f"Search error: {e}")
-        return []
-    finally:
-        cur.close()
-        conn.close()
-
-def call_groq(question: str, context: list) -> str:
-    """
-    Equivalent du nœud 'Groq LLM' dans n8n
-    Modèle: llama-3.3-70b-versatile, température: 0.1
-    """
-    if context:
-        context_text = "\n\n---\n\n".join([
-            f"Source: {c.get('metadata', {})}\nContenu: {c['content']}"
-            for c in context
-        ])
-        full_system = SYSTEM_PROMPT + f"\n\nDOCUMENTS DISPONIBLES:\n{context_text}"
-    else:
-        full_system = SYSTEM_PROMPT + "\n\nAucun document trouvé pour cette question."
-
-    headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "model": GROQ_MODEL,
-        "temperature": 0.1,
-        "max_tokens": 1024,
-        "messages": [
-            {"role": "system", "content": full_system},
-            {"role": "user", "content": question}
-        ]
-    }
-    response = requests.post(
-        "https://api.groq.com/openai/v1/chat/completions",
-        headers=headers,
-        json=payload,
-        timeout=30
-    )
-    if response.status_code == 200:
-        return response.json()["choices"][0]["message"]["content"]
-    raise HTTPException(500, f"Erreur Groq: {response.text}")
-
-@router.post("/message")
-def message(request: ChatRequest):
-    """
-    Compatible avec l'URL webhook n8n :
-    /webhook/06119fbf-8a1f-4f6b-87ef-6dd70ec3ac80/chat
-    Retourne: { output: "..." }
-    """
-    context = search_documents(request.chatInput)
-    answer = call_groq(request.chatInput, context)
-    return {"output": answer, "sources_found": len(context)}
-
+# ─── Endpoint principal ───
 @router.post("/ask")
-def ask(request: AskRequest):
-    """Endpoint alternatif pour l'app Flutter"""
-    context = search_documents(request.question)
-    answer = call_groq(request.question, context)
-    return {
-        "success": True,
-        "answer": answer,
-        "sources_found": len(context)
-    }
+async def ask(req: ChatRequest):
+    question = req.question.strip()
+    if not question:
+        raise HTTPException(400, "Question vide")
+
+    # ── Cas avec image ──
+    if req.image:
+        print(f"🖼️ Image reçue ({req.image_type}), question: {question[:60]}")
+        answer = call_groq_vision(question, req.image, req.image_type or "image/jpeg")
+        return {"answer": answer, "sources": [], "mode": "vision"}
+
+    # ── Cas texte seul ──
+    docs = search_docs(question)
+    context = ""
+    sources = []
+    if docs:
+        for d in docs[:3]:
+            context += d["text"][:600] + "\n\n"
+            meta = d.get("metadata", {})
+            if isinstance(meta, str):
+                try: meta = json.loads(meta)
+                except: meta = {}
+            fname = meta.get("filename") or meta.get("source", "")
+            if fname and fname not in sources:
+                sources.append(fname)
+
+    system = """Tu es l'assistant intelligent officiel de la SNTF (Société Nationale des Transports Ferroviaires d'Algérie).
+Tu réponds en français de manière professionnelle, précise et utile.
+Si tu as du contexte documentaire, utilise-le en priorité.
+Si tu n'as pas de contexte pertinent, réponds avec tes connaissances générales sur le ferroviaire."""
+
+    user_content = question
+    if context:
+        user_content = f"Contexte documentaire SNTF:\n{context}\n\nQuestion: {question}"
+
+    messages = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user_content}
+    ]
+
+    answer = call_groq(messages)
+    return {"answer": answer, "sources": sources, "mode": "rag"}
