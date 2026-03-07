@@ -1135,6 +1135,13 @@ body {
   overflow-y: auto;
 }
 
+
+/* Curseur typing */
+@keyframes cursor-blink {
+  0%,100% { opacity:1; }
+  50% { opacity:0; }
+}
+
 input[type=file] { display: none; }
 
 /* Responsive */
@@ -1678,6 +1685,7 @@ function showApp(user) {
   document.getElementById('user-initial').textContent = name[0].toUpperCase();
   document.getElementById('sb-questions').textContent = questionCount;
   document.getElementById('stat-qs').textContent = questionCount;
+  updateHistoryList();
 }
 
 async function loginGoogle() {
@@ -1799,27 +1807,41 @@ async function sendChat() {
   const typing = addTyping();
   document.getElementById('btn-send').disabled = true;
 
+  // 🔊 Son au départ
+  playTrainSound();
+
   try {
     let body, headers;
+    const memCtx = getMemoryContext();
 
     if (imgToSend) {
-      // Envoi avec image en base64 via FormData ou JSON
       const base64data = imgToSend.base64.split(',')[1];
       body = JSON.stringify({
-        question: q || 'Décris et analyse cette image. Extrait tout le texte visible.',
+        question: q || 'Décris et analyse cette image.',
         image: base64data,
-        image_type: imgToSend.type
+        image_type: imgToSend.type,
+        memory: memCtx
       });
       headers = {'Content-Type': 'application/json'};
     } else {
-      body = JSON.stringify({ question: q });
+      body = JSON.stringify({ question: q, memory: memCtx });
       headers = {'Content-Type': 'application/json'};
     }
 
     const r = await fetch('/api/chat/ask', { method:'POST', headers, body });
     const d = await r.json();
     typing.remove();
-    addMessage(d.answer || d.response || JSON.stringify(d), 'bot');
+    const answer = d.answer || d.response || JSON.stringify(d);
+    addMessage(answer, 'bot', true); // ✍️ effet typing
+    saveToMemory(q || '(image)', answer); // 🧠 mémoriser
+
+    // Afficher sources si disponibles
+    if (d.sources && d.sources.length > 0) {
+      const srcDiv = document.createElement('div');
+      srcDiv.style.cssText = 'font-size:11px;color:var(--or);letter-spacing:1px;padding:4px 8px;opacity:0.7;margin-left:50px;margin-top:-16px;margin-bottom:8px';
+      srcDiv.textContent = '📄 Source: ' + d.sources.join(', ');
+      document.getElementById('messages').appendChild(srcDiv);
+    }
 
     questionCount++;
     localStorage.setItem('sntf_qs', questionCount);
@@ -1852,26 +1874,115 @@ function addMessageWithImage(text, role, imgSrc) {
   wrap.scrollTop = wrap.scrollHeight;
 }
 
-function addMessage(text, role) {
+// ═══════════ 🔊 SON DE TRAIN ═══════════
+function playTrainSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.12].forEach(delay => {
+      const osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(180, ctx.currentTime + delay);
+      osc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + delay + 0.08);
+      gain.gain.setValueAtTime(0.18, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.1);
+      osc.start(ctx.currentTime + delay); osc.stop(ctx.currentTime + delay + 0.12);
+    });
+    const osc2 = ctx.createOscillator(), gain2 = ctx.createGain();
+    osc2.connect(gain2); gain2.connect(ctx.destination);
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(880, ctx.currentTime + 0.05);
+    gain2.gain.setValueAtTime(0.08, ctx.currentTime + 0.05);
+    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+    osc2.start(ctx.currentTime + 0.05); osc2.stop(ctx.currentTime + 0.28);
+  } catch(e) {}
+}
+
+// ═══════════ 🌐 LANGUE ═══════════
+function detectLang(text) {
+  const ar = (text.match(/[\u0600-\u06FF]/g)||[]).length;
+  return ar > text.length * 0.2 ? 'ar' : 'fr';
+}
+
+// ═══════════ 🧠 MÉMOIRE ═══════════
+const MAX_MEM = 10;
+let conversationMemory = JSON.parse(localStorage.getItem('sntf_memory') || '[]');
+
+function saveToMemory(q, a) {
+  conversationMemory.push({q, a, t: Date.now()});
+  if (conversationMemory.length > MAX_MEM) conversationMemory.shift();
+  localStorage.setItem('sntf_memory', JSON.stringify(conversationMemory));
+  updateHistoryList();
+}
+
+function getMemoryContext() {
+  if (!conversationMemory.length) return '';
+  return conversationMemory.slice(-4).map(m => 'Q: '+m.q+'\nR: '+m.a.substring(0,200)).join('\n\n');
+}
+
+function updateHistoryList() {
+  const list = document.getElementById('history-list');
+  if (!list) return;
+  if (!conversationMemory.length) { list.innerHTML = '<div style="color:#555;font-size:12px;padding:4px;letter-spacing:1px">Aucune conversation</div>'; return; }
+  list.innerHTML = '';
+  [...conversationMemory].reverse().slice(0,6).forEach(m => {
+    const d = document.createElement('div');
+    d.style.cssText = 'padding:8px 6px;cursor:pointer;border-bottom:1px solid rgba(201,168,76,0.06);font-size:12px;color:#aaa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:background 0.2s';
+    d.textContent = m.q.substring(0,40) + (m.q.length>40?'…':'');
+    d.onmouseover = () => d.style.background = 'rgba(201,168,76,0.06)';
+    d.onmouseout  = () => d.style.background = '';
+    d.onclick = () => { document.getElementById('chat-input').value = m.q; showTab('chat'); };
+    list.appendChild(d);
+  });
+  const clr = document.createElement('div');
+  clr.style.cssText = 'margin-top:8px;text-align:center;font-size:11px;color:#555;cursor:pointer;padding:4px;letter-spacing:1px';
+  clr.textContent = '🗑 Effacer historique';
+  clr.onclick = () => { conversationMemory=[]; localStorage.removeItem('sntf_memory'); updateHistoryList(); };
+  list.appendChild(clr);
+}
+
+// ═══════════ 🔊 TEXT-TO-SPEECH ═══════════
+function speakText(btn) {
+  const text = btn.closest('.msg-content').querySelector('.msg-bubble').textContent;
+  if (!('speechSynthesis' in window)) { showToast('TTS non supporté', 'error'); return; }
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = detectLang(text)==='ar' ? 'ar-DZ' : 'fr-FR';
+  u.rate = 0.95;
+  btn.textContent = '⏹';
+  u.onend = () => btn.textContent = '🔊';
+  window.speechSynthesis.speak(u);
+  btn.onclick = function() { window.speechSynthesis.cancel(); btn.textContent='🔊'; btn.onclick=()=>speakText(btn); };
+}
+
+// ═══════════ ✍️ MESSAGES + TYPING EFFECT ═══════════
+function addMessage(text, role, withTyping = false) {
   const wrap = document.getElementById('messages');
   const time = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
   const div = document.createElement('div');
   div.className = 'message ' + role;
-
-  const avatar = role === 'user'
-    ? (document.getElementById('user-initial').textContent || '?')
-    : '🚂';
-
-  div.innerHTML = `
-    <div class="msg-avatar">${avatar}</div>
-    <div class="msg-content">
-      <div class="msg-bubble">${text.replace(/\n/g,'<br>')}</div>
-      <div class="msg-meta">
-        <span class="msg-time">${time}</span>
-        ${role === 'bot' ? `<button class="btn-copy" onclick="copyMsg(this)" title="Copier">⎘</button>` : ''}
-      </div>
-    </div>`;
+  const avatar = role==='user' ? (document.getElementById('user-initial').textContent||'?') : '🚂';
+  const isAr = detectLang(text)==='ar';
+  const rtl = isAr ? 'direction:rtl;text-align:right;font-family:Noto Sans Arabic,sans-serif;' : '';
+  const uid = 'b'+Date.now()+Math.random().toString(36).substr(2,5);
+  const ttsBtn = role==='bot' ? `<button onclick="speakText(this)" title="Écouter" style="background:none;border:none;color:#555;cursor:pointer;font-size:13px;padding:2px 6px;border-radius:3px">🔊</button>` : '';
+  const cpyBtn = role==='bot' ? `<button class="btn-copy" onclick="copyMsg(this)" title="Copier">⎘</button>` : '';
+  div.innerHTML = `<div class="msg-avatar">${avatar}</div><div class="msg-content"><div class="msg-bubble" style="${rtl}" id="${uid}"></div><div class="msg-meta"><span class="msg-time">${time}</span>${cpyBtn}${ttsBtn}</div></div>`;
   wrap.appendChild(div);
+  const bubble = document.getElementById(uid);
+  if (role==='bot' && withTyping && text.length < 2000) {
+    let i = 0;
+    const spd = text.length > 600 ? 5 : 12;
+    const cursor = '<span style="display:inline-block;width:2px;height:1em;background:var(--or);vertical-align:middle;margin-left:2px;animation:cursor-blink 0.7s infinite"></span>';
+    const iv = setInterval(() => {
+      if (i < text.length) {
+        bubble.innerHTML = text.substring(0,i+1).replace(/\n/g,'<br>') + cursor;
+        i++; wrap.scrollTop = wrap.scrollHeight;
+      } else { clearInterval(iv); bubble.innerHTML = text.replace(/\n/g,'<br>'); }
+    }, spd);
+  } else {
+    bubble.innerHTML = text.replace(/\n/g,'<br>');
+  }
   wrap.scrollTop = wrap.scrollHeight;
   return div;
 }
