@@ -1193,6 +1193,51 @@ body {
 }
 .islamic-notif-close:hover { color: var(--or); }
 
+
+/* ═══════════ DIKR PENDANT RÉFLEXION ═══════════ */
+.dikr-thinking {
+  position: fixed;
+  bottom: 90px;
+  right: 24px;
+  z-index: 9998;
+  background: linear-gradient(135deg, #0d0d0d, #111);
+  border: 1px solid rgba(201,168,76,0.25);
+  border-radius: 6px;
+  padding: 14px 18px;
+  max-width: 300px;
+  transform: translateY(20px);
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
+  pointer-events: none;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.dikr-thinking.visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+.dikr-thinking::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 20%; right: 20%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--or), transparent);
+}
+.dikr-thinking-label {
+  font-size: 10px;
+  color: rgba(201,168,76,0.4);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.dikr-thinking-text {
+  font-family: 'Noto Sans Arabic', serif;
+  font-size: 15px;
+  color: var(--or);
+  direction: rtl;
+  line-height: 1.7;
+  text-align: right;
+}
+
 input[type=file] { display: none; }
 
 /* Responsive */
@@ -1682,6 +1727,13 @@ input[type=file] { display: none; }
   <div class="islamic-notif-arabic" id="islamic-arabic"></div>
 </div>
 
+
+<!-- DIKR PENDANT RÉFLEXION -->
+<div class="dikr-thinking" id="dikr-thinking">
+  <div class="dikr-thinking-label">🕌 ذِكْر</div>
+  <div class="dikr-thinking-text" id="dikr-thinking-text"></div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -1868,6 +1920,7 @@ async function sendChat() {
 
   const typing = addTyping();
   document.getElementById('btn-send').disabled = true;
+  showDikrThinking();
 
   // 🔊 Son au départ
   playTrainSound();
@@ -1896,6 +1949,7 @@ async function sendChat() {
       const r = await fetch('/api/chat/ask', { method:'POST', headers, body });
       const d = await r.json();
       typing.remove();
+      hideDikrThinking();
       const answer = d.answer || d.response || JSON.stringify(d);
       addMessage(answer, 'bot', true);
       saveToMemory(q || '(image)', answer);
@@ -1906,6 +1960,7 @@ async function sendChat() {
 
       typing.remove();
 
+      hideDikrThinking();
       // Créer bulle vide pour streamer dedans
       const wrap = document.getElementById('messages');
       const time = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
@@ -2051,8 +2106,9 @@ function updateHistoryList() {
   });
   const clr = document.createElement('div');
   clr.style.cssText = 'margin-top:8px;text-align:center;font-size:11px;color:#555;cursor:pointer;padding:4px;letter-spacing:1px';
-  clr.textContent = '🗑 Effacer historique';
-  clr.onclick = () => { conversationMemory=[]; localStorage.removeItem('sntf_memory'); updateHistoryList(); };
+  clr.textContent = '🗑 Gérer / Supprimer';
+  clr.onclick = () => showConvManager();
+  
   list.appendChild(clr);
 }
 
@@ -2241,19 +2297,45 @@ async function loadDocs() {
       grid.innerHTML = '<div style="color:var(--gris);font-size:13px;letter-spacing:1px">Aucun document indexé</div>';
       return;
     }
-    grid.innerHTML = '';
-    d.documents.forEach(doc => {
-      const card = document.createElement('div');
-      card.className = 'doc-card';
-      card.innerHTML = `
-        <div class="doc-card-chunks">${doc.chunks} chunks</div>
-        <div class="doc-card-name">📄 ${doc.filename || 'Sans nom'}</div>
-        <div class="doc-card-meta">📁 ${doc.category || 'Général'}</div>`;
-      grid.appendChild(card);
+
+    // Résumé total en haut
+    const totalChunks = d.documents.reduce((s,doc) => s + (doc.chunks||0), 0);
+    grid.innerHTML = `
+      <div style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap">
+        <div style="background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.15);border-radius:4px;padding:12px 20px;flex:1;min-width:120px;text-align:center">
+          <div style="font-size:28px;color:var(--or);font-family:Rajdhani,sans-serif;font-weight:700">${d.total_documents}</div>
+          <div style="font-size:11px;color:#666;letter-spacing:2px;text-transform:uppercase">Fichiers PDF</div>
+        </div>
+        <div style="background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.15);border-radius:4px;padding:12px 20px;flex:1;min-width:120px;text-align:center">
+          <div style="font-size:28px;color:var(--or);font-family:Rajdhani,sans-serif;font-weight:700">${totalChunks}</div>
+          <div style="font-size:11px;color:#666;letter-spacing:2px;text-transform:uppercase">Chunks Indexés</div>
+        </div>
+        <div style="background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.15);border-radius:4px;padding:12px 20px;flex:1;min-width:120px;text-align:center">
+          <div style="font-size:28px;color:var(--or);font-family:Rajdhani,sans-serif;font-weight:700">${Math.round(totalChunks * 0.4)}KB</div>
+          <div style="font-size:11px;color:#666;letter-spacing:2px;text-transform:uppercase">Espace utilisé</div>
+        </div>
+      </div>
+      <div id="docs-list-inner"></div>`;
+
+    const listInner = document.getElementById('docs-list-inner');
+    d.documents.forEach((doc, idx) => {
+      const row = document.createElement('div');
+      row.id = 'doc-row-' + idx;
+      row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid rgba(201,168,76,0.08);border-radius:4px;margin-bottom:8px;background:rgba(255,255,255,0.01);transition:background 0.2s';
+      row.onmouseover = () => row.style.background = 'rgba(201,168,76,0.04)';
+      row.onmouseout  = () => row.style.background = 'rgba(255,255,255,0.01)';
+      row.innerHTML = `
+        <div style="font-size:22px">📄</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;color:var(--blanc);letter-spacing:0.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${doc.filename || 'Sans nom'}</div>
+          <div style="font-size:11px;color:#555;letter-spacing:1px;margin-top:3px">📁 ${doc.category || 'Général'} &nbsp;•&nbsp; <span style="color:var(--or)">${doc.chunks} chunks</span></div>
+        </div>
+        <button onclick="deleteDoc('${doc.filename}', ${idx})" style="background:rgba(192,0,26,0.1);border:1px solid rgba(192,0,26,0.2);color:#ff4444;border-radius:3px;padding:5px 12px;cursor:pointer;font-size:12px;letter-spacing:1px;transition:all 0.2s" onmouseover="this.style.background='rgba(192,0,26,0.25)'" onmouseout="this.style.background='rgba(192,0,26,0.1)'">🗑 Supprimer</button>`;
+      listInner.appendChild(row);
     });
+
     document.getElementById('sb-docs').textContent = d.total_documents;
     document.getElementById('stat-docs').textContent = d.total_documents;
-    const totalChunks = d.documents.reduce((s,doc) => s + (doc.chunks||0), 0);
     document.getElementById('sb-chunks').textContent = totalChunks;
     document.getElementById('stat-chunks').textContent = totalChunks;
   } catch(e) {
@@ -2315,6 +2397,112 @@ function closeIslamicNotif() {
 // Apparaît dès le début du chargement — disparaît après 5 sec
 showIslamicNotif();
 
+
+
+
+// ═══════════ 🕌 DIKR PENDANT RÉFLEXION ═══════════
+function showDikrThinking() {
+  const item = islamicContent[Math.floor(Math.random() * islamicContent.length)];
+  document.getElementById('dikr-thinking-text').textContent = item.arabic;
+  document.getElementById('dikr-thinking').classList.add('visible');
+}
+
+function hideDikrThinking() {
+  document.getElementById('dikr-thinking').classList.remove('visible');
+}
+
+// ═══════════ 🗑 SUPPRIMER PDF ═══════════
+async function deleteDoc(filename, idx) {
+  const adminKey = document.getElementById('pdf-admin-key').value.trim();
+  if (!adminKey) { showToast('⚠️ Entrez la clé admin', 'error'); return; }
+  if (!confirm('Supprimer "' + filename + '" de la base ?')) return;
+
+  const row = document.getElementById('doc-row-' + idx);
+  if (row) row.style.opacity = '0.4';
+
+  try {
+    const r = await fetch('/api/documents/delete', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ filename, admin_key: adminKey })
+    });
+    const d = await r.json();
+    if (d.success) {
+      showToast('🗑 "' + filename + '" supprimé !', 'success');
+      loadDocs(); // Rafraîchir la liste
+    } else {
+      showToast('❌ ' + (d.detail || 'Erreur'), 'error');
+      if (row) row.style.opacity = '1';
+    }
+  } catch(e) {
+    showToast('❌ Erreur de connexion', 'error');
+    if (row) row.style.opacity = '1';
+  }
+}
+
+// ═══════════ 🗑 SUPPRIMER CONVERSATION ═══════════
+function showConvManager() {
+  if (!conversationMemory.length) { showToast('Aucune conversation à supprimer', 'error'); return; }
+
+  // Créer modal
+  const modal = document.createElement('div');
+  modal.id = 'conv-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease';
+  modal.innerHTML = `
+    <div style="background:#0e0e0e;border:1px solid rgba(201,168,76,0.2);border-radius:6px;width:90vw;max-width:520px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden">
+      <div style="padding:20px 24px;border-bottom:1px solid rgba(201,168,76,0.1);display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:15px;letter-spacing:2px;color:var(--or)">GÉRER LES CONVERSATIONS</div>
+        <button onclick="document.getElementById('conv-modal').remove()" style="background:none;border:none;color:#555;cursor:pointer;font-size:18px">✕</button>
+      </div>
+      <div style="overflow-y:auto;padding:16px 24px;flex:1" id="conv-modal-list"></div>
+      <div style="padding:16px 24px;border-top:1px solid rgba(201,168,76,0.08);display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="deleteAllConvs()" style="background:rgba(192,0,26,0.1);border:1px solid rgba(192,0,26,0.2);color:#ff4444;border-radius:3px;padding:8px 18px;cursor:pointer;font-size:12px;letter-spacing:1px">🗑 Tout supprimer</button>
+        <button onclick="document.getElementById('conv-modal').remove()" style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.15);color:var(--or);border-radius:3px;padding:8px 18px;cursor:pointer;font-size:12px;letter-spacing:1px">Fermer</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  renderConvList();
+}
+
+function renderConvList() {
+  const list = document.getElementById('conv-modal-list');
+  if (!list) return;
+  if (!conversationMemory.length) {
+    list.innerHTML = '<div style="color:#555;text-align:center;padding:20px;letter-spacing:1px">Aucune conversation</div>';
+    return;
+  }
+  list.innerHTML = '';
+  [...conversationMemory].reverse().forEach((m, i) => {
+    const realIdx = conversationMemory.length - 1 - i;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(201,168,76,0.06)';
+    const date = new Date(m.t).toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    row.innerHTML = `
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;color:var(--blanc);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.q.substring(0,55)}${m.q.length>55?'…':''}</div>
+        <div style="font-size:11px;color:#444;margin-top:3px;letter-spacing:0.5px">${date}</div>
+      </div>
+      <button onclick="deleteOneConv(${realIdx})" style="background:rgba(192,0,26,0.08);border:1px solid rgba(192,0,26,0.15);color:#cc3333;border-radius:3px;padding:4px 10px;cursor:pointer;font-size:11px;white-space:nowrap">🗑 Suppr.</button>`;
+    list.appendChild(row);
+  });
+}
+
+function deleteOneConv(idx) {
+  conversationMemory.splice(idx, 1);
+  localStorage.setItem('sntf_memory', JSON.stringify(conversationMemory));
+  updateHistoryList();
+  renderConvList();
+  showToast('Conversation supprimée', 'success');
+}
+
+function deleteAllConvs() {
+  if (!confirm('Supprimer toutes les conversations ?')) return;
+  conversationMemory = [];
+  localStorage.removeItem('sntf_memory');
+  updateHistoryList();
+  document.getElementById('conv-modal').remove();
+  showToast('🗑 Toutes les conversations supprimées', 'success');
+}
 
 // ═══════════ 🕌 DIKR AUTOMATIQUE DANS LE CHAT ═══════════
 const dikrInterval = 5 * 60 * 1000; // toutes les 5 minutes
