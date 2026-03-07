@@ -1142,6 +1142,57 @@ body {
   50% { opacity:0; }
 }
 
+
+/* ═══════════ NOTIFICATION ISLAMIQUE — BARRE FINE ═══════════ */
+.islamic-notif {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 99999;
+  background: linear-gradient(90deg, #0a0a0a 0%, #111 40%, #0a0a0a 100%);
+  border-bottom: 1px solid rgba(201,168,76,0.3);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transform: translateY(-100%);
+  transition: transform 0.5s cubic-bezier(0.16,1,0.3,1);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+.islamic-notif::before {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 20%; right: 20%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--or), transparent);
+}
+.islamic-notif.show {
+  transform: translateY(0);
+}
+.islamic-notif-arabic {
+  font-family: 'Noto Sans Arabic', serif;
+  font-size: 16px;
+  color: var(--or);
+  direction: rtl;
+  line-height: 1.6;
+  text-align: center;
+  text-shadow: 0 0 12px rgba(201,168,76,0.25);
+}
+.islamic-notif-close {
+  position: absolute;
+  left: 14px;
+  background: none;
+  border: none;
+  color: #444;
+  cursor: pointer;
+  font-size: 14px;
+  transition: color 0.2s;
+  padding: 4px;
+}
+.islamic-notif-close:hover { color: var(--or); }
+
 input[type=file] { display: none; }
 
 /* Responsive */
@@ -1622,6 +1673,13 @@ input[type=file] { display: none; }
 
     </main>
   </div>
+</div>
+
+
+<!-- ═══════════ NOTIFICATION ISLAMIQUE ═══════════ -->
+<div class="islamic-notif" id="islamic-notif">
+  <button class="islamic-notif-close" onclick="closeIslamicNotif()">✕</button>
+  <div class="islamic-notif-arabic" id="islamic-arabic"></div>
 </div>
 
 <!-- Toast -->
@@ -2220,6 +2278,41 @@ function showToast(msg, type='') {
   t.className = 'toast show ' + type;
   setTimeout(() => t.classList.remove('show'), 3500);
 }
+
+
+// ═══════════ 🕌 INVOCATIONS ISLAMIQUES ═══════════
+const islamicContent = [
+  { arabic: "أَشْهَدُ أَنْ لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ" },
+    { arabic: "اللَّهُ لَا إِلَهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَن ذَا الَّذِي يَشْفَعُ عِندَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِّنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ" },
+    { arabic: "لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ" },
+    { arabic: "بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ ۝ قُلْ هُوَ اللَّهُ أَحَدٌ ۝ اللَّهُ الصَّمَدُ ۝ لَمْ يَلِدْ وَلَمْ يُولَدْ ۝ وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ" },
+    { arabic: "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، سُبْحَانَ اللَّهِ الْعَظِيمِ" },
+    { arabic: "أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ الَّذِي لَا إِلَهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ وَأَتُوبُ إِلَيْهِ" },
+    { arabic: "لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ الْعَلِيِّ الْعَظِيمِ" },
+    { arabic: "اللَّهُمَّ صَلِّ وَسَلِّمْ وَبَارِكْ عَلَى نَبِيِّنَا مُحَمَّدٍ" },
+    { arabic: "حَسْبِيَ اللَّهُ لَا إِلَهَ إِلَّا هُوَ عَلَيْهِ تَوَكَّلْتُ وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ" },
+    { arabic: "اللَّهُمَّ إِنِّي أَصْبَحْتُ أُشْهِدُكَ وَأُشْهِدُ حَمَلَةَ عَرْشِكَ وَمَلَائِكَتَكَ وَجَمِيعَ خَلْقِكَ أَنَّكَ أَنْتَ اللَّهُ لَا إِلَهَ إِلَّا أَنْتَ وَأَنَّ مُحَمَّدًا عَبْدُكَ وَرَسُولُكَ" },
+    { arabic: "رَبِّ زِدْنِي عِلْمًا" },
+    { arabic: "إِنَّ مَعَ الْعُسْرِ يُسْرًا ۝ فَإِذَا فَرَغْتَ فَانصَبْ ۝ وَإِلَى رَبِّكَ فَارْغَب" },
+    { arabic: "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ، وَأَعُوذُ بِكَ مِنَ الْعَجْزِ وَالْكَسَلِ، وَأَعُوذُ بِكَ مِنَ الْجُبْنِ وَالْبُخْلِ" },
+    { arabic: "اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَى عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ" }
+];
+
+function showIslamicNotif() {
+  const item = islamicContent[Math.floor(Math.random() * islamicContent.length)];
+  document.getElementById('islamic-arabic').textContent = item.arabic;
+  const notif = document.getElementById('islamic-notif');
+  notif.classList.add('show');
+  // Disparaît après 5 secondes
+  setTimeout(() => closeIslamicNotif(), 5000);
+}
+
+function closeIslamicNotif() {
+  document.getElementById('islamic-notif').classList.remove('show');
+}
+
+// Apparaît dès le début du chargement — disparaît après 5 sec
+showIslamicNotif();
 
 // ═══════════ ⏰ KEEP-ALIVE RENDER ═══════════
 // Ping toutes les 10 min pour éviter l'endormissement
