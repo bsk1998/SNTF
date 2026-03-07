@@ -1663,6 +1663,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 
 const AKEY = '123456SNTF.';
+let currentUserEmail = '';
 let questionCount = parseInt(localStorage.getItem('sntf_qs') || '0');
 let selectedFile = null;
 
@@ -1685,7 +1686,9 @@ function showApp(user) {
   document.getElementById('user-initial').textContent = name[0].toUpperCase();
   document.getElementById('sb-questions').textContent = questionCount;
   document.getElementById('stat-qs').textContent = questionCount;
+  currentUserEmail = user.email || '';
   updateHistoryList();
+  if (currentUserEmail && currentUserEmail !== 'admin') loadPersistentHistory();
 }
 
 async function loginGoogle() {
@@ -1820,11 +1823,12 @@ async function sendChat() {
         question: q || 'Décris et analyse cette image.',
         image: base64data,
         image_type: imgToSend.type,
-        memory: memCtx
+        memory: memCtx,
+        user_email: currentUserEmail
       });
       headers = {'Content-Type': 'application/json'};
     } else {
-      body = JSON.stringify({ question: q, memory: memCtx });
+      body = JSON.stringify({ question: q, memory: memCtx, user_email: currentUserEmail });
       headers = {'Content-Type': 'application/json'};
     }
 
@@ -1939,6 +1943,25 @@ function updateHistoryList() {
   clr.textContent = '🗑 Effacer historique';
   clr.onclick = () => { conversationMemory=[]; localStorage.removeItem('sntf_memory'); updateHistoryList(); };
   list.appendChild(clr);
+}
+
+// ═══════════ 📂 HISTORIQUE PERSISTANT ═══════════
+async function loadPersistentHistory() {
+  if (!currentUserEmail) return;
+  try {
+    const r = await fetch('/api/chat/history', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ user_email: currentUserEmail })
+    });
+    const d = await r.json();
+    if (d.success && d.history && d.history.length > 0) {
+      // Mettre à jour la mémoire locale avec l'historique Supabase
+      conversationMemory = d.history.map(h => ({q: h.question, a: h.answer, t: new Date(h.time).getTime()}));
+      updateHistoryList();
+      console.log(`📂 ${d.count} conversations chargées depuis Supabase`);
+    }
+  } catch(e) { console.log('Historique non chargé:', e); }
 }
 
 // ═══════════ 🔊 TEXT-TO-SPEECH ═══════════
