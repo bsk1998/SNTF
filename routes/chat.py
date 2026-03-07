@@ -136,8 +136,9 @@ def call_groq_vision(question: str, image_b64: str, image_type: str) -> str:
 # ─── Schémas ───
 class ChatRequest(BaseModel):
     question: str
-    image: Optional[str] = None       # base64 sans préfixe
-    image_type: Optional[str] = None  # ex: image/jpeg
+    image: Optional[str] = None
+    image_type: Optional[str] = None
+    memory: Optional[str] = None  # contexte conversation
 
 # ─── Endpoint principal ───
 @router.post("/ask")
@@ -170,11 +171,17 @@ async def ask(req: ChatRequest):
     system = """Tu es l'assistant intelligent officiel de la SNTF (Société Nationale des Transports Ferroviaires d'Algérie).
 Tu réponds en français de manière professionnelle, précise et utile.
 Si tu as du contexte documentaire, utilise-le en priorité.
-Si tu n'as pas de contexte pertinent, réponds avec tes connaissances générales sur le ferroviaire."""
+Si tu détectes que la question est en arabe, réponds en arabe.
+Tu te souviens du contexte de la conversation si fourni."""
 
     user_content = question
+    parts = []
+    if req.memory:
+        parts.append(f"Historique conversation:\n{req.memory}")
     if context:
-        user_content = f"Contexte documentaire SNTF:\n{context}\n\nQuestion: {question}"
+        parts.append(f"Contexte documentaire SNTF:\n{context}")
+    parts.append(f"Question: {question}")
+    user_content = "\n\n".join(parts)
 
     messages = [
         {"role": "system", "content": system},
