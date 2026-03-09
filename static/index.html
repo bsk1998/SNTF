@@ -1760,6 +1760,8 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
+// ✅ Session permanente — pas besoin de se reconnecter
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
 const AKEY = '123456SNTF.';
 let currentUserEmail = '';
