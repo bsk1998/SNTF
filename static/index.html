@@ -1936,6 +1936,7 @@ async function sendChat() {
       const bubble = document.getElementById(uid);
       let fullText = '';
       let sources = [];
+      let webUsed = false;
 
       const reader = r.body.getReader();
       const decoder = new TextDecoder();
@@ -1964,11 +1965,21 @@ async function sendChat() {
         }
       }
 
-      // Afficher sources
-      if (sources.length > 0) {
+      // Afficher sources + web
+      if (sources.length > 0 || webUsed) {
         const srcDiv = document.createElement('div');
-        srcDiv.style.cssText = 'font-size:11px;color:var(--or);letter-spacing:1px;padding:2px 8px;opacity:0.6;margin-left:50px;margin-bottom:8px';
-        srcDiv.textContent = '📄 ' + sources.join(', ');
+        srcDiv.style.cssText = 'font-size:11px;color:var(--or);letter-spacing:1px;padding:2px 8px;opacity:0.6;margin-left:50px;margin-bottom:8px;display:flex;gap:10px;flex-wrap:wrap';
+        if (sources.length > 0) {
+          const s = document.createElement('span');
+          s.textContent = '📄 ' + sources.join(', ');
+          srcDiv.appendChild(s);
+        }
+        if (webUsed) {
+          const w = document.createElement('span');
+          w.textContent = '🌐 Web';
+          w.style.color = '#4a9eff';
+          srcDiv.appendChild(w);
+        }
         wrap.appendChild(srcDiv);
       }
 
