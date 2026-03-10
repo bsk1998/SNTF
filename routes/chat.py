@@ -232,9 +232,9 @@ def call_groq_vision(question: str, image_b64: str, image_type: str) -> str:
             "https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
             json={
-                "model": "llama-3.2-90b-vision-preview",
+                "model": "meta-llama/llama-4-scout-17b-16e-instruct",
                 "messages": [{"role": "user", "content": [
-                    {"type": "text", "text": f"Tu es l'assistant SNTF. Analyse cette image en détail et réponds : {question}"},
+                    {"type": "text", "text": f"Tu es un expert technique SNTF. Analyse cette image avec précision.\n""- Lis TOUT le texte visible (codes erreur, messages, chiffres, voyants)\n""- Identifie le type de panne ou problème affiché\n""- Donne une explication claire et une solution concrète\n""Question : {question}"},
                     {"type": "image_url", "image_url": {"url": f"data:{image_type};base64,{image_b64}"}}
                 ]}],
                 "max_tokens": 1024
