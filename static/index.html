@@ -90,6 +90,38 @@ body{background:var(--noir);color:var(--blanc);font-family:'Rajdhani',sans-serif
 .sb-stats{padding:12px 16px;border-top:1px solid rgba(201,168,76,0.06);font-size:11px;}
 .stat-row{display:flex;justify-content:space-between;padding:3px 0;color:#444;letter-spacing:1px;}
 .stat-v{color:var(--or);}
+
+/* ── NOUVELLE CONVERSATION ── */
+.btn-new-conv{
+  margin:8px 12px 4px;padding:11px 12px;
+  background:linear-gradient(135deg,var(--rouge),var(--rouge2));
+  border:none;border-radius:4px;color:#fff;
+  font-size:12px;font-family:'Rajdhani',sans-serif;
+  letter-spacing:2px;text-transform:uppercase;
+  cursor:pointer;font-weight:700;text-align:center;
+  transition:all 0.2s;box-shadow:0 4px 14px rgba(192,0,26,0.3);
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.btn-new-conv:hover{box-shadow:0 6px 20px rgba(192,0,26,0.5);transform:translateY(-1px);}
+.hist-conv-item{
+  padding:10px 8px;cursor:pointer;
+  border-bottom:1px solid rgba(201,168,76,0.06);
+  transition:background 0.2s;border-radius:3px;margin-bottom:2px;
+  border-left:2px solid transparent;
+}
+.hist-conv-item:hover{background:rgba(201,168,76,0.05);}
+.hist-conv-item.active-conv{
+  background:rgba(192,0,26,0.1);
+  border-left:2px solid var(--rouge);
+}
+.hist-conv-title{font-size:12px;color:#ccc;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.hist-conv-item.active-conv .hist-conv-title{color:var(--blanc);}
+.hist-conv-meta{font-size:10px;color:#444;margin-top:3px;display:flex;justify-content:space-between;align-items:center;}
+.hist-conv-date{color:#444;}
+.hist-conv-count{color:rgba(201,168,76,0.5);font-size:10px;}
+.hist-conv-del{background:none;border:none;color:#333;cursor:pointer;font-size:12px;padding:2px 4px;border-radius:2px;transition:color 0.2s;line-height:1;}
+.hist-conv-del:hover{color:#f66;}
+
 .btn-logout{margin:8px 12px;padding:8px;text-align:center;cursor:pointer;font-size:11px;letter-spacing:2px;color:#444;border:1px solid rgba(255,255,255,0.04);border-radius:3px;transition:all 0.2s;text-transform:uppercase;}
 .btn-logout:hover{color:#f66;border-color:rgba(255,100,100,0.2);}
 
@@ -314,6 +346,7 @@ input[type=file]{display:none;}
     </div>
     <div class="sb-section">
       <div class="sb-label">Navigation</div>
+      <button class="btn-new-conv" onclick="newConversation()">&#43; Nouvelle conversation</button>
       <button class="sb-btn active" id="nav-chat" onclick="showTab('chat')"><span>&#128172;</span> Chat</button>
       <button class="sb-btn" id="nav-pdf" onclick="showTab('pdf')"><span>&#128196;</span> Documents</button>
       <button class="sb-btn" id="nav-stats" onclick="showTab('stats')"><span>&#128200;</span> Statistiques</button>
@@ -596,6 +629,11 @@ function showApp(user) {
   document.getElementById('sb-qs').textContent = qCount;
   document.getElementById('st-qs').textContent = qCount;
   userEmail = user.email || '';
+  // Si pas de conversation active, en créer une nouvelle
+  if (!activeId || !getActiveConv()) {
+    activeId = conversations.length > 0 ? conversations[0].id : null;
+    if (activeId) loadConversation(activeId);
+  }
   buildHistList();
   if (userEmail && userEmail !== 'admin') loadRemoteHist();
   loadStats();
@@ -658,54 +696,110 @@ function showTab(t) {
 }
 
 // ═══════════════════════════════════════════
-// MEMOIRE
+// CONVERSATIONS — structure type Claude
+// conversations = [ {id, title, msgs:[{q,a,t}], created} ]
+// activeId = conversation courante
 // ═══════════════════════════════════════════
-var MEM_MAX = 10;
-var mem = JSON.parse(localStorage.getItem('sntf_mem') || '[]');
+var conversations = JSON.parse(localStorage.getItem('sntf_convs') || '[]');
+var activeId = localStorage.getItem('sntf_active') || null;
 
+function genId() { return 'c' + Date.now() + Math.random().toString(36).slice(2,6); }
+
+function saveConvs() {
+  localStorage.setItem('sntf_convs', JSON.stringify(conversations));
+  localStorage.setItem('sntf_active', activeId || '');
+}
+
+function getActiveConv() {
+  return conversations.find(function(c){ return c.id === activeId; }) || null;
+}
+
+// Crée ou retourne la conversation active
+function ensureActiveConv() {
+  var conv = getActiveConv();
+  if (!conv) {
+    conv = { id: genId(), title: 'Nouvelle conversation', msgs: [], created: Date.now() };
+    conversations.unshift(conv);
+    activeId = conv.id;
+    saveConvs();
+  }
+  return conv;
+}
+
+// Sauvegarde un échange Q/R dans la conv active
 function saveMem(q, a) {
-  mem.push({ q: q, a: a, t: Date.now() });
-  if (mem.length > MEM_MAX) mem.shift();
-  localStorage.setItem('sntf_mem', JSON.stringify(mem));
+  var conv = ensureActiveConv();
+  conv.msgs.push({ q: q, a: a, t: Date.now() });
+  // Titre = première question (tronquée)
+  if (conv.msgs.length === 1) {
+    conv.title = q.substring(0, 40) + (q.length > 40 ? '...' : '');
+  }
+  saveConvs();
   buildHistList();
 }
 
+// Contexte mémoire pour l'IA (4 derniers échanges de la conv active)
 function getCtx() {
-  if (!mem.length) return '';
-  return mem.slice(-4).map(function(m) { return 'Q: ' + m.q + '\nR: ' + m.a.substring(0, 200); }).join('\n\n');
+  var conv = getActiveConv();
+  if (!conv || !conv.msgs.length) return '';
+  return conv.msgs.slice(-4).map(function(m) {
+    return 'Q: ' + m.q + '\nR: ' + m.a.substring(0, 200);
+  }).join('\n\n');
+}
+
+// Démarre une nouvelle conversation vierge
+function newConversation() {
+  activeId = null;
+  saveConvs();
+  // Vider le chat
+  var msgs = document.getElementById('msgs');
+  msgs.innerHTML = '';
+  // Remettre le welcome
+  var w = document.createElement('div');
+  w.id = 'welcome';
+  w.innerHTML = '<div class="w-title">Nouvelle conversation</div>'
+    + '<div class="w-sub">Comment puis-je vous aider ?</div>'
+    + '<div class="suggestions">'
+    + '<div class="sug" onclick="askQ(this)">Horaires des trains</div>'
+    + '<div class="sug" onclick="askQ(this)">Tarifs et billets</div>'
+    + '<div class="sug" onclick="askQ(this)">Procédures de sécurité</div>'
+    + '<div class="sug" onclick="askQ(this)">Réseau ferroviaire</div>'
+    + '<div class="sug" onclick="askQ(this)">Signalement d'incident</div>'
+    + '<div class="sug" onclick="askQ(this)">Règlement intérieur</div>'
+    + '</div>';
+  msgs.appendChild(w);
+  showTab('chat');
+  buildHistList();
 }
 
 // ═══════════════════════════════════════════
-// HISTORIQUE SIDEBAR
+// HISTORIQUE SIDEBAR — liste des conversations
 // ═══════════════════════════════════════════
-function buildHistList(items) {
+function buildHistList() {
   var list = document.getElementById('hist-list');
   if (!list) return;
-  var data = items || mem;
-  if (!data.length) {
-    list.innerHTML = '<div style="color:#555;font-size:12px;padding:4px;">Aucune conversation</div>';
+  if (!conversations.length) {
+    list.innerHTML = '<div style="color:#555;font-size:12px;padding:8px;letter-spacing:1px;">Aucune conversation</div>';
     return;
   }
   list.innerHTML = '';
-  data.slice().reverse().slice(0, 8).forEach(function(m) {
+  conversations.slice(0, 20).forEach(function(conv) {
+    var isActive = conv.id === activeId;
     var d = document.createElement('div');
-    d.style.cssText = 'padding:9px 6px;cursor:pointer;border-bottom:1px solid rgba(201,168,76,0.06);transition:background 0.2s;border-radius:3px;margin-bottom:2px;';
-    d.onmouseover = function() { d.style.background = 'rgba(201,168,76,0.05)'; };
-    d.onmouseout = function() { d.style.background = ''; };
-    var date = m.t ? new Date(m.t).toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
-    d.innerHTML = '<div style="font-size:12px;color:#ccc;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Q: ' + esc(m.q.substring(0, 45)) + (m.q.length > 45 ? '...' : '') + '</div>'
-      + (m.a ? '<div style="font-size:11px;color:#666;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">R: ' + esc(m.a.substring(0, 60)) + (m.a.length > 60 ? '...' : '') + '</div>' : '')
-      + (date ? '<div style="font-size:10px;color:#444;margin-top:2px;">' + date + '</div>' : '');
-    d.onclick = function() { replayConv(m); };
+    d.className = 'hist-conv-item' + (isActive ? ' active-conv' : '');
+    var date = new Date(conv.created).toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    var count = conv.msgs.length;
+    d.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
+      + '<div class="hist-conv-title">' + esc(conv.title) + '</div>'
+      + '<button class="hist-conv-del" onclick="event.stopPropagation();delConvById('' + conv.id + '')" title="Supprimer">&#10005;</button>'
+      + '</div>'
+      + '<div class="hist-conv-meta">'
+      + '<span class="hist-conv-date">' + date + '</span>'
+      + '<span class="hist-conv-count">' + count + ' msg' + (count > 1 ? 's' : '') + '</span>'
+      + '</div>';
+    d.onclick = function() { loadConversation(conv.id); };
     list.appendChild(d);
   });
-  var btn = document.createElement('div');
-  btn.style.cssText = 'margin-top:10px;text-align:center;font-size:11px;color:#444;cursor:pointer;padding:6px;border:1px solid rgba(201,168,76,0.08);border-radius:3px;transition:all 0.2s;';
-  btn.textContent = 'Gérer / Supprimer';
-  btn.onmouseover = function() { btn.style.borderColor = 'rgba(201,168,76,0.2)'; };
-  btn.onmouseout = function() { btn.style.borderColor = 'rgba(201,168,76,0.08)'; };
-  btn.onclick = openConvModal;
-  list.appendChild(btn);
 }
 
 function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -715,26 +809,30 @@ function filterHist(q) {
   if (clr) clr.style.display = q ? 'block' : 'none';
   if (!q.trim()) { buildHistList(); return; }
   var qL = q.toLowerCase();
-  var filtered = mem.filter(function(m) {
-    return m.q.toLowerCase().indexOf(qL) >= 0 || (m.a && m.a.toLowerCase().indexOf(qL) >= 0);
-  });
   var list = document.getElementById('hist-list');
   if (!list) return;
+  var filtered = conversations.filter(function(c) {
+    return c.title.toLowerCase().indexOf(qL) >= 0
+      || c.msgs.some(function(m){ return m.q.toLowerCase().indexOf(qL) >= 0 || (m.a && m.a.toLowerCase().indexOf(qL) >= 0); });
+  });
   if (!filtered.length) { list.innerHTML = '<div style="color:#444;font-size:12px;text-align:center;padding:16px;">Aucun résultat</div>'; return; }
   list.innerHTML = '';
-  filtered.slice().reverse().forEach(function(m) {
+  filtered.forEach(function(conv) {
     var d = document.createElement('div');
-    d.style.cssText = 'padding:9px 6px;cursor:pointer;border-bottom:1px solid rgba(201,168,76,0.06);transition:background 0.2s;border-radius:3px;margin-bottom:2px;';
-    d.onmouseover = function() { d.style.background = 'rgba(201,168,76,0.05)'; };
-    d.onmouseout = function() { d.style.background = ''; };
-    d.innerHTML = '<div style="font-size:12px;color:#ccc;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + hlQ(esc(m.q.substring(0,45)), q) + '</div>'
-      + (m.a ? '<div style="font-size:11px;color:#666;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + hlQ(esc(m.a.substring(0,60)), q) + '</div>' : '');
-    d.onclick = function() { replayConv(m); };
+    d.className = 'hist-conv-item' + (conv.id === activeId ? ' active-conv' : '');
+    d.innerHTML = '<div class="hist-conv-title">' + hlQ(esc(conv.title), q) + '</div>'
+      + '<div class="hist-conv-meta"><span class="hist-conv-count">' + conv.msgs.length + ' msgs</span></div>';
+    d.onclick = function() { loadConversation(conv.id); };
     list.appendChild(d);
   });
+  var cnt = document.createElement('div');
+  cnt.style.cssText = 'text-align:center;font-size:10px;color:#444;padding:6px;letter-spacing:1px;';
+  cnt.textContent = filtered.length + ' résultat' + (filtered.length > 1 ? 's' : '');
+  list.appendChild(cnt);
 }
 
 function hlQ(text, q) {
+  if (!q) return text;
   return text.replace(new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi'), '<span class="hl">$1</span>');
 }
 
@@ -746,17 +844,26 @@ function clearHist() {
   buildHistList();
 }
 
-function replayConv(m) {
+// Charge une conversation dans le chat
+function loadConversation(id) {
+  activeId = id;
+  saveConvs();
+  var conv = getActiveConv();
+  if (!conv) return;
+  var msgs = document.getElementById('msgs');
+  msgs.innerHTML = '';
+  // Reconstruire tous les messages
+  conv.msgs.forEach(function(m) {
+    addMsg(m.q, 'user');
+    if (m.a) addMsg(m.a, 'bot', false);
+  });
   showTab('chat');
-  var w = document.getElementById('welcome');
-  if (w) w.remove();
-  addMsg(m.q, 'user');
-  if (m.a) addMsg(m.a, 'bot', false);
-  document.getElementById('msgs').scrollTop = 99999;
+  buildHistList();
+  msgs.scrollTop = 99999;
 }
 
 // ═══════════════════════════════════════════
-// HISTORIQUE SUPABASE
+// HISTORIQUE SUPABASE → injection dans conversations
 // ═══════════════════════════════════════════
 async function loadRemoteHist() {
   if (!userEmail) return;
@@ -768,9 +875,32 @@ async function loadRemoteHist() {
     });
     var d = await r.json();
     if (d.success && d.history && d.history.length) {
-      mem = d.history.map(function(h) {
-        return { q: h.question, a: h.answer, t: h.time ? new Date(h.time).getTime() : Date.now() };
+      // Regrouper par conversation (on groupe les échanges proches en temps — 1h max)
+      var convMap = {};
+      d.history.forEach(function(h) {
+        var t = h.time ? new Date(h.time).getTime() : Date.now();
+        var dayKey = new Date(t).toDateString();
+        if (!convMap[dayKey]) {
+          convMap[dayKey] = {
+            id: 'remote_' + dayKey.replace(/ /g,'_'),
+            title: 'Conversation du ' + new Date(t).toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',year:'numeric'}),
+            msgs: [],
+            created: t
+          };
+        }
+        convMap[dayKey].msgs.push({ q: h.question, a: h.answer, t: t });
       });
+      // Fusionner avec les conversations locales (éviter doublons)
+      var remoteIds = Object.keys(convMap).map(function(k){ return convMap[k].id; });
+      conversations = conversations.filter(function(c){ return !remoteIds.includes(c.id); });
+      Object.values(convMap).forEach(function(c) {
+        // Titre = première question
+        if (c.msgs.length) c.title = c.msgs[0].q.substring(0,40) + (c.msgs[0].q.length>40?'...':'');
+        conversations.push(c);
+      });
+      // Trier par date décroissante
+      conversations.sort(function(a,b){ return b.created - a.created; });
+      saveConvs();
       buildHistList();
     }
   } catch(e) {}
@@ -1154,28 +1284,42 @@ function openConvModal() {
   document.getElementById('conv-modal').classList.add('open');
   var list = document.getElementById('conv-list');
   list.innerHTML = '';
-  if (!mem.length) { list.innerHTML = '<div style="color:#555;font-size:13px;padding:12px;text-align:center;">Aucune conversation</div>'; return; }
-  mem.slice().reverse().forEach(function(m, i) {
-    var realIdx = mem.length - 1 - i;
+  if (!conversations.length) {
+    list.innerHTML = '<div style="color:#555;font-size:13px;padding:12px;text-align:center;">Aucune conversation</div>';
+    return;
+  }
+  conversations.forEach(function(conv) {
     var item = document.createElement('div');
     item.className = 'conv-item';
-    item.innerHTML = '<span class="conv-q">' + esc(m.q.substring(0, 60)) + (m.q.length > 60 ? '...' : '') + '</span>'
-      + '<button class="btn-conv-del" onclick="delConv(' + realIdx + ')">&#10005;</button>';
+    var date = new Date(conv.created).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    item.innerHTML = '<div style="flex:1;min-width:0;">'
+      + '<div class="conv-q">' + esc(conv.title) + '</div>'
+      + '<div style="font-size:10px;color:#444;margin-top:2px;">' + date + ' · ' + conv.msgs.length + ' messages</div>'
+      + '</div>'
+      + '<button class="btn-conv-del" onclick="delConvById('' + conv.id + '')">&#10005;</button>';
     list.appendChild(item);
   });
 }
 
-function delConv(i) {
-  mem.splice(i, 1);
-  localStorage.setItem('sntf_mem', JSON.stringify(mem));
-  openConvModal(); buildHistList();
+function delConvById(id) {
+  conversations = conversations.filter(function(c){ return c.id !== id; });
+  if (activeId === id) { activeId = null; }
+  saveConvs();
+  openConvModal();
+  buildHistList();
+  // Si on vient de supprimer la conv active → nouvelle conv
+  if (!activeId) newConversation();
 }
 
 function delAllConvs() {
   if (!confirm('Supprimer toutes les conversations ?')) return;
-  mem = []; localStorage.removeItem('sntf_mem');
+  conversations = []; activeId = null;
+  localStorage.removeItem('sntf_convs');
+  localStorage.removeItem('sntf_active');
   document.getElementById('conv-modal').classList.remove('open');
-  buildHistList(); toast('Conversations supprimées', 'ok');
+  buildHistList();
+  newConversation();
+  toast('Toutes les conversations supprimées', 'ok');
 }
 
 // ═══════════════════════════════════════════
