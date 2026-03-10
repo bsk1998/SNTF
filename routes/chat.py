@@ -133,7 +133,7 @@ def save_conversation(user_email: str, question: str, answer: str):
         cur = conn.cursor()
         cur.execute(
             "INSERT INTO conversations (user_email, question, answer) VALUES (%s, %s, %s)",
-            (user_email, question[:500], answer[:2000])
+            (user_email, question[:1000], answer[:5000])
         )
         conn.commit()
         cur.close(); conn.close()
@@ -146,13 +146,13 @@ def load_history(user_email: str, limit=6):
         conn = get_db()
         cur = conn.cursor()
         cur.execute(
-            "SELECT question, answer FROM conversations WHERE user_email=%s ORDER BY created_at DESC LIMIT %s",
+            "SELECT question, answer, created_at FROM conversations WHERE user_email=%s ORDER BY created_at DESC LIMIT %s",
             (user_email, limit)
         )
         rows = cur.fetchall()
         cur.close(); conn.close()
         rows.reverse()
-        return [{"question": r[0], "answer": r[1]} for r in rows]
+        return [{"question": r[0], "answer": r[1], "time": str(r[2]) if r[2] else ''} for r in rows]
     except Exception as e:
         print(f"load_history error: {e}")
         return []
@@ -252,7 +252,7 @@ def call_groq_vision(question: str, image_b64: str, image_type: str) -> str:
 # ═══════════════════════════════════════
 @router.post("/history")
 async def get_history(req: HistoryRequest):
-    history = load_history(req.user_email, limit=20)
+    history = load_history(req.user_email, limit=20)  # réponses complètes
     return {"success": True, "history": history, "count": len(history)}
 
 @router.post("/ask")
@@ -323,7 +323,7 @@ Tu as accès aux documents internes SNTF ET à des informations web actualisées
     # Historique conversation
     for h in db_history[-4:]:
         messages.append({"role": "user", "content": h["question"]})
-        messages.append({"role": "assistant", "content": h["answer"][:400]})
+        messages.append({"role": "assistant", "content": h["answer"][:800]})
 
     # Construire le contexte enrichi
     parts = []
