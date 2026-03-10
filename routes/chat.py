@@ -11,7 +11,7 @@ HF_API_KEY   = os.environ.get("HF_API_KEY")
 VECTOR_TABLE = "n8n_vectors"
 
 # ═══════════════════════════════════════
-# 🚀 CACHE MODÈLE — chargé une seule fois
+# 🚀 CACHE MODÈLE
 # ═══════════════════════════════════════
 _embedding_model = None
 
@@ -20,14 +20,12 @@ def get_model():
     if _embedding_model is None:
         try:
             from sentence_transformers import SentenceTransformer
-            print("⚙️ Chargement modèle embedding...")
             _embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-            print("✅ Modèle chargé et mis en cache !")
+            print("✅ Modèle embedding chargé")
         except Exception as e:
             print(f"sentence-transformers non dispo: {e}")
     return _embedding_model
 
-# Précharger au démarrage du serveur
 try:
     get_model()
 except: pass
@@ -56,7 +54,6 @@ def get_embedding(text: str):
                     emb = np.mean(emb, axis=0).tolist()
                 return emb
         except: pass
-    # Fallback rapide
     words = text.lower().split()
     vector = [0.0] * 384
     for i, word in enumerate(words[:200]):
@@ -88,6 +85,43 @@ def search_docs(question: str, limit=3):
     except Exception as e:
         print(f"search_docs error: {e}")
         return []
+
+# ═══════════════════════════════════════
+# 🌐 RECHERCHE WEB DUCKDUCKGO (GRATUIT)
+# ═══════════════════════════════════════
+def search_web(query: str) -> str:
+    """Recherche DuckDuckGo — 100% gratuit, sans clé API"""
+    try:
+        r = requests.get(
+            "https://api.duckduckgo.com/",
+            params={
+                "q": query + " SNTF Algérie",
+                "format": "json",
+                "no_html": 1,
+                "skip_disambig": 1
+            },
+            timeout=8,
+            headers={"User-Agent": "SNTF-Assistant/1.0"}
+        )
+        data = r.json()
+
+        results = []
+
+        # Résumé principal
+        if data.get("AbstractText"):
+            results.append(data["AbstractText"][:400])
+
+        # Résultats connexes
+        for item in data.get("RelatedTopics", [])[:3]:
+            if isinstance(item, dict) and item.get("Text"):
+                results.append(item["Text"][:200])
+
+        if results:
+            return "\n".join(results)
+        return ""
+    except Exception as e:
+        print(f"web_search error: {e}")
+        return ""
 
 # ═══════════════════════════════════════
 # MÉMOIRE SUPABASE
@@ -140,7 +174,6 @@ class HistoryRequest(BaseModel):
 # STREAMING GROQ
 # ═══════════════════════════════════════
 def stream_groq(messages: list):
-    """Générateur qui streame token par token depuis Groq"""
     if not GROQ_API_KEY:
         yield "data: " + json.dumps({"token": "⚠️ Clé Groq manquante."}) + "\n\n"
         yield "data: [DONE]\n\n"
@@ -152,14 +185,13 @@ def stream_groq(messages: list):
             json={
                 "model": "llama-3.3-70b-versatile",
                 "messages": messages,
-                "max_tokens": 1024,
-                "temperature": 0.3,
-                "stream": True  # ← STREAMING ACTIVÉ
+                "max_tokens": 1500,
+                "temperature": 0.4,
+                "stream": True
             },
             stream=True,
             timeout=60
         )
-        full_answer = ""
         for line in r.iter_lines():
             if line:
                 line = line.decode('utf-8')
@@ -172,21 +204,19 @@ def stream_groq(messages: list):
                         chunk = json.loads(data)
                         token = chunk["choices"][0]["delta"].get("content", "")
                         if token:
-                            full_answer += token
                             yield "data: " + json.dumps({"token": token}) + "\n\n"
                     except: pass
     except Exception as e:
         yield "data: " + json.dumps({"token": f"Erreur: {e}"}) + "\n\n"
         yield "data: [DONE]\n\n"
 
-# Groq normal (sans stream) pour vision
 def call_groq(messages: list) -> str:
     if not GROQ_API_KEY: return "⚠️ Clé Groq manquante."
     try:
         r = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
-            json={"model": "llama-3.3-70b-versatile", "messages": messages, "max_tokens": 1024, "temperature": 0.3},
+            json={"model": "llama-3.3-70b-versatile", "messages": messages, "max_tokens": 1500, "temperature": 0.4},
             timeout=60
         )
         if r.status_code == 200:
@@ -204,7 +234,7 @@ def call_groq_vision(question: str, image_b64: str, image_type: str) -> str:
             json={
                 "model": "llama-3.2-90b-vision-preview",
                 "messages": [{"role": "user", "content": [
-                    {"type": "text", "text": f"Tu es l'assistant intelligent de la SNTF (Société Nationale des Transports Ferroviaires d'Algérie). Analyse cette image et réponds en français à la question suivante : {question}"},
+                    {"type": "text", "text": f"Tu es l'assistant SNTF. Analyse cette image en détail et réponds : {question}"},
                     {"type": "image_url", "image_url": {"url": f"data:{image_type};base64,{image_b64}"}}
                 ]}],
                 "max_tokens": 1024
@@ -238,12 +268,12 @@ async def ask(req: ChatRequest):
             save_conversation(req.user_email, f"[IMAGE] {question}", answer)
         return {"answer": answer, "sources": [], "mode": "vision"}
 
-    # ── Recherche docs en parallèle ──
+    # ── Recherche docs PDF ──
     docs = search_docs(question)
     context = ""
     sources = []
     for d in docs[:3]:
-        if d["score"] > 0.3:  # seuil qualité
+        if d["score"] > 0.25:
             context += d["text"][:500] + "\n\n"
             meta = d.get("metadata", {})
             if isinstance(meta, str):
@@ -253,33 +283,62 @@ async def ask(req: ChatRequest):
             if fname and fname not in sources:
                 sources.append(fname)
 
-    # ── Historique court (6 échanges max pour vitesse) ──
+    # ── Recherche web si pas assez de contexte PDF ──
+    web_context = ""
+    if not context or len(context) < 100:
+        print(f"🌐 Recherche web pour: {question[:50]}")
+        web_context = search_web(question)
+        if web_context:
+            print(f"🌐 Web résultat: {web_context[:80]}...")
+
+    # ── Historique utilisateur ──
     db_history = []
     if req.user_email and req.user_email != "admin":
         db_history = load_history(req.user_email, limit=6)
 
-    # ── Construire messages ──
-    system = """Tu es l'assistant SNTF (Société Nationale des Transports Ferroviaires d'Algérie).
-Réponds en français, de façon concise et professionnelle.
-Si la question est en arabe, réponds en arabe.
-Utilise le contexte documentaire si disponible."""
+    # ═══════════════════════════════════════════════════════════
+    # 🧠 PROMPT AMÉLIORÉ — Expert SNTF qui explique et analyse
+    # ═══════════════════════════════════════════════════════════
+    system = """Tu es Dr. SNTF — un expert ferroviaire senior de la Société Nationale des Transports Ferroviaires d'Algérie, avec 20 ans d'expérience.
+
+TON STYLE DE RÉPONSE :
+• Explique toujours avec tes propres mots, comme un expert qui enseigne
+• Ne recopie JAMAIS le texte brut des documents — reformule, synthétise, enrichis
+• Structure tes réponses : commence par l'essentiel, puis les détails
+• Donne des exemples concrets et pratiques quand c'est utile
+• Si tu as plusieurs informations, organise-les clairement
+• Ajoute ton analyse et ton expertise quand c'est pertinent
+
+RÈGLES IMPORTANTES :
+• Si tu trouves l'info dans les documents → explique-la intelligemment
+• Si tu trouves l'info sur le web → cite la source et explique
+• Si tu n'as pas d'info fiable → dis-le honnêtement, ne invente JAMAIS
+• Si la question est en arabe → réponds en arabe avec le même niveau d'expertise
+• Sois précis, professionnel, et utile
+
+Tu as accès aux documents internes SNTF ET à des informations web actualisées."""
 
     messages = [{"role": "system", "content": system}]
 
-    for h in db_history[-4:]:  # 4 derniers échanges seulement
+    # Historique conversation
+    for h in db_history[-4:]:
         messages.append({"role": "user", "content": h["question"]})
-        messages.append({"role": "assistant", "content": h["answer"][:300]})
+        messages.append({"role": "assistant", "content": h["answer"][:400]})
 
-    user_content = question
+    # Construire le contexte enrichi
+    parts = []
     if context:
-        user_content = f"Contexte:\n{context}\nQuestion: {question}"
-    messages.append({"role": "user", "content": user_content})
+        parts.append(f"📄 DOCUMENTS INTERNES SNTF :\n{context}")
+    if web_context:
+        parts.append(f"🌐 INFORMATIONS WEB COMPLÉMENTAIRES :\n{web_context}")
+    parts.append(f"Question de l'utilisateur : {question}")
+
+    messages.append({"role": "user", "content": "\n\n".join(parts)})
 
     # ── STREAMING ──
     def generate():
         full = ""
-        # Envoyer sources en premier
-        yield "data: " + json.dumps({"sources": sources}) + "\n\n"
+        yield "data: " + json.dumps({"sources": sources, "web": bool(web_context)}) + "\n\n"
         for chunk in stream_groq(messages):
             if "DONE" not in chunk:
                 try:
@@ -287,7 +346,6 @@ Utilise le contexte documentaire si disponible."""
                     full += data.get("token", "")
                 except: pass
             yield chunk
-        # Sauvegarder après stream complet
         if req.user_email and req.user_email != "admin" and full:
             save_conversation(req.user_email, question, full)
 
