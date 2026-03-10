@@ -751,22 +751,15 @@ function getCtx() {
 function newConversation() {
   activeId = null;
   saveConvs();
-  // Vider le chat
   var msgs = document.getElementById('msgs');
   msgs.innerHTML = '';
-  // Remettre le welcome
   var w = document.createElement('div');
   w.id = 'welcome';
+  var sugs = ['Horaires des trains','Tarifs et billets','Procédures de sécurité','Réseau ferroviaire','Signalement incident','Règlement intérieur'];
+  var sugHtml = sugs.map(function(s){ return '<div class="sug" onclick="askQ(this)">' + s + '</div>'; }).join('');
   w.innerHTML = '<div class="w-title">Nouvelle conversation</div>'
     + '<div class="w-sub">Comment puis-je vous aider ?</div>'
-    + '<div class="suggestions">'
-    + '<div class="sug" onclick="askQ(this)">Horaires des trains</div>'
-    + '<div class="sug" onclick="askQ(this)">Tarifs et billets</div>'
-    + '<div class="sug" onclick="askQ(this)">Procédures de sécurité</div>'
-    + '<div class="sug" onclick="askQ(this)">Réseau ferroviaire</div>'
-    + '<div class="sug" onclick="askQ(this)">Signalement d'incident</div>'
-    + '<div class="sug" onclick="askQ(this)">Règlement intérieur</div>'
-    + '</div>';
+    + '<div class="suggestions">' + sugHtml + '</div>';
   msgs.appendChild(w);
   showTab('chat');
   buildHistList();
@@ -791,7 +784,7 @@ function buildHistList() {
     var count = conv.msgs.length;
     d.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
       + '<div class="hist-conv-title">' + esc(conv.title) + '</div>'
-      + '<button class="hist-conv-del" onclick="event.stopPropagation();delConvById('' + conv.id + '')" title="Supprimer">&#10005;</button>'
+      + '<button class="hist-conv-del" onclick="event.stopPropagation();delConvById(\'' + conv.id + '\')" title="Supprimer">&#10005;</button>'
       + '</div>'
       + '<div class="hist-conv-meta">'
       + '<span class="hist-conv-date">' + date + '</span>'
@@ -1296,7 +1289,7 @@ function openConvModal() {
       + '<div class="conv-q">' + esc(conv.title) + '</div>'
       + '<div style="font-size:10px;color:#444;margin-top:2px;">' + date + ' · ' + conv.msgs.length + ' messages</div>'
       + '</div>'
-      + '<button class="btn-conv-del" onclick="delConvById('' + conv.id + '')">&#10005;</button>';
+      + '<button class="btn-conv-del" onclick="delConvById(\'' + conv.id + '\')" >&#10005;</button>';
     list.appendChild(item);
   });
 }
