@@ -2066,23 +2066,58 @@ function getMemoryContext() {
 function updateHistoryList() {
   const list = document.getElementById('history-list');
   if (!list) return;
-  if (!conversationMemory.length) { list.innerHTML = '<div style="color:#555;font-size:12px;padding:4px;letter-spacing:1px">Aucune conversation</div>'; return; }
+  if (!conversationMemory.length) {
+    list.innerHTML = '<div style="color:#555;font-size:12px;padding:8px 4px;letter-spacing:1px">Aucune conversation</div>';
+    return;
+  }
   list.innerHTML = '';
-  [...conversationMemory].reverse().slice(0,6).forEach(m => {
+
+  // Afficher les 6 dernières conversations avec Q ET réponse
+  [...conversationMemory].reverse().slice(0, 6).forEach((m, i) => {
     const d = document.createElement('div');
-    d.style.cssText = 'padding:8px 6px;cursor:pointer;border-bottom:1px solid rgba(201,168,76,0.06);font-size:12px;color:#aaa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:background 0.2s';
-    d.textContent = m.q.substring(0,40) + (m.q.length>40?'…':'');
-    d.onmouseover = () => d.style.background = 'rgba(201,168,76,0.06)';
+    d.style.cssText = 'padding:10px 6px;cursor:pointer;border-bottom:1px solid rgba(201,168,76,0.07);transition:background 0.2s;border-radius:3px;margin-bottom:2px';
+    d.onmouseover = () => d.style.background = 'rgba(201,168,76,0.05)';
     d.onmouseout  = () => d.style.background = '';
-    d.onclick = () => { document.getElementById('chat-input').value = m.q; showTab('chat'); };
+
+    const question = m.q.substring(0, 45) + (m.q.length > 45 ? '…' : '');
+    const answer   = m.a ? (m.a.substring(0, 60) + (m.a.length > 60 ? '…' : '')) : '';
+    const date     = m.t ? new Date(m.t).toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : '';
+
+    d.innerHTML = `
+      <div style="font-size:12px;color:#ccc;font-weight:600;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">💬 ${question}</div>
+      ${answer ? `<div style="font-size:11px;color:#666;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.4">🤖 ${answer}</div>` : ''}
+      ${date ? `<div style="font-size:10px;color:#444;margin-top:3px;letter-spacing:0.5px">${date}</div>` : ''}
+    `;
+    d.onclick = () => {
+      // Recharger la conversation dans le chat
+      replayConversation(m);
+    };
     list.appendChild(d);
   });
+
   const clr = document.createElement('div');
-  clr.style.cssText = 'margin-top:8px;text-align:center;font-size:11px;color:#555;cursor:pointer;padding:4px;letter-spacing:1px';
+  clr.style.cssText = 'margin-top:10px;text-align:center;font-size:11px;color:#444;cursor:pointer;padding:6px;letter-spacing:1px;border:1px solid rgba(201,168,76,0.08);border-radius:3px;transition:all 0.2s';
   clr.textContent = '🗑 Gérer / Supprimer';
+  clr.onmouseover = () => clr.style.borderColor = 'rgba(201,168,76,0.2)';
+  clr.onmouseout  = () => clr.style.borderColor = 'rgba(201,168,76,0.08)';
   clr.onclick = () => showConvManager();
-  
   list.appendChild(clr);
+}
+
+// Rejouer une conversation dans le chat
+function replayConversation(m) {
+  showTab('chat');
+  document.getElementById('welcome')?.remove();
+  const wrap = document.getElementById('messages');
+
+  // Afficher la question
+  addMessage(m.q, 'user');
+
+  // Afficher la réponse du bot
+  if (m.a) {
+    addMessage(m.a, 'bot', false);
+  }
+  wrap.scrollTop = wrap.scrollHeight;
 }
 
 // ═══════════ 📂 HISTORIQUE PERSISTANT ═══════════
@@ -2097,7 +2132,7 @@ async function loadPersistentHistory() {
     const d = await r.json();
     if (d.success && d.history && d.history.length > 0) {
       // Mettre à jour la mémoire locale avec l'historique Supabase
-      conversationMemory = d.history.map(h => ({q: h.question, a: h.answer, t: new Date(h.time).getTime()}));
+      conversationMemory = d.history.map(h => ({q: h.question, a: h.answer, t: h.time ? new Date(h.time).getTime() : Date.now()}));
       updateHistoryList();
       console.log(`📂 ${d.count} conversations chargées depuis Supabase`);
     }
