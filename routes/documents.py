@@ -80,7 +80,7 @@ def extract_text_from_image(image_bytes: bytes, mime_type: str, filename: str) -
             "https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
             json={
-                "model": "llama-3.2-90b-vision-preview",
+                "model": "meta-llama/llama-4-scout-17b-16e-instruct",
                 "messages": [{"role": "user", "content": [
                     {"type": "text", "text": """Analyse cette image en détail pour créer une base de connaissances.
 Extrais et décris :
@@ -295,7 +295,7 @@ def extract_text_from_image(file_bytes: bytes, filename: str) -> str:
             "https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
             json={
-                "model": "llama-3.2-90b-vision-preview",
+                "model": "meta-llama/llama-4-scout-17b-16e-instruct",
                 "messages": [{"role": "user", "content": [
                     {"type": "text", "text": "Tu es un assistant SNTF. Décris cette image en détail et extrait tout le texte visible. Sois exhaustif pour permettre une recherche future."},
                     {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}}
