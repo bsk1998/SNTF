@@ -1588,7 +1588,21 @@ input[type=file] { display: none; }
         </div>
         <div class="chat-input-area">
 
+          <!-- Preview image -->
+          <div id="img-preview-wrap" style="display:none;padding:0 0 10px 0">
+            <div style="display:inline-flex;align-items:center;gap:10px;background:var(--noir3);border:1px solid rgba(201,168,76,0.2);border-radius:4px;padding:8px 12px">
+              <img id="img-preview" style="height:48px;width:auto;border-radius:3px;object-fit:cover;max-width:100px">
+              <div>
+                <div id="img-preview-name" style="font-size:11px;color:var(--or);letter-spacing:1px;margin-bottom:2px"></div>
+                <div style="font-size:10px;color:var(--gris)">Prete a envoyer</div>
+              </div>
+              <button onclick="clearImage()" style="background:rgba(192,0,26,0.2);border:1px solid rgba(192,0,26,0.3);color:#ff6666;padding:4px 10px;border-radius:2px;cursor:pointer;font-size:12px">x</button>
+            </div>
+          </div>
+
           <div class="input-row">
+            <button class="btn-icon" onclick="document.getElementById('chat-img-input').click()" title="Envoyer une photo" style="flex-shrink:0;height:50px;width:44px;font-size:18px">&#128247;</button>
+            <input type="file" id="chat-img-input" accept="image/*" style="display:none">
             <textarea class="chat-input" id="chat-input" placeholder="Posez votre question sur la SNTF..." rows="1"
               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"
               oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
@@ -1774,6 +1788,7 @@ const AKEY = '123456SNTF.';
 let currentUserEmail = '';
 let questionCount = parseInt(localStorage.getItem('sntf_qs') || '0');
 let selectedFile = null;
+let selectedImage = null; // { base64, type, name }
 
 // ═══════════ AUTH ═══════════
 auth.onAuthStateChanged(user => {
@@ -1905,7 +1920,14 @@ async function sendChat() {
   input.value = '';
   input.style.height = 'auto';
 
-  addMessage(q, 'user');
+  var imgToSend = selectedImage;
+  clearImage();
+
+  if (imgToSend) {
+    addMessageWithImage(q || '(photo)', 'user', imgToSend.base64);
+  } else {
+    addMessage(q, 'user');
+  }
 
   const typing = addTyping();
   document.getElementById('btn-send').disabled = true;
@@ -1918,11 +1940,28 @@ async function sendChat() {
     let body, headers;
     const memCtx = getMemoryContext();
 
-    body = JSON.stringify({ question: q, memory: memCtx, user_email: currentUserEmail });
-    headers = {'Content-Type': 'application/json'};
+    if (!imgToSend) {
+      body = JSON.stringify({ question: q, memory: memCtx, user_email: currentUserEmail });
+      headers = {'Content-Type': 'application/json'};
+    }
 
-    // ── STREAMING ──
-    {
+    // ── Image : sans streaming ──
+    if (imgToSend) {
+      var b64 = imgToSend.base64.split(',')[1];
+      body = JSON.stringify({
+        question: q || 'Analyse et decris cette image en detail.',
+        image: b64,
+        image_type: imgToSend.type,
+        user_email: currentUserEmail
+      });
+      headers = {'Content-Type': 'application/json'};
+      var ri = await fetch('/api/chat/ask', { method:'POST', headers, body });
+      var di = await ri.json();
+      typing.remove();
+      hideDikrThinking();
+      addMessage(di.answer || di.response || 'Erreur analyse image', 'bot', true);
+      saveToMemory(q || '(photo)', di.answer || '');
+    } else {
       // ── STREAMING pour les questions texte ──
       const r = await fetch('/api/chat/ask', { method:'POST', headers, body });
       if (!r.ok) throw new Error('Erreur serveur');
@@ -2020,6 +2059,27 @@ function addMessageWithImage(text, role, imgSrc) {
       </div>
       <div class="msg-meta"><span class="msg-time">${time}</span></div>
     </div>`;
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+
+// ======= MESSAGE AVEC IMAGE =======
+function addMessageWithImage(text, role, imgSrc) {
+  var wrap = document.getElementById('messages');
+  var time = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
+  var div = document.createElement('div');
+  div.className = 'message ' + role;
+  var avatar = document.getElementById('user-initial').textContent || '?';
+  div.innerHTML =
+    '<div class="msg-avatar">' + avatar + '</div>' +
+    '<div class="msg-content" style="align-items:flex-end;display:flex;flex-direction:column">' +
+      '<div class="msg-bubble" style="padding:10px">' +
+        '<img src="' + imgSrc + '" style="max-width:200px;max-height:150px;border-radius:3px;display:block' + (text && text !== '(photo)' ? ';margin-bottom:8px' : '') + '">' +
+        (text && text !== '(photo)' ? '<div style="margin-top:6px">' + text + '</div>' : '') +
+      '</div>' +
+      '<div class="msg-meta"><span class="msg-time">' + time + '</span></div>' +
+    '</div>';
   wrap.appendChild(div);
   wrap.scrollTop = wrap.scrollHeight;
 }
