@@ -255,7 +255,41 @@ body{background:var(--noir);color:var(--blanc);font-family:'Rajdhani',sans-serif
 .toast.err{border-color:rgba(255,100,100,0.3);color:#f64;}
 
 input[type=file]{display:none;}
-@media(max-width:768px){.sidebar{display:none;}.fields{grid-template-columns:1fr;}}
+@media(max-width:768px){
+  .sidebar{display:none;}
+  .fields{grid-template-columns:1fr;}
+  #app{flex-direction:column;}
+  .main{height:calc(100vh - 56px);}
+  .mobile-bar{display:flex !important;}
+  .msgs{padding:12px;}
+  .chat-foot{padding:10px 12px;}
+  .pdf-wrap{padding:16px;}
+  .stats-wrap{padding:16px;}
+}
+.mobile-bar{
+  display:none;position:fixed;bottom:0;left:0;right:0;
+  height:56px;background:var(--noir2);
+  border-top:1px solid rgba(201,168,76,0.1);
+  z-index:200;
+}
+.mb-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:2px;cursor:pointer;
+  font-size:10px;letter-spacing:1px;color:#444;
+  text-transform:uppercase;transition:color 0.2s;
+  border:none;background:none;font-family:'Rajdhani',sans-serif;
+  padding:0;
+}
+.mb-btn.active{color:var(--rouge);}
+.mb-btn span.mb-icon{font-size:18px;}
+.mb-logout{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:2px;cursor:pointer;
+  font-size:10px;letter-spacing:1px;color:#444;
+  text-transform:uppercase;border:none;background:none;
+  font-family:'Rajdhani',sans-serif;padding:0;
+}
+.mb-logout:hover{color:#f66;}
 </style>
 </head>
 <body>
@@ -348,8 +382,8 @@ input[type=file]{display:none;}
       <div class="sb-label">Navigation</div>
       <button class="btn-new-conv" onclick="newConversation()">&#43; Nouvelle conversation</button>
       <button class="sb-btn active" id="nav-chat" onclick="showTab('chat')"><span>&#128172;</span> Chat</button>
-      <button class="sb-btn" id="nav-pdf" onclick="showTab('pdf')"><span>&#128196;</span> Documents</button>
-      <button class="sb-btn" id="nav-stats" onclick="showTab('stats')"><span>&#128200;</span> Statistiques</button>
+      <button class="sb-btn" id="nav-pdf" onclick="showTab('pdf')" style="display:none;"><span>&#128196;</span> Documents</button>
+      <button class="sb-btn" id="nav-stats" onclick="showTab('stats')" style="display:none;"><span>&#128200;</span> Statistiques</button>
     </div>
     <div class="sb-section sb-hist">
       <div class="sb-label">Historique</div>
@@ -472,12 +506,32 @@ input[type=file]{display:none;}
         <div id="db-status">&#9679; Vérification...</div>
         <button class="btn-refresh" onclick="loadStats()" style="margin-top:20px;">Actualiser</button>
         <button class="btn-refresh" onclick="openConvModal()" style="margin-top:10px;">Gérer conversations</button>
+        <button class="btn-refresh" onclick="deleteAccount()" style="margin-top:10px;border-color:rgba(255,100,100,0.3);color:#f66;">&#128683; Supprimer mon compte</button>
       </div>
     </div>
 
   </div><!-- /main -->
  </div><!-- /app-inner -->
 </div><!-- /app -->
+
+<!-- MOBILE BOTTOM BAR -->
+<div class="mobile-bar" id="mobile-bar">
+  <button class="mb-btn active" id="mb-chat" onclick="showTabMobile('chat')">
+    <span class="mb-icon">&#128172;</span>Chat
+  </button>
+  <button class="mb-btn" id="mb-new" onclick="newConversation()">
+    <span class="mb-icon" style="color:var(--rouge);font-size:22px;">&#43;</span>Nouveau
+  </button>
+  <button class="mb-btn" id="mb-pdf" onclick="showTabMobile('pdf')" style="display:none;">
+    <span class="mb-icon">&#128196;</span>Docs
+  </button>
+  <button class="mb-btn" id="mb-stats" onclick="showTabMobile('stats')" style="display:none;">
+    <span class="mb-icon">&#128200;</span>Stats
+  </button>
+  <button class="mb-logout" onclick="logout()">
+    <span class="mb-icon">&#128682;</span>Quitter
+  </button>
+</div>
 
 <!-- MODAL CONVERSATIONS -->
 <div id="conv-modal">
@@ -720,10 +774,15 @@ function logout() {
 function showTab(t) {
   ['chat','pdf','stats'].forEach(function(id) {
     document.getElementById('panel-' + id).className = 'panel' + (id === t ? ' active' : '');
-    document.getElementById('nav-' + id).className = 'sb-btn' + (id === t ? ' active' : '');
+    var nb = document.getElementById('nav-' + id);
+    if (nb) nb.className = 'sb-btn' + (id === t ? ' active' : '');
+    var mb = document.getElementById('mb-' + id);
+    if (mb) mb.className = 'mb-btn' + (id === t ? ' active' : '');
   });
   if (t === 'stats') loadStats();
 }
+
+function showTabMobile(t) { showTab(t); }
 
 // ═══════════════════════════════════════════
 // CONVERSATIONS — structure type Claude
@@ -1343,6 +1402,35 @@ function delAllConvs() {
   buildHistList();
   newConversation();
   toast('Toutes les conversations supprimées', 'ok');
+}
+
+// ═══════════════════════════════════════════
+// SUPPRESSION COMPTE
+// ═══════════════════════════════════════════
+async function deleteAccount() {
+  if (!confirm('Supprimer définitivement votre compte ? Cette action est irréversible.')) return;
+  try {
+    var user = auth.currentUser;
+    if (!user) { toast('Aucun compte connecté', 'err'); return; }
+    // Si Google — re-authentifier avant suppression
+    if (user.providerData && user.providerData[0] && user.providerData[0].providerId === 'google.com') {
+      var provider = new firebase.auth.GoogleAuthProvider();
+      await auth.currentUser.reauthenticateWithPopup(provider);
+    }
+    await user.delete();
+    // Nettoyer local
+    conversations = []; activeId = null;
+    localStorage.removeItem('sntf_convs');
+    localStorage.removeItem('sntf_active');
+    localStorage.removeItem('sntf_qs');
+    toast('Compte supprimé', 'ok');
+    setTimeout(function(){ showLogin(); }, 1500);
+  } catch(e) {
+    var msg = 'Erreur suppression';
+    if (e.code === 'auth/requires-recent-login') msg = 'Reconnectez-vous d\'abord';
+    if (e.code === 'auth/popup-closed-by-user') msg = 'Annulé';
+    toast(msg, 'err');
+  }
 }
 
 // ═══════════════════════════════════════════
