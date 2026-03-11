@@ -4,21 +4,42 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SNTF — Assistant Intelligent</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Noto+Sans+Arabic:wght@300;400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=Space+Mono:wght@400;700&family=Rajdhani:wght@300;400;500;600;700&family=Noto+Sans+Arabic:wght@300;400;600;700&family=Cinzel:wght@400;600;900&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <style>
-:root{--noir:#080808;--noir2:#111;--noir3:#1a1a1a;--rouge:#C0001A;--rouge2:#E8001F;--or:#C9A84C;--or2:#F0C96A;--or3:#FFE09A;--blanc:#F5F0E8;--gris:#888;}
+:root{
+  --noir:#06060A;--noir2:#0E0E16;--noir3:#161622;--noir4:#1E1E2E;
+  --rouge:#C0001A;--rouge2:#E8001F;
+  --or:#C9A84C;--or2:#F0C96A;--or3:#FFE09A;
+  --blanc:#F0EBE0;--gris:#666;--gris2:#444;
+  --radius:12px;
+}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{background:var(--noir);color:var(--blanc);font-family:'Rajdhani',sans-serif;min-height:100vh;overflow-x:hidden;}
+body{background:var(--noir);color:var(--blanc);font-family:'Rajdhani',sans-serif;min-height:100vh;overflow-x:hidden;letter-spacing:0.2px;}
 
 /* FOND */
 .bg-rails{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
-.rail-line{position:absolute;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.12),transparent);height:1px;width:100%;animation:rail-move 8s linear infinite;}
-.rail-line:nth-child(1){top:20%;animation-delay:-2s;}
-.rail-line:nth-child(2){top:50%;animation-delay:-5s;}
-.rail-line:nth-child(3){top:80%;animation-delay:-1s;}
-@keyframes rail-move{0%{transform:translateX(-100%);}100%{transform:translateX(100%);}}
+.bg-rails::before{
+  content:'';position:absolute;inset:0;
+  background-image:linear-gradient(rgba(201,168,76,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,0.025) 1px,transparent 1px);
+  background-size:60px 60px;animation:grid-drift 25s linear infinite;
+}
+.bg-rails::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 70% 50% at 50% 100%,rgba(192,0,26,0.05) 0%,transparent 70%),
+  radial-gradient(ellipse 50% 50% at 20% 20%,rgba(201,168,76,0.03) 0%,transparent 60%);
+}
+@keyframes grid-drift{0%{background-position:0 0;}100%{background-position:60px 60px;}}
+.rail-line{position:absolute;height:1px;width:200%;
+  background:linear-gradient(90deg,transparent 0%,rgba(201,168,76,0.06) 30%,rgba(201,168,76,0.22) 50%,rgba(201,168,76,0.06) 70%,transparent 100%);
+  animation:rail-move 14s linear infinite;}
+.rail-line:nth-child(1){top:12%;animation-delay:0s;animation-duration:16s;}
+.rail-line:nth-child(2){top:30%;animation-delay:-5s;animation-duration:11s;opacity:0.5;}
+.rail-line:nth-child(3){top:52%;animation-delay:-9s;animation-duration:14s;}
+.rail-line:nth-child(4){top:72%;animation-delay:-3s;animation-duration:12s;opacity:0.4;}
+.rail-line:nth-child(5){top:88%;animation-delay:-7s;animation-duration:18s;opacity:0.6;}
+@keyframes rail-move{0%{transform:translateX(-50%);}100%{transform:translateX(0%);}}
 
 /* LAUNCH */
 #screen-launch{position:fixed;inset:0;z-index:1000;background:var(--noir);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;}
@@ -48,12 +69,7 @@ body{background:var(--noir);color:var(--blanc);font-family:'Rajdhani',sans-serif
 .login-card{width:460px;max-width:95vw;background:var(--noir2);border:1px solid rgba(201,168,76,0.2);border-radius:4px;padding:48px 40px;box-shadow:0 24px 80px rgba(0,0,0,0.8);}
 .login-logo-text{font-family:'Playfair Display',serif;font-size:40px;font-weight:900;background:linear-gradient(135deg,var(--or),var(--or3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:0.15em;text-align:center;}
 .login-logo-sub{font-size:11px;letter-spacing:3px;color:var(--gris);text-transform:uppercase;margin-top:6px;text-align:center;margin-bottom:32px;}
-.login-tabs{display:flex;margin-bottom:28px;background:rgba(255,255,255,0.03);border-radius:8px;padding:4px;gap:4px;}
-.login-tab{flex:1;padding:10px;text-align:center;cursor:pointer;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--gris);border-radius:6px;transition:all 0.2s;border:none;}
-.login-tab.active{background:rgba(201,168,76,0.1);color:var(--or);border:1px solid rgba(201,168,76,0.2);}
-.admin-hint{display:flex;align-items:center;gap:14px;padding:16px;background:rgba(201,168,76,0.05);border:1px solid rgba(201,168,76,0.1);border-radius:8px;margin-bottom:20px;}
-.login-sep-small{text-align:center;font-size:11px;color:#444;letter-spacing:2px;margin-top:14px;}
-#login-error-admin{font-size:13px;color:#f66;letter-spacing:1px;min-height:18px;margin-bottom:8px;text-align:center;}
+.login-tabs{display:flex;margin-bottom:28px;border-bottom:1px solid rgba(201,168,76,0.1);}
 .login-tab{flex:1;padding:10px;text-align:center;cursor:pointer;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--gris);border-bottom:2px solid transparent;transition:all 0.2s;}
 .login-tab.active{color:var(--or);border-bottom-color:var(--or);}
 .login-form{display:flex;flex-direction:column;gap:14px;}
@@ -70,7 +86,7 @@ body{background:var(--noir);color:var(--blanc);font-family:'Rajdhani',sans-serif
 .admin-toggle:hover{color:var(--or);}
 
 /* APP */
-#app{display:none;height:100vh;width:100%;position:relative;z-index:10;flex-direction:row;}
+#app{display:none;height:100vh;width:100%;position:relative;z-index:10;}
 .app-inner{display:flex;height:100vh;width:100%;}
 
 /* SIDEBAR */
@@ -95,38 +111,6 @@ body{background:var(--noir);color:var(--blanc);font-family:'Rajdhani',sans-serif
 .sb-stats{padding:12px 16px;border-top:1px solid rgba(201,168,76,0.06);font-size:11px;}
 .stat-row{display:flex;justify-content:space-between;padding:3px 0;color:#444;letter-spacing:1px;}
 .stat-v{color:var(--or);}
-
-/* ── NOUVELLE CONVERSATION ── */
-.btn-new-conv{
-  margin:8px 12px 4px;padding:11px 12px;
-  background:linear-gradient(135deg,var(--rouge),var(--rouge2));
-  border:none;border-radius:4px;color:#fff;
-  font-size:12px;font-family:'Rajdhani',sans-serif;
-  letter-spacing:2px;text-transform:uppercase;
-  cursor:pointer;font-weight:700;text-align:center;
-  transition:all 0.2s;box-shadow:0 4px 14px rgba(192,0,26,0.3);
-  display:flex;align-items:center;justify-content:center;gap:8px;
-}
-.btn-new-conv:hover{box-shadow:0 6px 20px rgba(192,0,26,0.5);transform:translateY(-1px);}
-.hist-conv-item{
-  padding:10px 8px;cursor:pointer;
-  border-bottom:1px solid rgba(201,168,76,0.06);
-  transition:background 0.2s;border-radius:3px;margin-bottom:2px;
-  border-left:2px solid transparent;
-}
-.hist-conv-item:hover{background:rgba(201,168,76,0.05);}
-.hist-conv-item.active-conv{
-  background:rgba(192,0,26,0.1);
-  border-left:2px solid var(--rouge);
-}
-.hist-conv-title{font-size:12px;color:#ccc;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.hist-conv-item.active-conv .hist-conv-title{color:var(--blanc);}
-.hist-conv-meta{font-size:10px;color:#444;margin-top:3px;display:flex;justify-content:space-between;align-items:center;}
-.hist-conv-date{color:#444;}
-.hist-conv-count{color:rgba(201,168,76,0.5);font-size:10px;}
-.hist-conv-del{background:none;border:none;color:#333;cursor:pointer;font-size:12px;padding:2px 4px;border-radius:2px;transition:color 0.2s;line-height:1;}
-.hist-conv-del:hover{color:#f66;}
-
 .btn-logout{margin:8px 12px;padding:8px;text-align:center;cursor:pointer;font-size:11px;letter-spacing:2px;color:#444;border:1px solid rgba(255,255,255,0.04);border-radius:3px;transition:all 0.2s;text-transform:uppercase;}
 .btn-logout:hover{color:#f66;border-color:rgba(255,100,100,0.2);}
 
@@ -136,31 +120,58 @@ body{background:var(--noir);color:var(--blanc);font-family:'Rajdhani',sans-serif
 .panel.active{display:flex;}
 
 /* CHAT */
-.chat-head{padding:16px 24px;border-bottom:1px solid rgba(201,168,76,0.08);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-.chat-title{font-size:14px;letter-spacing:3px;text-transform:uppercase;color:var(--or);}
+.chat-head{
+  padding:16px 24px;border-bottom:1px solid rgba(201,168,76,0.05);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+  background:linear-gradient(to bottom,rgba(10,10,16,0.98),transparent);
+  backdrop-filter:blur(10px);
+}
+.chat-title{
+  font-family:'Cinzel',serif;font-size:14px;font-weight:600;letter-spacing:4px;
+  background:linear-gradient(135deg,var(--or) 0%,var(--or3) 50%,var(--or2) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-size:200%;animation:shimmer 4s ease infinite;
+}
+@keyframes shimmer{0%{background-position:0%;}100%{background-position:200%;}}
+@keyframes pulse-green{0%,100%{box-shadow:0 0 6px rgba(74,200,74,0.5);}50%{box-shadow:0 0 14px rgba(74,200,74,0.9);}}
 .msgs{flex:1;overflow-y:auto;padding:20px 24px;scroll-behavior:smooth;}
 .msgs::-webkit-scrollbar{width:4px;}
 .msgs::-webkit-scrollbar-thumb{background:rgba(201,168,76,0.15);border-radius:2px;}
 .msg{display:flex;gap:12px;margin-bottom:20px;animation:msgIn 0.3s ease;}
-@keyframes msgIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@keyframes msgIn{from{opacity:0;transform:translateY(14px) scale(0.97);}to{opacity:1;transform:translateY(0) scale(1);}}
 .msg.user{flex-direction:row-reverse;}
 .msg-av{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;}
-.msg.bot .msg-av{background:var(--noir3);border:1px solid rgba(201,168,76,0.15);}
-.msg.user .msg-av{background:linear-gradient(135deg,var(--rouge),var(--rouge2));font-weight:700;font-size:13px;color:#fff;}
+.msg.bot .msg-av{background:linear-gradient(135deg,var(--noir3),var(--noir4));border:1px solid rgba(201,168,76,0.15);box-shadow:0 0 10px rgba(201,168,76,0.06);}
+.msg.user .msg-av{background:linear-gradient(135deg,var(--rouge),#7a0010);font-weight:700;font-size:12px;color:#fff;font-family:'Cinzel',serif;box-shadow:0 0 14px rgba(192,0,26,0.25);border:1px solid rgba(192,0,26,0.35);}
 .msg-body{max-width:75%;display:flex;flex-direction:column;gap:4px;}
 .msg.user .msg-body{align-items:flex-end;}
-.msg-bbl{padding:12px 16px;border-radius:4px;font-size:14px;line-height:1.7;letter-spacing:0.5px;word-break:break-word;}
-.msg.bot .msg-bbl{background:var(--noir3);border:1px solid rgba(201,168,76,0.1);}
-.msg.user .msg-bbl{background:linear-gradient(135deg,rgba(192,0,26,0.3),rgba(232,0,31,0.2));border:1px solid rgba(192,0,26,0.25);}
+.msg-bbl{padding:14px 18px;font-size:14px;line-height:1.75;letter-spacing:0.3px;word-break:break-word;position:relative;}
+.msg.bot .msg-bbl{
+  background:linear-gradient(135deg,rgba(22,22,34,0.97),rgba(14,14,22,0.92));
+  border:1px solid rgba(201,168,76,0.1);
+  border-radius:4px 16px 16px 16px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.4),inset 0 1px 0 rgba(201,168,76,0.05);
+}
+.msg.bot .msg-bbl::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(201,168,76,0.15),transparent);
+  border-radius:4px 16px 0 0;
+}
+.msg.user .msg-bbl{
+  background:linear-gradient(135deg,rgba(192,0,26,0.22),rgba(140,0,20,0.12));
+  border:1px solid rgba(192,0,26,0.18);
+  border-radius:16px 4px 16px 16px;
+  box-shadow:0 4px 16px rgba(192,0,26,0.08);
+}
 .msg-meta{display:flex;align-items:center;gap:6px;}
 .msg-time{font-size:10px;color:#444;letter-spacing:1px;}
 .btn-ic{background:none;border:none;color:#444;cursor:pointer;font-size:13px;padding:2px 6px;border-radius:3px;transition:color 0.2s;}
 .btn-ic:hover{color:var(--or);}
 .dots{display:flex;gap:6px;padding:4px 0;}
-.dots span{width:6px;height:6px;background:var(--or);border-radius:50%;opacity:0.4;animation:dot 1.2s infinite;}
+.dots span{width:7px;height:7px;border-radius:50%;background:var(--or);opacity:0.2;animation:dot 1.4s ease-in-out infinite;}
 .dots span:nth-child(2){animation-delay:0.2s;}
 .dots span:nth-child(3){animation-delay:0.4s;}
-@keyframes dot{0%,100%{opacity:0.4;transform:scale(1);}50%{opacity:1;transform:scale(1.3);}}
+@keyframes dot{0%,60%,100%{opacity:0.2;transform:scale(0.8);}30%{opacity:1;transform:scale(1.3);background:var(--or2);}}50%{opacity:1;transform:scale(1.3);}}
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
 
 /* WELCOME */
@@ -172,54 +183,37 @@ body{background:var(--noir);color:var(--blanc);font-family:'Rajdhani',sans-serif
 .sug:hover{background:rgba(201,168,76,0.1);color:var(--blanc);border-color:rgba(201,168,76,0.25);}
 
 /* DIKR */
-/* DIKR — desktop */
-#dikr-box{position:fixed;bottom:110px;right:20px;z-index:500;background:var(--noir2);border:1px solid rgba(201,168,76,0.2);border-radius:6px;padding:10px 14px;max-width:260px;opacity:0;transform:translateY(10px);pointer-events:none;transition:all 0.3s;}
-#dikr-box.show{opacity:1;transform:translateY(0);}
-.dikr-lbl{font-size:10px;letter-spacing:2px;color:var(--or);text-transform:uppercase;margin-bottom:4px;}
-.dikr-txt{font-family:'Noto Sans Arabic',sans-serif;font-size:14px;color:var(--blanc);direction:rtl;line-height:1.6;}
-/* DIKR — mobile popup centre */
-#dikr-mobile{
-  display:none;position:fixed;inset:0;z-index:600;
-  background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);
-  align-items:center;justify-content:center;
-  opacity:0;transition:opacity 0.4s ease;pointer-events:none;
+#dikr-box{
+  position:fixed;bottom:110px;right:20px;z-index:500;
+  background:linear-gradient(135deg,rgba(14,14,22,0.97),rgba(22,22,34,0.95));
+  border:1px solid rgba(201,168,76,0.15);border-radius:16px;
+  padding:14px 18px;max-width:280px;min-width:200px;
+  opacity:0;transform:translateY(12px) scale(0.95);pointer-events:none;
+  transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow:0 8px 32px rgba(0,0,0,0.5),inset 0 1px 0 rgba(201,168,76,0.07);
+  backdrop-filter:blur(20px);
 }
-#dikr-mobile.show{opacity:1;pointer-events:auto;}
-.dikr-mobile-card{
-  background:var(--noir2);border:1px solid rgba(201,168,76,0.3);
-  border-radius:16px;padding:36px 28px;max-width:320px;width:88%;
-  text-align:center;transform:scale(0.85);transition:transform 0.4s ease;
-  box-shadow:0 20px 60px rgba(0,0,0,0.8);
+.chat-foot::before{
+  content:'';position:absolute;top:0;left:8%;right:8%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(201,168,76,0.12),transparent);
 }
-#dikr-mobile.show .dikr-mobile-card{transform:scale(1);}
-.dikr-mobile-star{font-size:28px;margin-bottom:12px;animation:spin-slow 8s linear infinite;}
-@keyframes spin-slow{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
-.dikr-mobile-lbl{font-size:10px;letter-spacing:3px;color:var(--or);text-transform:uppercase;margin-bottom:14px;}
-.dikr-mobile-txt{
-  font-family:'Noto Sans Arabic',sans-serif;
-  font-size:clamp(18px,5vw,24px);
-  color:var(--blanc);direction:rtl;line-height:1.8;font-weight:400;
-}
-.dikr-mobile-sub{font-size:11px;color:#555;letter-spacing:2px;margin-top:14px;}
-
-/* INPUT AREA */
-.chat-foot{padding:16px 24px;border-top:1px solid rgba(201,168,76,0.08);flex-shrink:0;}
-/* PREVIEW MULTI-FICHIERS */
-#img-prev-wrap{display:none;padding:0 0 10px 0;overflow-x:auto;}
-.files-preview{display:flex;gap:8px;flex-wrap:wrap;padding:2px 0;}
-.file-chip{position:relative;display:inline-flex;align-items:center;gap:8px;background:var(--noir3);border:1px solid rgba(201,168,76,0.2);border-radius:8px;padding:6px 10px;max-width:200px;flex-shrink:0;}
-.file-chip-img{height:40px;width:40px;border-radius:5px;object-fit:cover;flex-shrink:0;}
-.file-chip-icon{width:40px;height:40px;border-radius:5px;background:rgba(201,168,76,0.1);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
-.file-chip-info{min-width:0;flex:1;}
-.file-chip-name{font-size:11px;color:#ccc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px;}
-.file-chip-type{font-size:10px;color:#555;letter-spacing:1px;}
-.file-chip-rm{position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:var(--rouge);border:none;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
-.files-add-btn{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:56px;height:56px;border:1px dashed rgba(201,168,76,0.3);border-radius:8px;background:none;cursor:pointer;color:#555;font-size:10px;flex-shrink:0;transition:all 0.2s;}
-.files-add-btn:hover{border-color:var(--or);color:var(--or);}
+#img-prev-wrap{display:none;padding:0 0 10px 0;}
+.img-prev-inner{display:inline-flex;align-items:center;gap:10px;background:var(--noir3);border:1px solid rgba(201,168,76,0.2);border-radius:4px;padding:8px 12px;}
+.img-prev-inner img{height:48px;width:auto;border-radius:3px;object-fit:cover;max-width:100px;}
+.img-prev-name{font-size:11px;color:var(--or);letter-spacing:1px;}
+.btn-rm-img{background:rgba(192,0,26,0.2);border:1px solid rgba(192,0,26,0.3);color:#f66;padding:4px 10px;border-radius:2px;cursor:pointer;font-size:12px;}
+.inp-row{display:flex;gap:8px;align-items:flex-end;}
 .btn-cam{background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.15);border-radius:3px;color:var(--or);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0;height:50px;width:44px;font-size:18px;}
 .btn-cam:hover{background:rgba(201,168,76,0.15);}
-.chat-inp{flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(201,168,76,0.15);border-radius:3px;padding:13px 16px;color:var(--blanc);font-size:14px;font-family:'Rajdhani',sans-serif;letter-spacing:0.5px;outline:none;resize:none;min-height:50px;max-height:120px;transition:border-color 0.2s;}
-.chat-inp:focus{border-color:rgba(201,168,76,0.4);}
+.chat-inp{
+  flex:1;background:rgba(255,255,255,0.03);
+  border:1px solid rgba(201,168,76,0.1);border-radius:12px;
+  padding:14px 18px;color:var(--blanc);font-size:14px;
+  font-family:'Rajdhani',sans-serif;letter-spacing:0.4px;
+  outline:none;resize:none;min-height:52px;max-height:130px;
+  transition:all 0.3s;line-height:1.6;
+}
+.chat-inp:focus{border-color:rgba(201,168,76,0.3);background:rgba(255,255,255,0.05);box-shadow:0 0 0 3px rgba(201,168,76,0.05),0 4px 20px rgba(0,0,0,0.2);}
 .chat-inp::placeholder{color:#444;}
 .btn-send{background:linear-gradient(135deg,var(--rouge),var(--rouge2));border:none;border-radius:3px;padding:0 18px;color:#fff;font-size:16px;cursor:pointer;flex-shrink:0;height:50px;transition:all 0.2s;box-shadow:0 4px 12px rgba(192,0,26,0.3);}
 .btn-send:hover{transform:scale(1.05);}
@@ -242,20 +236,6 @@ body{background:var(--noir);color:var(--blanc);font-family:'Rajdhani',sans-serif
 .fg input,.fg select{background:rgba(255,255,255,0.04);border:1px solid rgba(201,168,76,0.15);border-radius:3px;padding:10px 12px;color:var(--blanc);font-size:13px;font-family:'Rajdhani',sans-serif;outline:none;}
 .fg select option{background:var(--noir2);}
 .sel-file{display:none;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.15);border-radius:3px;margin-bottom:12px;}
-.queue-item{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--noir3);border:1px solid rgba(255,255,255,0.05);border-radius:6px;margin-bottom:6px;}
-.queue-item.uploading{border-color:rgba(201,168,76,0.3);}
-.queue-item.done{border-color:rgba(74,200,74,0.3);background:rgba(74,200,74,0.03);}
-.queue-item.error{border-color:rgba(255,100,100,0.3);}
-.qi-icon{font-size:22px;flex-shrink:0;}
-.qi-info{flex:1;min-width:0;}
-.qi-name{font-size:13px;color:#ccc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.qi-name-input{background:rgba(255,255,255,0.04);border:1px solid rgba(201,168,76,0.15);border-radius:3px;padding:4px 8px;color:#ccc;font-size:12px;font-family:'Rajdhani',sans-serif;width:calc(100% - 16px);outline:none;margin-top:4px;}
-.qi-size{font-size:10px;color:#555;letter-spacing:1px;}
-.qi-status{font-size:12px;letter-spacing:1px;flex-shrink:0;min-width:80px;text-align:right;}
-.qi-rm{background:none;border:none;color:#444;cursor:pointer;font-size:16px;padding:4px;flex-shrink:0;}
-.qi-rm:hover{color:#f66;}
-.upload-result-ok{padding:8px 14px;background:rgba(74,200,74,0.08);border:1px solid rgba(74,200,74,0.2);border-radius:6px;margin-bottom:6px;font-size:12px;color:#4ac84a;letter-spacing:1px;}
-.upload-result-err{padding:8px 14px;background:rgba(255,100,100,0.08);border:1px solid rgba(255,100,100,0.2);border-radius:6px;margin-bottom:6px;font-size:12px;color:#f66;letter-spacing:1px;}
 .sel-file-name{font-size:13px;color:var(--or);letter-spacing:1px;}
 .btn-rm{background:none;border:none;color:#f66;cursor:pointer;font-size:12px;letter-spacing:1px;}
 .btn-upload{width:100%;padding:14px;background:linear-gradient(135deg,var(--rouge),var(--rouge2));border:none;border-radius:3px;color:#fff;font-size:13px;font-family:'Rajdhani',sans-serif;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:all 0.2s;}
@@ -300,185 +280,28 @@ body{background:var(--noir);color:var(--blanc);font-family:'Rajdhani',sans-serif
 
 /* TOAST */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--noir2);border:1px solid rgba(201,168,76,0.2);border-radius:4px;padding:12px 24px;font-size:13px;letter-spacing:1px;opacity:0;transition:all 0.3s;pointer-events:none;z-index:9000;white-space:nowrap;}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}
 .toast.ok{border-color:rgba(74,200,74,0.3);color:#4ac84a;}
 .toast.err{border-color:rgba(255,100,100,0.3);color:#f64;}
 
-/* USERS PANEL */
-.users-panel{margin-top:24px;}
-.users-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
-.auto-toggle-wrap{display:flex;align-items:center;gap:10px;}
-.toggle-label{font-size:12px;letter-spacing:1px;color:var(--gris);}
-.toggle-switch{position:relative;width:44px;height:24px;cursor:pointer;}
-.toggle-switch input{opacity:0;width:0;height:0;}
-.toggle-track{position:absolute;inset:0;background:#333;border-radius:24px;transition:0.3s;}
-.toggle-switch input:checked + .toggle-track{background:var(--vert);}
-.toggle-thumb{position:absolute;left:3px;top:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:0.3s;}
-.toggle-switch input:checked ~ .toggle-thumb{left:23px;}
-.users-grid{display:flex;flex-direction:column;gap:8px;}
-.user-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--noir3);border:1px solid rgba(255,255,255,0.05);border-radius:6px;transition:all 0.2s;}
-.user-row.pending{border-color:rgba(245,166,35,0.3);background:rgba(245,166,35,0.04);}
-.user-row.approved{border-color:rgba(74,200,74,0.2);}
-.user-row.blocked{border-color:rgba(255,100,100,0.2);opacity:0.6;}
-.user-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--rouge),var(--rouge2));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;}
-.user-info{flex:1;min-width:0;}
-.user-email{font-size:13px;color:var(--blanc);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.user-meta{font-size:10px;color:#555;letter-spacing:1px;margin-top:2px;}
-.user-badge{font-size:10px;padding:2px 8px;border-radius:10px;letter-spacing:1px;flex-shrink:0;}
-.user-badge.pending{background:rgba(245,166,35,0.15);color:#f5a623;border:1px solid rgba(245,166,35,0.3);}
-.user-badge.approved{background:rgba(74,200,74,0.1);color:#4ac84a;border:1px solid rgba(74,200,74,0.2);}
-.user-badge.blocked{background:rgba(255,100,100,0.1);color:#f66;border:1px solid rgba(255,100,100,0.2);}
-.user-actions{display:flex;gap:6px;flex-shrink:0;}
-.btn-approve{background:rgba(74,200,74,0.15);border:1px solid rgba(74,200,74,0.3);color:#4ac84a;padding:5px 10px;border-radius:3px;cursor:pointer;font-size:11px;font-family:'Rajdhani',sans-serif;letter-spacing:1px;transition:all 0.2s;}
-.btn-approve:hover{background:rgba(74,200,74,0.25);}
-.btn-block{background:rgba(255,100,100,0.1);border:1px solid rgba(255,100,100,0.2);color:#f66;padding:5px 10px;border-radius:3px;cursor:pointer;font-size:11px;font-family:'Rajdhani',sans-serif;letter-spacing:1px;transition:all 0.2s;}
-.btn-block:hover{background:rgba(255,100,100,0.2);}
 input[type=file]{display:none;}
-.mobile-header{
-  display:none;position:fixed;top:0;left:0;right:0;
-  height:56px;background:var(--noir2);
-  border-bottom:1px solid rgba(201,168,76,0.1);
-  z-index:300;align-items:center;
-  justify-content:space-between;padding:0 16px;
+@media(max-width:768px){.sidebar{display:none;}.fields{grid-template-columns:1fr;}}
+
+/* ═══ ADKARS LOGIN ═══ */
+.dikr-login-box{
+  margin-top:20px;
+  background:linear-gradient(135deg,rgba(201,168,76,0.05),rgba(201,168,76,0.02));
+  border:1px solid rgba(201,168,76,0.12);border-radius:14px;
+  padding:18px 20px;text-align:center;position:relative;overflow:hidden;
 }
-.mh-logo{font-family:'Playfair Display',serif;font-size:20px;font-weight:900;background:linear-gradient(135deg,var(--or),var(--or3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:0.1em;}
-.mh-right{display:flex;align-items:center;gap:6px;}
-.mh-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--rouge),var(--rouge2));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;}
-.mh-icon-btn{background:none;border:none;color:var(--gris);cursor:pointer;padding:7px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;}
-.mh-icon-btn:hover,.mh-icon-btn:active{background:rgba(201,168,76,0.1);color:var(--or);}
-/* Drawer */
-.mobile-drawer{display:none;position:fixed;inset:0;z-index:400;}
-.md-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(3px);}
-.md-panel{
-  position:absolute;top:0;left:0;bottom:0;width:82vw;max-width:320px;
-  background:var(--noir2);border-right:1px solid rgba(201,168,76,0.1);
-  display:flex;flex-direction:column;overflow:hidden;
-  transform:translateX(-100%);transition:transform 0.28s ease;
+.dikr-login-box::before{
+  content:'';position:absolute;top:0;left:20%;right:20%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(201,168,76,0.3),transparent);
 }
-.mobile-drawer.open .md-panel{transform:translateX(0);}
-.md-user-card{padding:16px;background:rgba(201,168,76,0.04);border-bottom:1px solid rgba(201,168,76,0.08);display:flex;align-items:center;gap:10px;flex-shrink:0;}
-.md-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--rouge),var(--rouge2));display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;}
-.md-user-info{flex:1;min-width:0;}
-.md-name{font-size:15px;font-weight:700;color:var(--blanc);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.md-status{font-size:10px;color:#4a4;letter-spacing:1px;}
-.md-close{background:none;border:none;color:#444;font-size:18px;cursor:pointer;padding:4px;flex-shrink:0;}
-.md-admin-nav{flex-shrink:0;}
-.md-nav-title{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--or);padding:12px 16px 6px;opacity:0.7;}
-.md-nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:11px 16px;background:none;border:none;color:#aaa;font-size:14px;font-family:'Rajdhani',sans-serif;letter-spacing:1px;cursor:pointer;text-align:left;transition:all 0.2s;}
-.md-nav-btn:hover,.md-nav-btn:active{background:rgba(201,168,76,0.06);color:var(--blanc);}
-.md-sep{height:1px;background:rgba(201,168,76,0.08);margin:8px 0;}
-.md-new-btn{display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;background:rgba(192,0,26,0.1);border:none;border-left:3px solid var(--rouge);color:var(--blanc);font-size:14px;font-family:'Rajdhani',sans-serif;letter-spacing:2px;cursor:pointer;text-align:left;font-weight:700;margin-bottom:8px;flex-shrink:0;}
-.md-search{width:100%;box-sizing:border-box;background:rgba(255,255,255,0.04);border:none;border-bottom:1px solid rgba(201,168,76,0.1);padding:12px 16px;color:#ccc;font-size:14px;font-family:'Rajdhani',sans-serif;outline:none;flex-shrink:0;}
-.md-conv-title-bar{display:flex;justify-content:space-between;align-items:center;padding:10px 16px 6px;flex-shrink:0;}
-#md-list{flex:1;overflow-y:auto;padding:4px 8px;}
-.md-conv{padding:12px 10px;border-radius:8px;margin-bottom:4px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:10px;border:1px solid transparent;}
-.md-conv:hover{background:rgba(255,255,255,0.04);}
-.md-conv.active-conv{background:rgba(192,0,26,0.1);border-color:rgba(192,0,26,0.2);}
-.md-conv-left{flex:1;min-width:0;}
-.md-conv-title{font-size:13px;color:#bbb;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px;}
-.md-conv.active-conv .md-conv-title{color:var(--blanc);}
-.md-conv-meta{font-size:10px;color:#444;}
-.md-conv-del{background:none;border:none;color:#333;font-size:15px;cursor:pointer;padding:4px 6px;transition:color 0.2s;}
-.md-conv-del:active{color:#f66;}
-.md-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,0.05);flex-shrink:0;}
-.md-logout-final{width:100%;padding:10px;background:rgba(255,100,100,0.08);border:1px solid rgba(255,100,100,0.15);border-radius:6px;color:#f66;font-size:12px;font-family:'Rajdhani',sans-serif;letter-spacing:2px;cursor:pointer;text-transform:uppercase;transition:all 0.2s;}
-.md-logout-final:hover{background:rgba(255,100,100,0.15);}
-.mobile-bar{
-  display:none;position:fixed;bottom:0;left:0;right:0;
-  height:60px;background:var(--noir2);
-  border-top:1px solid rgba(201,168,76,0.12);
-  z-index:300;padding-bottom:env(safe-area-inset-bottom);
-}
-.mb-inner{display:flex;height:60px;align-items:stretch;}
-.mb-btn{
-  flex:1;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:3px;cursor:pointer;
-  font-size:9px;letter-spacing:0.5px;color:#555;
-  text-transform:uppercase;transition:all 0.2s;
-  border:none;background:none;font-family:'Rajdhani',sans-serif;
-  padding:0;position:relative;
-}
-.mb-btn.active{color:var(--rouge);}
-.mb-btn.active::after{content:'';position:absolute;top:0;left:20%;right:20%;height:2px;background:var(--rouge);border-radius:0 0 2px 2px;}
-.mb-icon{font-size:20px;line-height:1;display:block;}
-.mb-btn-new{
-  flex:1;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:0;cursor:pointer;
-  border:none;background:none;padding:0;padding-bottom:8px;
-}
-.mb-new-circle{
-  width:44px;height:44px;border-radius:50%;
-  background:linear-gradient(135deg,var(--rouge),var(--rouge2));
-  display:flex;align-items:center;justify-content:center;
-  font-size:24px;color:#fff;margin-top:-12px;
-  box-shadow:0 4px 16px rgba(192,0,26,0.5);
-}
-.mb-logout-btn{
-  flex:1;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:3px;cursor:pointer;
-  font-size:9px;letter-spacing:0.5px;color:#555;
-  text-transform:uppercase;border:none;background:none;
-  font-family:'Rajdhani',sans-serif;padding:0;transition:color 0.2s;
-}
-.mb-logout-btn:active{color:#f66;}
-.mobile-drawer{
-  display:none;position:fixed;top:56px;left:0;right:0;bottom:60px;
-  background:var(--noir2);z-index:250;overflow-y:auto;padding:16px;
-  transform:translateX(-100%);transition:transform 0.28s ease;
-}
-.mobile-drawer.open{transform:translateX(0);}
-.md-title{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--or);margin-bottom:12px;}
-.md-search{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(201,168,76,0.15);border-radius:8px;padding:10px 14px;color:#ccc;font-size:15px;font-family:'Rajdhani',sans-serif;outline:none;margin-bottom:12px;box-sizing:border-box;}
-.md-conv{padding:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;margin-bottom:8px;cursor:pointer;transition:all 0.2s;display:flex;justify-content:space-between;align-items:center;}
-.md-conv.active-conv{background:rgba(192,0,26,0.12);border-color:rgba(192,0,26,0.3);}
-.md-conv-left{flex:1;min-width:0;}
-.md-conv-title{font-size:14px;color:#ccc;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:3px;}
-.md-conv.active-conv .md-conv-title{color:var(--blanc);}
-.md-conv-meta{font-size:11px;color:#444;}
-.md-conv-del{background:none;border:none;color:#333;font-size:16px;cursor:pointer;padding:4px 8px;}
-.md-conv-del:active{color:#f66;}
-.md-user-card{background:var(--noir3);border:1px solid rgba(201,168,76,0.1);border-radius:10px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;}
-.md-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--rouge),var(--rouge2));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0;}
-.md-user-info{}
-.md-name{font-size:16px;font-weight:700;color:var(--blanc);}
-.md-status{font-size:11px;color:#4a4;letter-spacing:1px;}
-@media(max-width:768px){
-  .sidebar{display:none;}
-  #app{flex-direction:column;}
-  .main{height:100vh;padding-top:56px;padding-bottom:0;}
-  .panel{height:100%;}
-  .mobile-header{display:flex;}
-  .mobile-drawer{display:block;}
-  .chat-head{display:none;}
-  .msgs{padding:12px 10px 8px;}
-  .msg-bbl{font-size:15px;line-height:1.65;}
-  .msg-av{width:30px;height:30px;font-size:12px;}
-  .msg{gap:8px;margin-bottom:14px;}
-  .chat-foot{padding:8px 10px;}
-  .chat-inp{font-size:16px;padding:11px 14px;}
-  .btn-send{height:46px;padding:0 14px;font-size:18px;}
-  .btn-cam{height:46px;width:40px;font-size:16px;}
-  #welcome{padding:24px 12px;}
-  .w-title{font-size:24px;}
-  .w-sub{font-size:13px;}
-  .suggestions{gap:8px;}
-  .sug{font-size:13px;padding:9px 14px;}
-  .pdf-wrap{padding:16px 14px;}
-  .fields{grid-template-columns:1fr;}
-  .drop-zone{padding:24px 16px;}
-  .sec-title{font-size:20px;}
-  .stats-wrap{padding:16px 14px;}
-  .stats-grid{grid-template-columns:1fr 1fr;}
-  .login-card{padding:40px 20px;border-radius:0;width:100%;border-left:none;border-right:none;min-height:100vh;}
-  #screen-login{align-items:flex-start;}
-  .login-logo-text{font-size:56px;}
-  #dikr-box{display:none !important;}
-  #dikr-mobile{display:flex !important;}
-  .toast{bottom:24px;}
-  .fg input,.fg select,.adm-row input{font-size:16px;}
-  .modal-box{border-radius:12px 12px 0 0;position:fixed;bottom:0;left:0;right:0;width:100%;max-height:80vh;}
-  #conv-modal{align-items:flex-end;}
-}
+.dikr-login-ar{font-family:'Noto Sans Arabic',sans-serif;font-size:18px;direction:rtl;line-height:2;color:var(--blanc);}
+.dikr-login-fr{font-size:11px;color:var(--gris);letter-spacing:1px;margin-top:6px;font-style:italic;}
+.dikr-rotate-btn{background:none;border:none;color:var(--or);cursor:pointer;font-size:14px;margin-top:8px;opacity:0.7;transition:all 0.3s;}
+.dikr-rotate-btn:hover{opacity:1;transform:rotate(30deg);}
 </style>
 </head>
 <body>
@@ -527,72 +350,36 @@ input[type=file]{display:none;}
 
 <!-- LOGIN -->
 <div id="screen-login">
-
-  <!-- ÉCRAN EN ATTENTE D'APPROBATION -->
-  <div id="pending-screen" style="display:none;flex-direction:column;align-items:center;text-align:center;max-width:400px;padding:40px 20px;">
-    <div style="font-size:56px;margin-bottom:16px;">⏳</div>
-    <div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:900;background:linear-gradient(135deg,var(--or),var(--or3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px;">Compte en attente</div>
-    <div style="font-size:14px;color:#888;letter-spacing:1px;line-height:1.8;margin-bottom:20px;">
-      Votre compte <strong id="pending-email" style="color:var(--or);"></strong> a bien été créé.<br>
-      L'administrateur doit approuver votre accès.<br>
-      Vous recevrez l'accès dès validation.
-    </div>
-    <div style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.15);border-radius:10px;padding:16px 20px;margin-bottom:24px;width:100%;box-sizing:border-box;">
-      <div style="font-family:'Noto Sans Arabic',sans-serif;font-size:18px;color:var(--blanc);direction:rtl;line-height:2;">
-        رَبِّ اشْرَحْ لِي صَدْرِي وَيَسِّرْ لِي أَمْرِي
-      </div>
-      <div style="font-size:11px;color:#555;letter-spacing:1px;margin-top:8px;">Seigneur, ouvre ma poitrine et facilite mon affaire</div>
-    </div>
-    <button onclick="showLogin()" style="background:none;border:1px solid rgba(255,255,255,0.1);color:#666;padding:10px 24px;border-radius:6px;cursor:pointer;font-family:'Rajdhani',sans-serif;letter-spacing:2px;font-size:12px;">← Retour à la connexion</button>
-  </div>
-
-  <div class="login-card" id="login-card-main">
+  <div class="login-card">
     <div class="login-logo-text">SNTF</div>
     <div class="login-logo-sub">Assistant Intelligent</div>
-
-    <!-- ONGLETS : Utilisateur | Admin -->
     <div class="login-tabs">
-      <div class="login-tab active" id="tab-user" onclick="switchLoginMode('user')">&#128100; Utilisateur</div>
-      <div class="login-tab" id="tab-admin" onclick="switchLoginMode('admin')">&#9881; Admin</div>
+      <div class="login-tab active" id="tab-conn" onclick="switchTab('conn')">Connexion</div>
+      <div class="login-tab" id="tab-insc" onclick="switchTab('insc')">Inscription</div>
     </div>
-
-    <!-- MODE UTILISATEUR -->
-    <div id="zone-user">
+    <div class="login-form">
+      <input class="login-input" type="email" id="inp-email" placeholder="Adresse email">
+      <input class="login-input" type="password" id="inp-pass" placeholder="Mot de passe">
       <div id="login-error"></div>
-      <button class="btn-google" onclick="loginGoogle()" id="btn-google">
-        <svg width="18" height="18" viewBox="0 0 48 48" style="vertical-align:middle;margin-right:10px;"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.5 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17z"/><path fill="#FBBC05" d="M10.6 28.6A14.6 14.6 0 0 1 9.5 24c0-1.6.3-3.1.7-4.6l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.3 0 11.6-2.1 15.5-5.6l-7.5-5.8c-2.1 1.4-4.8 2.3-8 2.3-6.2 0-11.5-4.2-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>
-        Continuer avec Google
-      </button>
-      <div class="login-sep-small">Connexion sécurisée via Google</div>
+      <button class="btn-login" id="btn-auth" onclick="handleAuth()">Se connecter</button>
+      <div class="login-sep">ou</div>
+      <button class="btn-google" onclick="loginGoogle()">Continuer avec Google</button>
     </div>
-
-    <!-- MODE ADMIN -->
-    <div id="zone-admin" style="display:none;">
-      <div class="admin-hint">
-        <span style="font-size:20px;">&#128274;</span>
-        <div>
-          <div style="font-size:13px;color:var(--blanc);font-weight:600;letter-spacing:1px;">Accès Administrateur</div>
-          <div style="font-size:11px;color:#555;margin-top:2px;">Entrez la clé secrète</div>
-        </div>
+        <!-- ═══ ADKARS PENDANT L'ATTENTE ═══ -->
+    <div class="dikr-login-box" id="dikr-login-box" style="margin-top:20px;transition:all 0.3s ease;">
+      <div style="font-size:9px;letter-spacing:3px;color:var(--or);text-transform:uppercase;margin-bottom:10px;font-family:'Space Mono',monospace;opacity:0.7;text-align:center;">✨ ذِكْر أثناء الانتظار</div>
+      <div class="dikr-login-ar" id="dikr-login-ar" style="font-family:'Noto Sans Arabic',sans-serif;font-size:17px;direction:rtl;text-align:right;line-height:2.2;color:var(--blanc);">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</div>
+      <div class="dikr-login-fr" id="dikr-login-fr" style="font-size:11px;color:var(--gris);letter-spacing:1px;margin-top:6px;text-align:center;font-style:italic;">Au nom d'Allah, le Tout Miséricordieux</div>
+      <div style="text-align:center;margin-top:10px;">
+        <button onclick="rotateDikrLogin(true)" style="background:none;border:none;color:var(--or);cursor:pointer;font-size:16px;opacity:0.6;transition:all 0.3s;padding:4px 10px;" onmouseover="this.style.opacity='1';this.style.transform='rotate(30deg)'" onmouseout="this.style.opacity='0.6';this.style.transform='rotate(0deg)'">↻</button>
       </div>
-      <div id="login-error-admin"></div>
-      <input class="login-input" type="password" id="inp-admin"
-        placeholder="Clé administrateur"
-        onkeydown="if(event.key==='Enter')loginAdmin()">
-      <button class="btn-login" onclick="loginAdmin()" id="btn-admin-login"
-        style="background:linear-gradient(135deg,#2a2a2a,#1a1a1a);border:1px solid rgba(201,168,76,0.2);">
-        &#9654; Accéder au panneau admin
-      </button>
     </div>
-
-    <!-- DIKR ALÉATOIRE -->
-    <div class="login-dikr" id="login-dikr-box">
-      <div class="login-dikr-label">&#10024; ذِكْر</div>
-      <div class="login-dikr-txt" id="login-dikr-txt"></div>
-      <button class="login-dikr-btn" onclick="rotateDikrLogin()">&#8635; Autre dhikr</button>
+<div class="admin-toggle" onclick="toggleAdmin()">Espace administrateur</div>
+    <div id="admin-zone" style="display:none;margin-top:16px;display:flex;flex-direction:column;gap:10px;">
+      <input class="login-input" type="password" id="inp-admin" placeholder="Cl\u00e9 administrateur">
+      <button class="btn-login" onclick="loginAdmin()" style="background:linear-gradient(135deg,#444,#222);">Acc\u00e8s Admin</button>
     </div>
-
-  </div><!-- /login-card-main -->
+  </div>
 </div>
 
 <!-- APP -->
@@ -609,15 +396,14 @@ input[type=file]{display:none;}
       <div class="sb-avatar" id="user-initial">?</div>
       <div>
         <div class="sb-name" id="user-name">—</div>
-        <div class="sb-status">&#9679; Connecté</div>
+        <div class="sb-status">&#9679; Connect\u00e9</div>
       </div>
     </div>
     <div class="sb-section">
       <div class="sb-label">Navigation</div>
-      <button class="btn-new-conv" onclick="newConversation()">&#43; Nouvelle conversation</button>
       <button class="sb-btn active" id="nav-chat" onclick="showTab('chat')"><span>&#128172;</span> Chat</button>
-      <button class="sb-btn" id="nav-pdf" onclick="showTab('pdf')" style="display:none;"><span>&#128196;</span> Documents</button>
-      <button class="sb-btn" id="nav-stats" onclick="showTab('stats')" style="display:none;"><span>&#128200;</span> Statistiques</button>
+      <button class="sb-btn" id="nav-pdf" onclick="showTab('pdf')"><span>&#128196;</span> Documents</button>
+      <button class="sb-btn" id="nav-stats" onclick="showTab('stats')"><span>&#128200;</span> Statistiques</button>
     </div>
     <div class="sb-section sb-hist">
       <div class="sb-label">Historique</div>
@@ -632,7 +418,7 @@ input[type=file]{display:none;}
       <div class="stat-row"><span>Documents</span><span class="stat-v" id="sb-docs">—</span></div>
       <div class="stat-row"><span>Chunks</span><span class="stat-v" id="sb-chunks">—</span></div>
     </div>
-    <div class="btn-logout" onclick="logout()">Déconnexion</div>
+    <div class="btn-logout" onclick="logout()">D\u00e9connexion</div>
   </aside>
 
   <!-- MAIN -->
@@ -642,7 +428,10 @@ input[type=file]{display:none;}
     <div class="panel active" id="panel-chat">
       <div class="chat-head">
         <span class="chat-title">Assistant SNTF</span>
-        <span style="font-size:11px;color:#4a4;letter-spacing:2px;">&#9679; En ligne</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+  <span style="width:6px;height:6px;border-radius:50%;background:#4ac84a;display:inline-block;animation:pulse-green 2s infinite;box-shadow:0 0 6px rgba(74,200,74,0.5);"></span>
+  <span style="font-size:9px;color:#4ac84a;letter-spacing:2px;font-family:'Space Mono',monospace;">EN LIGNE</span>
+</div>
       </div>
       <div class="msgs" id="msgs">
         <div id="welcome">
@@ -651,34 +440,31 @@ input[type=file]{display:none;}
           <div class="suggestions">
             <div class="sug" onclick="askQ(this)">Horaires des trains</div>
             <div class="sug" onclick="askQ(this)">Tarifs et billets</div>
-            <div class="sug" onclick="askQ(this)">Procédures de sécurité</div>
-            <div class="sug" onclick="askQ(this)">Réseau ferroviaire</div>
+            <div class="sug" onclick="askQ(this)">Proc\u00e9dures de s\u00e9curit\u00e9</div>
+            <div class="sug" onclick="askQ(this)">R\u00e9seau ferroviaire</div>
             <div class="sug" onclick="askQ(this)">Signalement d'incident</div>
-            <div class="sug" onclick="askQ(this)">Règlement intérieur</div>
+            <div class="sug" onclick="askQ(this)">R\u00e8glement int\u00e9rieur</div>
           </div>
         </div>
       </div>
       <div id="dikr-box">
-        <div class="dikr-lbl">&#128338; ذِكْر</div>
+        <div class="dikr-lbl">&#128338; \u0630\u0650\u0643\u0652\u0631</div>
         <div class="dikr-txt" id="dikr-txt"></div>
       </div>
-      <!-- DIKR MOBILE — popup centre -->
-      <div id="dikr-mobile">
-        <div class="dikr-mobile-card">
-          <div class="dikr-mobile-star">&#10024;</div>
-          <div class="dikr-mobile-lbl">ذِكْر — En attente</div>
-          <div class="dikr-mobile-txt" id="dikr-mobile-txt"></div>
-          <div class="dikr-mobile-sub">L'assistant réfléchit...</div>
-        </div>
-      </div>
       <div class="chat-foot">
-        <!-- PREVIEW MULTI-FICHIERS -->
         <div id="img-prev-wrap">
-          <div class="files-preview" id="files-preview"></div>
+          <div class="img-prev-inner">
+            <img id="img-prev" src="" alt="">
+            <div>
+              <div class="img-prev-name" id="img-prev-name"></div>
+              <div style="font-size:10px;color:var(--gris);">Pr\u00eate \u00e0 envoyer</div>
+            </div>
+            <button class="btn-rm-img" onclick="clearImg()">&#10005;</button>
+          </div>
         </div>
         <div class="inp-row">
-          <button class="btn-cam" onclick="document.getElementById('multi-file').click()" title="Ajouter photos/PDFs">&#128247;</button>
-          <input type="file" id="multi-file" accept="image/*,application/pdf" multiple>
+          <button class="btn-cam" onclick="document.getElementById('img-file').click()" title="Photo">&#128247;</button>
+          <input type="file" id="img-file" accept="image/*">
           <textarea class="chat-inp" id="chat-inp" placeholder="Posez votre question ou envoyez une photo..." rows="1"
             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}"
             oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
@@ -693,53 +479,40 @@ input[type=file]{display:none;}
         <div class="sec-title">Gestion des Documents</div>
         <div class="sec-sub">Indexez des PDF et images dans la base de connaissances</div>
         <div class="adm-row">
-          <span style="color:var(--or);font-size:12px;letter-spacing:2px;white-space:nowrap;">Clé Admin</span>
-          <input type="password" id="adm-key" placeholder="Clé administrateur...">
+          <span style="color:var(--or);font-size:12px;letter-spacing:2px;white-space:nowrap;">Cl\u00e9 Admin</span>
+          <input type="password" id="adm-key" placeholder="Cl\u00e9 administrateur...">
         </div>
-        <!-- ZONE DROP MULTI-FICHIERS -->
         <div class="drop-zone" id="drop-zone" onclick="document.getElementById('pdf-file').click()">
-          <div class="drop-icon">&#128196;</div>
-          <h3>Glissez ou cliquez pour ajouter</h3>
-          <p>PDF, JPG, PNG — Plusieurs fichiers — Max 50 MB chacun</p>
+          <div class="drop-icon" id="drop-icon">&#128196;</div>
+          <h3 id="drop-title">Glissez ou cliquez pour ajouter</h3>
+          <p>PDF, JPG, PNG — Max 50 MB</p>
         </div>
-        <input type="file" id="pdf-file" accept=".pdf,image/jpeg,image/png" multiple>
-
-        <!-- CATÉGORIE GLOBALE -->
-        <div class="fields" style="margin-top:14px;">
+        <input type="file" id="pdf-file" accept=".pdf,image/jpeg,image/png">
+        <div class="fields">
+          <div class="fg"><label>Nom du document</label><input type="text" id="doc-name" placeholder="Ex: Manuel s\u00e9curit\u00e9 2024"></div>
           <div class="fg">
-            <label>Catégorie pour tous les fichiers</label>
+            <label>Cat\u00e9gorie</label>
             <select id="doc-cat">
-              <option value="Securite">Sécurité</option>
+              <option value="Securite">S\u00e9curit\u00e9</option>
               <option value="Exploitation">Exploitation</option>
               <option value="Technique">Technique</option>
               <option value="RH">Ressources Humaines</option>
               <option value="Administrative">Administrative</option>
-              <option value="General" selected>Général</option>
+              <option value="General" selected>G\u00e9n\u00e9ral</option>
             </select>
           </div>
         </div>
-
-        <!-- FILE QUEUE -->
-        <div id="file-queue" style="display:none;margin-top:14px;">
-          <div style="font-size:11px;letter-spacing:2px;color:var(--or);margin-bottom:10px;">&#9654; FICHIERS EN ATTENTE</div>
-          <div id="queue-list"></div>
-          <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center;">
-            <button class="btn-upload" id="btn-upload-all" onclick="uploadAllDocs()">&#8679; Indexer tous</button>
-            <button onclick="document.getElementById('pdf-file').click()" style="background:none;border:1px solid rgba(201,168,76,0.2);color:var(--or);padding:10px 16px;border-radius:3px;cursor:pointer;font-family:'Rajdhani',sans-serif;letter-spacing:1px;font-size:12px;">&#43; Ajouter d'autres</button>
-            <button onclick="clearQueue()" style="background:none;border:1px solid rgba(255,100,100,0.2);color:#f66;padding:10px 16px;border-radius:3px;cursor:pointer;font-family:'Rajdhani',sans-serif;letter-spacing:1px;font-size:12px;">&#10005; Vider</button>
-          </div>
+        <div id="doc-img-prev"></div>
+        <div class="sel-file" id="sel-file">
+          <span class="sel-file-name" id="sel-file-name">—</span>
+          <button class="btn-rm" onclick="clearDocFile()">&#10005; Retirer</button>
         </div>
-
-        <!-- PROGRESS -->
-        <div class="prog" id="prog" style="margin-top:14px;">
+        <button class="btn-upload" id="btn-upload" onclick="uploadDoc()" disabled>&#8679; Indexer dans la base</button>
+        <div class="prog" id="prog">
           <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
           <div class="prog-msg" id="prog-msg"></div>
         </div>
-
-        <!-- RÉSULTATS -->
-        <div id="upload-results" style="margin-top:14px;"></div>
-
-        <button class="btn-refresh" onclick="loadDocs()" style="margin-top:14px;">&#128196; Actualiser la liste</button>
+        <button class="btn-refresh" onclick="loadDocs()">&#128196; Actualiser la liste</button>
         <div class="docs-grid" id="docs-grid"></div>
       </div>
     </div>
@@ -749,38 +522,13 @@ input[type=file]{display:none;}
       <div class="stats-wrap">
         <div class="sec-title">Statistiques</div>
         <div class="stats-grid">
-          <div class="stat-card"><div class="stat-card-v" id="st-qs">0</div><div class="stat-card-l">Questions posées</div></div>
-          <div class="stat-card"><div class="stat-card-v" id="st-docs">—</div><div class="stat-card-l">Documents indexés</div></div>
-          <div class="stat-card"><div class="stat-card-v" id="st-chunks">—</div><div class="stat-card-l">Chunks vectorisés</div></div>
+          <div class="stat-card"><div class="stat-card-v" id="st-qs">0</div><div class="stat-card-l">Questions pos\u00e9es</div></div>
+          <div class="stat-card"><div class="stat-card-v" id="st-docs">—</div><div class="stat-card-l">Documents index\u00e9s</div></div>
+          <div class="stat-card"><div class="stat-card-v" id="st-chunks">—</div><div class="stat-card-l">Chunks vectoris\u00e9s</div></div>
         </div>
-        <div id="db-status">&#9679; Vérification...</div>
+        <div id="db-status">&#9679; V\u00e9rification...</div>
         <button class="btn-refresh" onclick="loadStats()" style="margin-top:20px;">Actualiser</button>
-        <button class="btn-refresh" onclick="openConvModal()" style="margin-top:10px;">Gérer conversations</button>
-        <button class="btn-refresh" onclick="deleteAccount()" style="margin-top:10px;border-color:rgba(255,100,100,0.3);color:#f66;">&#128683; Supprimer mon compte</button>
-
-        <!-- GESTION UTILISATEURS (admin uniquement) -->
-        <div class="users-panel" id="users-panel">
-          <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.2),transparent);margin:20px 0;"></div>
-          <div class="users-head">
-            <div>
-              <div class="sec-title" style="font-size:18px;">Utilisateurs</div>
-              <div style="font-size:11px;color:var(--gris);letter-spacing:1px;">Gestion des accès</div>
-            </div>
-            <div class="auto-toggle-wrap">
-              <span class="toggle-label">Inscription auto</span>
-              <label class="toggle-switch">
-                <input type="checkbox" id="auto-approve-toggle" onchange="toggleAutoApprove(this.checked)" checked>
-                <div class="toggle-track"></div>
-                <div class="toggle-thumb"></div>
-              </label>
-            </div>
-          </div>
-          <div id="auto-approve-status" style="font-size:12px;color:#4ac84a;letter-spacing:1px;margin-bottom:16px;">&#9679; Inscription automatique activée</div>
-          <button class="btn-refresh" onclick="loadUsers()" style="margin-bottom:12px;">&#128257; Actualiser la liste</button>
-          <div class="users-grid" id="users-grid">
-            <div style="color:#555;font-size:13px;padding:16px;text-align:center;">Cliquez sur Actualiser</div>
-          </div>
-        </div>
+        <button class="btn-refresh" onclick="openConvModal()" style="margin-top:10px;">G\u00e9rer conversations</button>
       </div>
     </div>
 
@@ -788,71 +536,10 @@ input[type=file]{display:none;}
  </div><!-- /app-inner -->
 </div><!-- /app -->
 
-<!-- MOBILE HEADER — style Claude -->
-<div class="mobile-header" id="mobile-header">
-  <button class="mh-icon-btn" onclick="toggleDrawer()" title="Historique" id="mb-hist-btn">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-    </svg>
-  </button>
-  <div class="mh-logo">SNTF</div>
-  <div class="mh-right">
-    <button class="mh-icon-btn" onclick="newConversation()" title="Nouvelle conversation">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-        <path d="M12 5v14M5 12h14"/>
-      </svg>
-    </button>
-    <div class="mh-avatar" id="mh-avatar">?</div>
-  </div>
-</div>
-
-<!-- MOBILE DRAWER — style Claude -->
-<div class="mobile-drawer" id="mobile-drawer">
-  <!-- Overlay pour fermer -->
-  <div class="md-overlay" onclick="closeDrawer()"></div>
-  <div class="md-panel">
-    <!-- User card -->
-    <div class="md-user-card">
-      <div class="md-avatar" id="md-avatar">?</div>
-      <div class="md-user-info">
-        <div class="md-name" id="md-name">—</div>
-        <div class="md-status">&#9679; Connecté</div>
-      </div>
-      <button class="md-close" onclick="closeDrawer()">&#10005;</button>
-    </div>
-    <!-- Nav admin (caché si pas admin) -->
-    <div id="md-admin-nav" style="display:none;">
-      <div class="md-nav-title">Administration</div>
-      <button class="md-nav-btn" onclick="showTabMobile('pdf');closeDrawer();">&#128196; Documents</button>
-      <button class="md-nav-btn" onclick="showTabMobile('stats');closeDrawer();">&#128200; Statistiques</button>
-      <div class="md-sep"></div>
-    </div>
-    <!-- Nouvelle conv -->
-    <button class="md-new-btn" onclick="newConversation();closeDrawer();">
-      &#43; Nouvelle conversation
-    </button>
-    <!-- Recherche -->
-    <input class="md-search" type="text" placeholder="Rechercher dans l'historique..." oninput="filterDrawer(this.value)" id="md-search">
-    <!-- Liste conversations -->
-    <div class="md-conv-title-bar">
-      <span class="md-nav-title" style="margin:0;">Conversations</span>
-      <span id="md-conv-count" style="font-size:10px;color:#444;"></span>
-    </div>
-    <div id="md-list">Aucune conversation</div>
-    <!-- Déconnexion en bas -->
-    <div class="md-footer">
-      <button class="md-logout-final" onclick="logout()">&#128682; Déconnexion</button>
-    </div>
-  </div>
-</div>
-
-<!-- MOBILE BOTTOM BAR — masquée (nav dans le drawer) -->
-<div class="mobile-bar" id="mobile-bar" style="display:none;"></div>
-
 <!-- MODAL CONVERSATIONS -->
 <div id="conv-modal">
   <div class="modal-box">
-    <div class="modal-title">Conversations sauvegardées</div>
+    <div class="modal-title">Conversations sauvegard\u00e9es</div>
     <div class="modal-list" id="conv-list"></div>
     <div class="modal-btns">
       <button class="btn-del-all" onclick="delAllConvs()">Tout supprimer</button>
@@ -866,20 +553,20 @@ input[type=file]{display:none;}
 <script>
 'use strict';
 
-// ═══════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 // DIKR / INVOCATIONS
-// ═══════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 var DIKR = [
-  'آيَةُ الكُرسِيّ: اللَّهُ لَا إِلَهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ',
-  'سُبْحَانَ اللهِ وَبِحَمْدِهِ، سُبْحَانَ اللهِ الْعَظِيمِ',
-  'لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ',
-  'أَسْتَغْفِرُ اللهَ الْعَظِيمَ الَّذِي لَا إِلَهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ',
-  'لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ الْعَلِيِّ الْعَظِيمِ',
-  'اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَى نَبِيِّنَا مُحَمَّدٍ',
-  'قُلْ هُوَ اللَّهُ أَحَدٌ ، اللَّهُ الصَّمَدُ',
-  'بِسْمِ اللهِ الرَّحْمَنِ الرَّحِيمِ',
-  'الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ',
-  'اللَّهُ أَكْبَرُ كَبِيرًا وَالْحَمْدُ لِلَّهِ كَثِيرًا'
+  '\u0622\u064a\u064e\u0629\u064f \u0627\u0644\u0643\u064f\u0631\u0633\u0650\u064a\u0651: \u0627\u0644\u0644\u064e\u0651\u0647\u064f \u0644\u064e\u0627 \u0625\u0650\u0644\u064e\u0647\u064e \u0625\u0650\u0644\u064e\u0651\u0627 \u0647\u064f\u0648\u064e \u0627\u0644\u0652\u062d\u064e\u064a\u064f\u0651 \u0627\u0644\u0652\u0642\u064e\u064a\u064f\u0651\u0648\u0645\u064f',
+  '\u0633\u064f\u0628\u0652\u062d\u064e\u0627\u0646\u064e \u0627\u0644\u0644\u0647\u0650 \u0648\u064e\u0628\u0650\u062d\u064e\u0645\u0652\u062f\u0650\u0647\u0650\u060c \u0633\u064f\u0628\u0652\u062d\u064e\u0627\u0646\u064e \u0627\u0644\u0644\u0647\u0650 \u0627\u0644\u0652\u0639\u064e\u0638\u0650\u064a\u0645\u0650',
+  '\u0644\u064e\u0627 \u0625\u0650\u0644\u064e\u0647\u064e \u0625\u0650\u0644\u064e\u0651\u0627 \u0627\u0644\u0644\u064e\u0651\u0647\u064f \u0648\u064e\u062d\u0652\u062f\u064e\u0647\u064f \u0644\u064e\u0627 \u0634\u064e\u0631\u0650\u064a\u0643\u064e \u0644\u064e\u0647\u064f\u060c \u0644\u064e\u0647\u064f \u0627\u0644\u0652\u0645\u064f\u0644\u0652\u0643\u064f \u0648\u064e\u0644\u064e\u0647\u064f \u0627\u0644\u0652\u062d\u064e\u0645\u0652\u062f\u064f',
+  '\u0623\u064e\u0633\u0652\u062a\u064e\u063a\u0652\u0641\u0650\u0631\u064f \u0627\u0644\u0644\u0647\u064e \u0627\u0644\u0652\u0639\u064e\u0638\u0650\u064a\u0645\u064e \u0627\u0644\u064e\u0651\u0630\u0650\u064a \u0644\u064e\u0627 \u0625\u0650\u0644\u064e\u0647\u064e \u0625\u0650\u0644\u064e\u0651\u0627 \u0647\u064f\u0648\u064e \u0627\u0644\u0652\u062d\u064e\u064a\u064f\u0651 \u0627\u0644\u0652\u0642\u064e\u064a\u064f\u0651\u0648\u0645\u064f',
+  '\u0644\u064e\u0627 \u062d\u064e\u0648\u0652\u0644\u064e \u0648\u064e\u0644\u064e\u0627 \u0642\u064f\u0648\u064e\u0651\u0629\u064e \u0625\u0650\u0644\u064e\u0651\u0627 \u0628\u0650\u0627\u0644\u0644\u064e\u0651\u0647\u0650 \u0627\u0644\u0652\u0639\u064e\u0644\u0650\u064a\u0650\u0651 \u0627\u0644\u0652\u0639\u064e\u0638\u0650\u064a\u0645\u0650',
+  '\u0627\u0644\u0644\u064e\u0651\u0647\u064f\u0645\u064e\u0651 \u0635\u064e\u0644\u0650\u0651 \u0648\u064e\u0633\u064e\u0644\u0650\u0651\u0645\u0652 \u0639\u064e\u0644\u064e\u0649 \u0646\u064e\u0628\u0650\u064a\u0650\u0651\u0646\u064e\u0627 \u0645\u064f\u062d\u064e\u0645\u064e\u0651\u062f\u064d',
+  '\u0642\u064f\u0644\u0652 \u0647\u064f\u0648\u064e \u0627\u0644\u0644\u064e\u0651\u0647\u064f \u0623\u064e\u062d\u064e\u062f\u064c \u060c \u0627\u0644\u0644\u064e\u0651\u0647\u064f \u0627\u0644\u0635\u064e\u0651\u0645\u064e\u062f\u064f',
+  '\u0628\u0650\u0633\u0652\u0645\u0650 \u0627\u0644\u0644\u0647\u0650 \u0627\u0644\u0631\u064e\u0651\u062d\u0652\u0645\u064e\u0646\u0650 \u0627\u0644\u0631\u064e\u0651\u062d\u0650\u064a\u0645\u0650',
+  '\u0627\u0644\u0652\u062d\u064e\u0645\u0652\u062f\u064f \u0644\u0650\u0644\u064e\u0651\u0647\u0650 \u0631\u064e\u0628\u0650\u0651 \u0627\u0644\u0652\u0639\u064e\u0627\u0644\u064e\u0645\u0650\u064a\u0646\u064e',
+  '\u0627\u0644\u0644\u064e\u0651\u0647\u064f \u0623\u064e\u0643\u0652\u0628\u064e\u0631\u064f \u0643\u064e\u0628\u0650\u064a\u0631\u064b\u0627 \u0648\u064e\u0627\u0644\u0652\u062d\u064e\u0645\u0652\u062f\u064f \u0644\u0650\u0644\u064e\u0651\u0647\u0650 \u0643\u064e\u062b\u0650\u064a\u0631\u064b\u0627'
 ];
 var dikrI = 0;
 
@@ -888,32 +575,6 @@ function getDikr() {
   dikrI++;
   return d;
 }
-
-function rotateDikrLogin() {
-  var txt = document.getElementById('login-dikr-txt');
-  if (!txt) return;
-  var box = document.getElementById('login-dikr-box');
-  // Animation
-  box.style.opacity = '0';
-  box.style.transform = 'translateY(6px)';
-  setTimeout(function() {
-    txt.textContent = DIKR[Math.floor(Math.random() * DIKR.length)];
-    box.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-    box.style.opacity = '1';
-    box.style.transform = 'translateY(0)';
-  }, 250);
-}
-
-// Initialiser le dikr login dès le chargement de la page
-document.addEventListener('DOMContentLoaded', function() {
-  rotateDikrLogin();
-  // Rotation automatique toutes les 8 secondes sur la page login
-  setInterval(function() {
-    if (document.getElementById('screen-login').style.display !== 'none') {
-      rotateDikrLogin();
-    }
-  }, 8000);
-});
 
 function showBar() {
   var bar = document.getElementById('islamic-bar');
@@ -924,35 +585,22 @@ function showBar() {
   setTimeout(function() { bar.classList.remove('show'); }, 6000);
 }
 
-function isMobile() { return window.innerWidth <= 768; }
-
 function showDikr() {
-  var d = getDikr();
-  if (isMobile()) {
-    var mob = document.getElementById('dikr-mobile');
-    var txt = document.getElementById('dikr-mobile-txt');
-    if (!mob || !txt) return;
-    txt.textContent = d;
-    mob.classList.add('show');
-  } else {
-    var box = document.getElementById('dikr-box');
-    var btxt = document.getElementById('dikr-txt');
-    if (!box || !btxt) return;
-    btxt.textContent = d;
-    box.classList.add('show');
-  }
+  var box = document.getElementById('dikr-box');
+  var txt = document.getElementById('dikr-txt');
+  if (!box || !txt) return;
+  txt.textContent = getDikr();
+  box.classList.add('show');
 }
 
 function hideDikr() {
   var box = document.getElementById('dikr-box');
   if (box) box.classList.remove('show');
-  var mob = document.getElementById('dikr-mobile');
-  if (mob) mob.classList.remove('show');
 }
 
-// ═══════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 // UTILS
-// ═══════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 function toast(msg, type) {
   var t = document.getElementById('toast');
   t.textContent = msg;
@@ -980,16 +628,16 @@ function trainSound() {
   } catch(e) {}
 }
 
-// ═══════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 // FIREBASE AUTH
-// ═══════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 firebase.initializeApp({
   apiKey: "AIzaSyD8sVXQs5mtLthcbZIe_JWBURH1mkBumFs",
   authDomain: "sntf-assistan.firebaseapp.com",
   projectId: "sntf-assistan",
   storageBucket: "sntf-assistan.firebasestorage.app",
   messagingSenderId: "388691776105",
-  appId: "1:388691776105:web:c9ec06bfced2e015af08f8"
+  appId: "1:388671776105:web:c9ec06bfced2e015af08f8"
 });
 var auth = firebase.auth();
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
@@ -997,8 +645,7 @@ auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 var AKEY = '123456SNTF.';
 var userEmail = '';
 var qCount = parseInt(localStorage.getItem('sntf_qs') || '0');
-var selImg = null;       // legacy — gardé pour compatibilité
-var selFiles = [];       // nouveau : tableau multi-fichiers [{b64, type, name, isPdf}]
+var selImg = null;
 var selDocFile = null;
 
 // Auth state — attend que launch screen soit fini
@@ -1028,106 +675,30 @@ auth.onAuthStateChanged(function(user) {
 function showLogin() {
   document.getElementById('screen-login').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
-  // Remettre la login card, cacher l'écran pending
-  var lc = document.getElementById('login-card-main');
-  var ps = document.getElementById('pending-screen');
-  if (lc) lc.style.display = 'block';
-  if (ps) ps.style.display = 'none';
-  var mh = document.getElementById('mobile-header');
-  if (mh) mh.style.display = 'none';
-}
-
-function showPendingScreen(email) {
-  document.getElementById('screen-login').style.display = 'flex';
-  document.getElementById('app').style.display = 'none';
-  var lc = document.getElementById('login-card-main');
-  var ps = document.getElementById('pending-screen');
-  if (lc) lc.style.display = 'none';
-  if (ps) {
-    ps.style.display = 'flex';
-    var em = document.getElementById('pending-email');
-    if (em) em.textContent = email;
-  }
 }
 
 function showApp(user) {
   document.getElementById('screen-login').style.display = 'none';
-  document.getElementById('app').style.display = 'flex';
-  // Remettre le header mobile
-  var mhEl = document.getElementById('mobile-header');
-  if (mhEl) mhEl.style.removeProperty('display');
-
-  userEmail = user.email || '';
-  var isAdmin = (userEmail === 'admin');
-
-  // Nom affiché
-  var name = isAdmin ? 'Admin' : (user.displayName || user.email.split('@')[0] || 'Utilisateur');
+  document.getElementById('app').style.display = 'block';
+  var name = user.displayName || user.email || 'Admin';
   document.getElementById('user-name').textContent = name.split(' ')[0];
   document.getElementById('user-initial').textContent = name[0].toUpperCase();
-
-  // Mobile header + drawer
-  var mhAv = document.getElementById('mh-avatar');
-  var mdAv = document.getElementById('md-avatar');
-  var mdNm = document.getElementById('md-name');
-  if (mhAv) mhAv.textContent = name[0].toUpperCase();
-  if (mdAv) mdAv.textContent = name[0].toUpperCase();
-  if (mdNm) mdNm.textContent = name.split(' ')[0];
-
   document.getElementById('sb-qs').textContent = qCount;
   document.getElementById('st-qs').textContent = qCount;
-
-  // Boutons admin sidebar — visibles seulement si admin
-  var navPdf = document.getElementById('nav-pdf');
-  var navStats = document.getElementById('nav-stats');
-  if (navPdf) navPdf.style.display = isAdmin ? 'flex' : 'none';
-  if (navStats) navStats.style.display = isAdmin ? 'flex' : 'none';
-
-  // Drawer mobile — nav admin
-  var mdAdminNav = document.getElementById('md-admin-nav');
-  if (mdAdminNav) mdAdminNav.style.display = isAdmin ? 'block' : 'none';
-
-  // Panel users dans stats
-  var uPanel = document.getElementById('users-panel');
-  if (uPanel) uPanel.style.display = isAdmin ? 'block' : 'none';
-
-  // Charger les conversations de CET utilisateur
-  conversations = JSON.parse(localStorage.getItem(convKey()) || '[]');
-  activeId = localStorage.getItem(activeKey()) || null;
-
-  // Toujours commencer sur chat
-  showTab('chat');
-
-  // Restaurer la conv active
-  if (activeId && getActiveConv()) {
-    loadConversation(activeId);
-  } else if (conversations.length > 0) {
-    loadConversation(conversations[0].id);
-  }
+  userEmail = user.email || '';
   buildHistList();
-
-  if (!isAdmin) loadRemoteHist();
-  if (isAdmin) { loadStats(); initAutoApproveUI(); }
+  if (userEmail && userEmail !== 'admin') loadRemoteHist();
+  loadStats();
 }
 
 // Login tab
-var loginMode = 'user';
-function switchTab(t) {} // legacy — ne rien faire
-
-function switchLoginMode(mode) {
-  loginMode = mode;
-  // Onglets
-  document.getElementById('tab-user').className = 'login-tab' + (mode === 'user' ? ' active' : '');
-  document.getElementById('tab-admin').className = 'login-tab' + (mode === 'admin' ? ' active' : '');
-  // Zones
-  document.getElementById('zone-user').style.display = mode === 'user' ? 'block' : 'none';
-  document.getElementById('zone-admin').style.display = mode === 'admin' ? 'block' : 'none';
-  // Nettoyer erreurs
-  var e1 = document.getElementById('login-error');
-  var e2 = document.getElementById('login-error-admin');
-  if (e1) e1.textContent = '';
-  if (e2) e2.textContent = '';
-  // Focus
-  if (mode === 'admin') setTimeout(function(){ var i=document.getElementById('inp-admin'); if(i)i.focus(); },100);
+var loginTab = 'conn';
+function switchTab(t) {
+  loginTab = t;
+  document.getElementById('tab-conn').className = 'login-tab' + (t === 'conn' ? ' active' : '');
+  document.getElementById('tab-insc').className = 'login-tab' + (t === 'insc' ? ' active' : '');
+  document.getElementById('btn-auth').textContent = t === 'conn' ? 'Se connecter' : 'Cr\u00e9er un compte';
+  document.getElementById('login-error').textContent = '';
 }
 
 function setErr(msg) { document.getElementById('login-error').textContent = msg; }
@@ -1136,104 +707,15 @@ async function handleAuth() {
   var e = document.getElementById('inp-email').value.trim();
   var p = document.getElementById('inp-pass').value;
   if (!e || !p) { setErr('Remplissez tous les champs'); return; }
-  if (p.length < 6) { setErr('Mot de passe : 6 caractères minimum'); return; }
-  var btn = document.getElementById('btn-auth');
-  btn.disabled = true;
-  btn.textContent = '...';
   try {
-    if (loginTab === 'conn') {
-      await auth.signInWithEmailAndPassword(e, p);
-      // Vérifier le statut dans Supabase
-      var chkRes = await fetch('/api/users/check', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({email: e, display_name: '', provider: 'email'})
-      });
-      var chkData = await chkRes.json();
-      if (chkData.status === 'blocked') {
-        await auth.signOut();
-        throw { code: 'auth/user-blocked', message: 'Votre compte a été suspendu' };
-      }
-      if (chkData.status === 'pending') {
-        await auth.signOut();
-        showPendingScreen(e);
-        btn.disabled = false;
-        btn.textContent = loginMode === 'user' ? 'Se connecter' : 'Créer un compte';
-        return;
-      }
-    } else {
-      await auth.createUserWithEmailAndPassword(e, p);
-      // Enregistrer dans Supabase
-      var regRes = await fetch('/api/users/register', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({email: e, display_name: '', provider: 'email'})
-      });
-      var regData = await regRes.json();
-      if (regData.status === 'pending') {
-        await auth.signOut();
-        showPendingScreen(e);
-        btn.disabled = false;
-        btn.textContent = 'Créer un compte';
-        return;
-      }
-    }
-  } catch(err) {
-    var msg = err.message;
-    if (err.code === 'auth/user-not-found') msg = 'Aucun compte avec cet email';
-    if (err.code === 'auth/wrong-password') msg = 'Mot de passe incorrect';
-    if (err.code === 'auth/email-already-in-use') msg = 'Email déjà utilisé — connectez-vous';
-    if (err.code === 'auth/invalid-email') msg = 'Email invalide';
-    if (err.code === 'auth/weak-password') msg = 'Mot de passe trop faible (6 caractères min)';
-    if (err.code === 'auth/operation-not-allowed') msg = 'Connexion email désactivée dans Firebase';
-    if (err.code === 'auth/user-blocked') msg = err.message;
-    if (err.code === 'auth/pending') msg = err.message;
-    setErr(msg);
-  }
-  btn.disabled = false;
-  btn.textContent = loginTab === 'conn' ? 'Se connecter' : 'Créer un compte';
+    if (loginTab === 'conn') await auth.signInWithEmailAndPassword(e, p);
+    else await auth.createUserWithEmailAndPassword(e, p);
+  } catch(err) { setErr(err.message); }
 }
 
 async function loginGoogle() {
-  var btn = document.getElementById('btn-google');
-  if (btn) { btn.disabled = true; btn.textContent = 'Connexion...'; }
-  try {
-    var provider = new firebase.auth.GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
-    var result = await auth.signInWithPopup(provider);
-    // Enregistrer/vérifier le user dans Supabase
-    var u = result.user;
-    var res = await fetch('/api/users/register', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        email: u.email,
-        display_name: u.displayName || '',
-        provider: 'google'
-      })
-    });
-    var d = await res.json();
-    if (d.status === 'blocked') {
-      await auth.signOut();
-      setErr('Votre compte a été suspendu. Contactez l\'administrateur.');
-      if (btn) { btn.disabled = false; btn.textContent = 'Continuer avec Google'; }
-      return;
-    }
-    if (d.status === 'pending') {
-      await auth.signOut();
-      showPendingScreen(u.email);
-      if (btn) { btn.disabled = false; btn.textContent = 'Continuer avec Google'; }
-      return;
-    }
-    // status === approved → showApp géré par onAuthStateChanged
-  } catch(e) {
-    var msg = 'Erreur Google';
-    if (e.code === 'auth/popup-closed-by-user') msg = 'Fenêtre fermée — réessayez';
-    if (e.code === 'auth/unauthorized-domain') msg = 'Domaine non autorisé dans Firebase';
-    if (e.code === 'auth/operation-not-allowed') msg = 'Google Sign-In désactivé dans Firebase';
-    setErr(msg);
-  }
-  if (btn) { btn.disabled = false; btn.textContent = 'Continuer avec Google'; }
+  try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+  catch(e) { setErr('Erreur Google : ' + e.message); }
 }
 
 var adminOpen = false;
@@ -1243,203 +725,80 @@ function toggleAdmin() {
 }
 
 function loginAdmin() {
-  var inp = document.getElementById('inp-admin');
-  var btn = document.getElementById('btn-admin-login');
-  if (!inp) return;
-  var val = inp.value.trim();
-  if (!val) { setErrAdmin('Entrez la clé administrateur'); return; }
-  if (btn) { btn.disabled = true; btn.textContent = '...'; }
-  setTimeout(function() {
-    if (val === AKEY) {
-      inp.value = '';
-      showApp({ displayName: 'Administrateur', email: 'admin' });
-    } else {
-      setErrAdmin('Clé incorrecte');
-      inp.value = '';
-      inp.focus();
-    }
-    if (btn) { btn.disabled = false; btn.textContent = '⏵ Accéder au panneau admin'; }
-  }, 400);
-}
-
-function setErrAdmin(msg) {
-  var el = document.getElementById('login-error-admin');
-  if (el) el.textContent = msg;
+  if (document.getElementById('inp-admin').value.trim() === AKEY) {
+    showApp({ displayName: 'Administrateur', email: 'admin' });
+  } else { setErr('Cl\u00e9 incorrecte'); }
 }
 
 function logout() {
   auth.signOut().catch(function(){});
-  conversations = [];
-  activeId = null;
   userEmail = '';
-  closeDrawer();
   showLogin();
 }
 
-// initAutoApproveUI — voir version async ci-dessus
-
-// ═══════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 // NAVIGATION
-// ═══════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 function showTab(t) {
   ['chat','pdf','stats'].forEach(function(id) {
     document.getElementById('panel-' + id).className = 'panel' + (id === t ? ' active' : '');
-    var nb = document.getElementById('nav-' + id);
-    if (nb) nb.className = 'sb-btn' + (id === t ? ' active' : '');
-    var mb = document.getElementById('mb-' + id);
-    if (mb && mb.className.indexOf('mb-btn') >= 0) mb.className = 'mb-btn' + (id === t ? ' active' : '');
+    document.getElementById('nav-' + id).className = 'sb-btn' + (id === t ? ' active' : '');
   });
-  // Fermer le drawer si ouvert
-  closeDrawer();
   if (t === 'stats') loadStats();
 }
 
-function showTabMobile(t) { showTab(t); }
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// MEMOIRE
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+var MEM_MAX = 10;
+var mem = JSON.parse(localStorage.getItem('sntf_mem') || '[]');
 
-// ── DRAWER MOBILE ──
-function toggleDrawer() {
-  var d = document.getElementById('mobile-drawer');
-  if (!d) return;
-  if (d.classList.contains('open')) closeDrawer();
-  else openDrawer();
-}
-function openDrawer() {
-  var d = document.getElementById('mobile-drawer');
-  if (d) { d.classList.add('open'); buildDrawerList(); }
-}
-function closeDrawer() {
-  var d = document.getElementById('mobile-drawer');
-  if (d) d.classList.remove('open');
-}
-
-function buildDrawerList(q) {
-  var list = document.getElementById('md-list');
-  if (!list) return;
-  var data = q ? conversations.filter(function(c){
-    return c.title.toLowerCase().indexOf(q.toLowerCase()) >= 0;
-  }) : conversations;
-  if (!data.length) { list.innerHTML = '<div style="color:#555;font-size:13px;padding:16px;text-align:center;">Aucune conversation</div>'; return; }
-  list.innerHTML = '';
-  data.slice(0,15).forEach(function(conv) {
-    var d = document.createElement('div');
-    d.className = 'md-conv' + (conv.id === activeId ? ' active-conv' : '');
-    var date = new Date(conv.created).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
-    d.innerHTML = '<div class="md-conv-left">'
-      + '<div class="md-conv-title">' + esc(conv.title) + '</div>'
-      + '<div class="md-conv-meta">' + date + ' · ' + conv.msgs.length + ' msgs</div>'
-      + '</div>'
-      + '<button class="md-conv-del" onclick="event.stopPropagation();delConvById(\'' + conv.id + '\')" >&#10005;</button>';
-    d.onclick = function() { loadConversation(conv.id); closeDrawer(); };
-    list.appendChild(d);
-  });
-}
-
-function filterDrawer(q) { buildDrawerList(q); }
-
-// ═══════════════════════════════════════════
-// CONVERSATIONS — structure type Claude
-// conversations = [ {id, title, msgs:[{q,a,t}], created} ]
-// activeId = conversation courante
-// ═══════════════════════════════════════════
-var conversations = JSON.parse(localStorage.getItem('sntf_convs') || '[]');
-var activeId = localStorage.getItem('sntf_active') || null;
-
-function genId() { return 'c' + Date.now() + Math.random().toString(36).slice(2,6); }
-
-function convKey() {
-  return 'sntf_convs_' + (userEmail || 'guest');
-}
-function activeKey() {
-  return 'sntf_active_' + (userEmail || 'guest');
-}
-function saveConvs() {
-  localStorage.setItem(convKey(), JSON.stringify(conversations));
-  localStorage.setItem(activeKey(), activeId || '');
-}
-
-function getActiveConv() {
-  return conversations.find(function(c){ return c.id === activeId; }) || null;
-}
-
-// Crée ou retourne la conversation active
-function ensureActiveConv() {
-  var conv = getActiveConv();
-  if (!conv) {
-    conv = { id: genId(), title: 'Nouvelle conversation', msgs: [], created: Date.now() };
-    conversations.unshift(conv);
-    activeId = conv.id;
-    saveConvs();
-  }
-  return conv;
-}
-
-// Sauvegarde un échange Q/R dans la conv active
 function saveMem(q, a) {
-  var conv = ensureActiveConv();
-  conv.msgs.push({ q: q, a: a, t: Date.now() });
-  // Titre = première question (tronquée)
-  if (conv.msgs.length === 1) {
-    conv.title = q.substring(0, 40) + (q.length > 40 ? '...' : '');
-  }
-  saveConvs();
+  mem.push({ q: q, a: a, t: Date.now() });
+  if (mem.length > MEM_MAX) mem.shift();
+  localStorage.setItem('sntf_mem', JSON.stringify(mem));
   buildHistList();
 }
 
-// Contexte mémoire pour l'IA (4 derniers échanges de la conv active)
 function getCtx() {
-  var conv = getActiveConv();
-  if (!conv || !conv.msgs.length) return '';
-  return conv.msgs.slice(-4).map(function(m) {
-    return 'Q: ' + m.q + '\nR: ' + m.a.substring(0, 200);
-  }).join('\n\n');
+  if (!mem.length) return '';
+  return mem.slice(-4).map(function(m) { return 'Q: ' + m.q + '\
+R: ' + m.a.substring(0, 200); }).join('\
+\
+');
 }
 
-// Démarre une nouvelle conversation vierge
-function newConversation() {
-  activeId = null;
-  saveConvs();
-  var msgs = document.getElementById('msgs');
-  msgs.innerHTML = '';
-  var w = document.createElement('div');
-  w.id = 'welcome';
-  var sugs = ['Horaires des trains','Tarifs et billets','Procédures de sécurité','Réseau ferroviaire','Signalement incident','Règlement intérieur'];
-  var sugHtml = sugs.map(function(s){ return '<div class="sug" onclick="askQ(this)">' + s + '</div>'; }).join('');
-  w.innerHTML = '<div class="w-title">Nouvelle conversation</div>'
-    + '<div class="w-sub">Comment puis-je vous aider ?</div>'
-    + '<div class="suggestions">' + sugHtml + '</div>';
-  msgs.appendChild(w);
-  showTab('chat');
-  buildHistList();
-}
-
-// ═══════════════════════════════════════════
-// HISTORIQUE SIDEBAR — liste des conversations
-// ═══════════════════════════════════════════
-function buildHistList() {
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// HISTORIQUE SIDEBAR
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+function buildHistList(items) {
   var list = document.getElementById('hist-list');
   if (!list) return;
-  if (!conversations.length) {
-    list.innerHTML = '<div style="color:#555;font-size:12px;padding:8px;letter-spacing:1px;">Aucune conversation</div>';
+  var data = items || mem;
+  if (!data.length) {
+    list.innerHTML = '<div style="color:#555;font-size:12px;padding:4px;">Aucune conversation</div>';
     return;
   }
   list.innerHTML = '';
-  conversations.slice(0, 20).forEach(function(conv) {
-    var isActive = conv.id === activeId;
+  data.slice().reverse().slice(0, 8).forEach(function(m) {
     var d = document.createElement('div');
-    d.className = 'hist-conv-item' + (isActive ? ' active-conv' : '');
-    var date = new Date(conv.created).toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-    var count = conv.msgs.length;
-    d.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
-      + '<div class="hist-conv-title">' + esc(conv.title) + '</div>'
-      + '<button class="hist-conv-del" onclick="event.stopPropagation();delConvById(\'' + conv.id + '\')" title="Supprimer">&#10005;</button>'
-      + '</div>'
-      + '<div class="hist-conv-meta">'
-      + '<span class="hist-conv-date">' + date + '</span>'
-      + '<span class="hist-conv-count">' + count + ' msg' + (count > 1 ? 's' : '') + '</span>'
-      + '</div>';
-    d.onclick = function() { loadConversation(conv.id); };
+    d.style.cssText = 'padding:9px 6px;cursor:pointer;border-bottom:1px solid rgba(201,168,76,0.06);transition:background 0.2s;border-radius:3px;margin-bottom:2px;';
+    d.onmouseover = function() { d.style.background = 'rgba(201,168,76,0.05)'; };
+    d.onmouseout = function() { d.style.background = ''; };
+    var date = m.t ? new Date(m.t).toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+    d.innerHTML = '<div style="font-size:12px;color:#ccc;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Q: ' + esc(m.q.substring(0, 45)) + (m.q.length > 45 ? '...' : '') + '</div>'
+      + (m.a ? '<div style="font-size:11px;color:#666;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">R: ' + esc(m.a.substring(0, 60)) + (m.a.length > 60 ? '...' : '') + '</div>' : '')
+      + (date ? '<div style="font-size:10px;color:#444;margin-top:2px;">' + date + '</div>' : '');
+    d.onclick = function() { replayConv(m); };
     list.appendChild(d);
   });
+  var btn = document.createElement('div');
+  btn.style.cssText = 'margin-top:10px;text-align:center;font-size:11px;color:#444;cursor:pointer;padding:6px;border:1px solid rgba(201,168,76,0.08);border-radius:3px;transition:all 0.2s;';
+  btn.textContent = 'G\u00e9rer / Supprimer';
+  btn.onmouseover = function() { btn.style.borderColor = 'rgba(201,168,76,0.2)'; };
+  btn.onmouseout = function() { btn.style.borderColor = 'rgba(201,168,76,0.08)'; };
+  btn.onclick = openConvModal;
+  list.appendChild(btn);
 }
 
 function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -1449,30 +808,26 @@ function filterHist(q) {
   if (clr) clr.style.display = q ? 'block' : 'none';
   if (!q.trim()) { buildHistList(); return; }
   var qL = q.toLowerCase();
+  var filtered = mem.filter(function(m) {
+    return m.q.toLowerCase().indexOf(qL) >= 0 || (m.a && m.a.toLowerCase().indexOf(qL) >= 0);
+  });
   var list = document.getElementById('hist-list');
   if (!list) return;
-  var filtered = conversations.filter(function(c) {
-    return c.title.toLowerCase().indexOf(qL) >= 0
-      || c.msgs.some(function(m){ return m.q.toLowerCase().indexOf(qL) >= 0 || (m.a && m.a.toLowerCase().indexOf(qL) >= 0); });
-  });
-  if (!filtered.length) { list.innerHTML = '<div style="color:#444;font-size:12px;text-align:center;padding:16px;">Aucun résultat</div>'; return; }
+  if (!filtered.length) { list.innerHTML = '<div style="color:#444;font-size:12px;text-align:center;padding:16px;">Aucun r\u00e9sultat</div>'; return; }
   list.innerHTML = '';
-  filtered.forEach(function(conv) {
+  filtered.slice().reverse().forEach(function(m) {
     var d = document.createElement('div');
-    d.className = 'hist-conv-item' + (conv.id === activeId ? ' active-conv' : '');
-    d.innerHTML = '<div class="hist-conv-title">' + hlQ(esc(conv.title), q) + '</div>'
-      + '<div class="hist-conv-meta"><span class="hist-conv-count">' + conv.msgs.length + ' msgs</span></div>';
-    d.onclick = function() { loadConversation(conv.id); };
+    d.style.cssText = 'padding:9px 6px;cursor:pointer;border-bottom:1px solid rgba(201,168,76,0.06);transition:background 0.2s;border-radius:3px;margin-bottom:2px;';
+    d.onmouseover = function() { d.style.background = 'rgba(201,168,76,0.05)'; };
+    d.onmouseout = function() { d.style.background = ''; };
+    d.innerHTML = '<div style="font-size:12px;color:#ccc;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + hlQ(esc(m.q.substring(0,45)), q) + '</div>'
+      + (m.a ? '<div style="font-size:11px;color:#666;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + hlQ(esc(m.a.substring(0,60)), q) + '</div>' : '');
+    d.onclick = function() { replayConv(m); };
     list.appendChild(d);
   });
-  var cnt = document.createElement('div');
-  cnt.style.cssText = 'text-align:center;font-size:10px;color:#444;padding:6px;letter-spacing:1px;';
-  cnt.textContent = filtered.length + ' résultat' + (filtered.length > 1 ? 's' : '');
-  list.appendChild(cnt);
 }
 
 function hlQ(text, q) {
-  if (!q) return text;
   return text.replace(new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi'), '<span class="hl">$1</span>');
 }
 
@@ -1484,27 +839,18 @@ function clearHist() {
   buildHistList();
 }
 
-// Charge une conversation dans le chat
-function loadConversation(id) {
-  activeId = id;
-  saveConvs();
-  var conv = getActiveConv();
-  if (!conv) return;
-  var msgs = document.getElementById('msgs');
-  msgs.innerHTML = '';
-  // Reconstruire tous les messages
-  conv.msgs.forEach(function(m) {
-    addMsg(m.q, 'user');
-    if (m.a) addMsg(m.a, 'bot', false);
-  });
+function replayConv(m) {
   showTab('chat');
-  buildHistList();
-  msgs.scrollTop = 99999;
+  var w = document.getElementById('welcome');
+  if (w) w.remove();
+  addMsg(m.q, 'user');
+  if (m.a) addMsg(m.a, 'bot', false);
+  document.getElementById('msgs').scrollTop = 99999;
 }
 
-// ═══════════════════════════════════════════
-// HISTORIQUE SUPABASE → injection dans conversations
-// ═══════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// HISTORIQUE SUPABASE
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 async function loadRemoteHist() {
   if (!userEmail) return;
   try {
@@ -1515,40 +861,17 @@ async function loadRemoteHist() {
     });
     var d = await r.json();
     if (d.success && d.history && d.history.length) {
-      // Regrouper par conversation (on groupe les échanges proches en temps — 1h max)
-      var convMap = {};
-      d.history.forEach(function(h) {
-        var t = h.time ? new Date(h.time).getTime() : Date.now();
-        var dayKey = new Date(t).toDateString();
-        if (!convMap[dayKey]) {
-          convMap[dayKey] = {
-            id: 'remote_' + dayKey.replace(/ /g,'_'),
-            title: 'Conversation du ' + new Date(t).toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',year:'numeric'}),
-            msgs: [],
-            created: t
-          };
-        }
-        convMap[dayKey].msgs.push({ q: h.question, a: h.answer, t: t });
+      mem = d.history.map(function(h) {
+        return { q: h.question, a: h.answer, t: h.time ? new Date(h.time).getTime() : Date.now() };
       });
-      // Fusionner avec les conversations locales (éviter doublons)
-      var remoteIds = Object.keys(convMap).map(function(k){ return convMap[k].id; });
-      conversations = conversations.filter(function(c){ return !remoteIds.includes(c.id); });
-      Object.values(convMap).forEach(function(c) {
-        // Titre = première question
-        if (c.msgs.length) c.title = c.msgs[0].q.substring(0,40) + (c.msgs[0].q.length>40?'...':'');
-        conversations.push(c);
-      });
-      // Trier par date décroissante
-      conversations.sort(function(a,b){ return b.created - a.created; });
-      saveConvs();
       buildHistList();
     }
   } catch(e) {}
 }
 
-// ═══════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 // MESSAGES
-// ═══════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 function addMsg(text, role, typing) {
   typing = typing === undefined ? false : typing;
   var wrap = document.getElementById('msgs');
@@ -1614,13 +937,13 @@ function copyMsg(btn) {
   navigator.clipboard.writeText(txt).then(function() {
     btn.textContent = '\u2713';
     setTimeout(function() { btn.innerHTML = '&#8984;'; }, 2000);
-    toast('Copié !', 'ok');
+    toast('Copi\u00e9 !', 'ok');
   });
 }
 
 function speakMsg(btn) {
   var txt = btn.closest('.msg-body').querySelector('.msg-bbl').textContent;
-  if (!window.speechSynthesis) { toast('TTS non supporté', 'err'); return; }
+  if (!window.speechSynthesis) { toast('TTS non support\u00e9', 'err'); return; }
   window.speechSynthesis.cancel();
   var u = new SpeechSynthesisUtterance(txt);
   u.lang = detectLang(txt) === 'ar' ? 'ar-DZ' : 'fr-FR';
@@ -1630,9 +953,9 @@ function speakMsg(btn) {
   window.speechSynthesis.speak(u);
 }
 
-// ═══════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 // CHAT — SEND
-// ═══════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 function askQ(el) {
   document.getElementById('chat-inp').value = el.textContent;
   send();
@@ -1641,33 +964,18 @@ function askQ(el) {
 async function send() {
   var inp = document.getElementById('chat-inp');
   var q = inp.value.trim();
-  if (!q && !selFiles.length) return;
+  if (!q && !selImg) return;
 
   var w = document.getElementById('welcome');
   if (w) w.remove();
   inp.value = '';
   inp.style.height = 'auto';
 
-  var files = selFiles.slice(); // copie
+  var img = selImg;
   clearImg();
 
-  // Afficher le message utilisateur avec aperçu fichiers
-  if (files.length) {
-    var label = q || '(' + files.length + ' fichier' + (files.length > 1 ? 's' : '') + ')';
-    // Afficher aperçu images dans le chat
-    var imgs = files.filter(function(f){ return !f.isPdf; });
-    var pdfs = files.filter(function(f){ return f.isPdf; });
-    if (imgs.length === 1 && !pdfs.length) {
-      addMsgImg(label, 'user', imgs[0].b64);
-    } else {
-      var fileLabel = label;
-      if (pdfs.length) fileLabel += ' [' + pdfs.map(function(p){ return '📄 '+p.name; }).join(', ') + ']';
-      if (imgs.length > 1) fileLabel += ' [' + imgs.length + ' images]';
-      addMsg(fileLabel, 'user');
-    }
-  } else {
-    addMsg(q, 'user');
-  }
+  if (img) addMsgImg(q || '(photo)', 'user', img.b64);
+  else addMsg(q, 'user');
 
   var typing = addTyping();
   document.getElementById('btn-send').disabled = true;
@@ -1677,44 +985,24 @@ async function send() {
   try {
     var ctx = getCtx();
 
-    if (files.length) {
-      // FICHIERS — construire payload multi-fichiers
-      var images = [];
-      var pdfTexts = [];
-
-      // Extraire texte PDFs côté client (base64 envoyé au serveur)
-      for (var fi = 0; fi < files.length; fi++) {
-        var f = files[fi];
-        if (f.isPdf) {
-          pdfTexts.push({ name: f.name, b64: f.b64.split(',')[1] });
-        } else {
-          images.push({ b64: f.b64.split(',')[1], type: f.type, name: f.name });
-        }
-      }
-
-      var defaultQ = files.length === 1
-        ? (files[0].isPdf ? 'Analyse ce document PDF, résume son contenu et réponds à toutes les questions.' : 'Analyse cette image. Lis tout le texte visible, identifie pannes et erreurs, donne une solution.')
-        : 'Analyse tous ces fichiers en détail. Résume le contenu de chacun et identifie les informations importantes.';
-
+    if (img) {
+      // IMAGE — pas de streaming
+      var b64 = img.b64.split(',')[1];
       var rb = await fetch('/api/chat/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          question: q || defaultQ,
-          images: images,
-          pdfs: pdfTexts,
-          // Rétrocompatibilité : si 1 seule image
-          image: images.length === 1 ? images[0].b64 : null,
-          image_type: images.length === 1 ? images[0].type : null,
-          user_email: userEmail,
-          memory: ctx
+          question: q || 'Analyse cette image. Lis tout le texte visible, identifie pannes et erreurs, donne une solution.',
+          image: b64,
+          image_type: img.type,
+          user_email: userEmail
         })
       });
       var rd = await rb.json();
       typing.remove(); hideDikr();
-      var ans = rd.answer || rd.response || 'Erreur analyse fichiers';
+      var ans = rd.answer || rd.response || 'Erreur analyse image';
       addMsg(ans, 'bot', true);
-      saveMem(q || defaultQ, ans);
+      saveMem(q || '(photo)', ans);
       incQ();
     } else {
       // TEXTE — streaming SSE
@@ -1747,7 +1035,8 @@ async function send() {
       while (true) {
         var chunk = await reader.read();
         if (chunk.done) break;
-        var lines = dec.decode(chunk.value).split('\n');
+        var lines = dec.decode(chunk.value).split('\
+');
         for (var i = 0; i < lines.length; i++) {
           var line = lines[i].trim();
           if (!line.startsWith('data:')) continue;
@@ -1776,7 +1065,7 @@ async function send() {
   } catch(err) {
     if (typing && typing.parentNode) typing.remove();
     hideDikr();
-    addMsg('Erreur de connexion. Réessayez.', 'bot');
+    addMsg('Erreur de connexion. R\u00e9essayez.', 'bot');
   }
   document.getElementById('btn-send').disabled = false;
 }
@@ -1789,82 +1078,35 @@ function incQ() {
   document.getElementById('st-qs').textContent = qCount;
 }
 
-// ═══════════════════════════════════════════
-// MULTI-FICHIERS DANS CHAT (images + PDFs)
-// ═══════════════════════════════════════════
-document.getElementById('multi-file').addEventListener('change', function(e) {
-  var files = Array.from(e.target.files);
-  if (!files.length) return;
-  files.forEach(function(f) {
-    if (selFiles.length >= 5) { toast('Maximum 5 fichiers à la fois', 'err'); return; }
-    var isPdf = f.type === 'application/pdf';
-    var isImg = f.type.startsWith('image/');
-    if (!isPdf && !isImg) { toast(f.name + ' : format non supporté', 'err'); return; }
-    var rd = new FileReader();
-    rd.onload = function(ev) {
-      var fileObj = { b64: ev.target.result, type: f.type, name: f.name, isPdf: isPdf };
-      selFiles.push(fileObj);
-      renderFilesPreview();
-    };
-    rd.readAsDataURL(f);
-  });
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+// IMAGE DANS CHAT
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+document.getElementById('img-file').addEventListener('change', function(e) {
+  var f = e.target.files[0];
+  if (!f) return;
+  var rd = new FileReader();
+  rd.onload = function(ev) {
+    selImg = { b64: ev.target.result, type: f.type, name: f.name };
+    document.getElementById('img-prev').src = ev.target.result;
+    document.getElementById('img-prev-name').textContent = f.name.substring(0, 28) + (f.name.length > 28 ? '...' : '');
+    document.getElementById('img-prev-wrap').style.display = 'block';
+    document.getElementById('chat-inp').placeholder = 'Question sur cette photo (optionnel)...';
+  };
+  rd.readAsDataURL(f);
   this.value = '';
 });
 
-function renderFilesPreview() {
-  var wrap = document.getElementById('img-prev-wrap');
-  var preview = document.getElementById('files-preview');
-  if (!selFiles.length) { wrap.style.display = 'none'; return; }
-  wrap.style.display = 'block';
-  preview.innerHTML = '';
-  selFiles.forEach(function(f, idx) {
-    var chip = document.createElement('div');
-    chip.className = 'file-chip';
-    var iconHtml = f.isPdf
-      ? '<div class="file-chip-icon">&#128196;</div>'
-      : '<img class="file-chip-img" src="' + f.b64 + '" alt="">';
-    chip.innerHTML = iconHtml
-      + '<div class="file-chip-info">'
-      + '<div class="file-chip-name">' + f.name.substring(0, 20) + (f.name.length > 20 ? '...' : '') + '</div>'
-      + '<div class="file-chip-type">' + (f.isPdf ? 'PDF' : 'IMAGE') + '</div>'
-      + '</div>'
-      + '<button class="file-chip-rm" onclick="removeFile(' + idx + ')">&#10005;</button>';
-    preview.appendChild(chip);
-  });
-  // Bouton + pour ajouter d'autres fichiers
-  if (selFiles.length < 5) {
-    var addBtn = document.createElement('button');
-    addBtn.className = 'files-add-btn';
-    addBtn.innerHTML = '&#43;<br><span style="font-size:9px;">Ajouter</span>';
-    addBtn.onclick = function() { document.getElementById('multi-file').click(); };
-    preview.appendChild(addBtn);
-  }
-  document.getElementById('chat-inp').placeholder = selFiles.length + ' fichier(s) — Question optionnelle...';
-}
-
-function removeFile(idx) {
-  selFiles.splice(idx, 1);
-  if (!selFiles.length) {
-    document.getElementById('chat-inp').placeholder = 'Posez votre question ou envoyez une photo/PDF...';
-  }
-  renderFilesPreview();
-}
-
 function clearImg() {
   selImg = null;
-  selFiles = [];
   document.getElementById('img-prev-wrap').style.display = 'none';
-  document.getElementById('files-preview').innerHTML = '';
-  document.getElementById('chat-inp').placeholder = 'Posez votre question ou envoyez une photo/PDF...';
+  document.getElementById('img-prev').src = '';
+  document.getElementById('img-prev-name').textContent = '';
+  document.getElementById('chat-inp').placeholder = 'Posez votre question ou envoyez une photo...';
 }
 
-// ═══════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 // UPLOAD DOC (PDF / IMAGE)
-// ═══════════════════════════════════════════
-// ═══════════════════════════════════════════
-// UPLOAD MULTI-DOCUMENTS (queue)
-// ═══════════════════════════════════════════
-var docQueue = []; // [{file, name, status: 'wait'|'uploading'|'done'|'error', msg}]
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 var dz = document.getElementById('drop-zone');
 var pf = document.getElementById('pdf-file');
 
@@ -1872,151 +1114,85 @@ dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.classList.a
 dz.addEventListener('dragleave', function() { dz.classList.remove('over'); });
 dz.addEventListener('drop', function(e) {
   e.preventDefault(); dz.classList.remove('over');
-  addFilesToQueue(Array.from(e.dataTransfer.files));
+  var f = e.dataTransfer.files[0];
+  if (f && (f.type === 'application/pdf' || f.type.startsWith('image/'))) setDocFile(f);
 });
-pf.addEventListener('change', function(e) {
-  addFilesToQueue(Array.from(e.target.files));
-  pf.value = '';
-});
+pf.addEventListener('change', function(e) { if (e.target.files[0]) setDocFile(e.target.files[0]); });
 
-function addFilesToQueue(files) {
-  files.forEach(function(f) {
-    var ok = f.type === 'application/pdf' || f.type.startsWith('image/');
-    if (!ok) { toast(f.name + ' : format non supporté', 'err'); return; }
-    if (f.size > 52428800) { toast(f.name + ' : fichier trop lourd (max 50MB)', 'err'); return; }
-    var alreadyIn = docQueue.some(function(q){ return q.file.name === f.name && q.file.size === f.size; });
-    if (alreadyIn) { toast(f.name + ' : déjà dans la liste', 'err'); return; }
-    var nameClean = f.name.replace(/\.(pdf|jpg|jpeg|png)$/i, '');
-    docQueue.push({ file: f, name: nameClean, status: 'wait' });
-  });
-  renderQueue();
+function setDocFile(f) {
+  selDocFile = f;
+  var isImg = f.type.startsWith('image/');
+  document.getElementById('sel-file').style.display = 'flex';
+  document.getElementById('sel-file-name').textContent = (isImg ? '\uD83D\uDDBC ' : '\uD83D\uDCC4 ') + f.name;
+  document.getElementById('doc-name').value = f.name.replace(/\.(pdf|jpg|jpeg|png)$/i, '');
+  document.getElementById('btn-upload').disabled = false;
+  document.getElementById('drop-icon').textContent = isImg ? '\uD83D\uDDBC' : '\uD83D\uDCC4';
+  document.getElementById('drop-title').textContent = f.name;
+  var prev = document.getElementById('doc-img-prev');
+  if (isImg) {
+    var rd = new FileReader();
+    rd.onload = function(ev) { prev.innerHTML = '<div style="margin:12px 0;text-align:center"><img src="' + ev.target.result + '" style="max-height:120px;max-width:100%;border-radius:4px;border:1px solid rgba(201,168,76,0.2)"></div>'; };
+    rd.readAsDataURL(f);
+  } else { prev.innerHTML = ''; }
 }
 
-function renderQueue() {
-  var queueDiv = document.getElementById('file-queue');
-  var listDiv = document.getElementById('queue-list');
-  if (!docQueue.length) { queueDiv.style.display = 'none'; return; }
-  queueDiv.style.display = 'block';
-  listDiv.innerHTML = '';
-  docQueue.forEach(function(item, idx) {
-    var isImg = item.file.type.startsWith('image/');
-    var icon = isImg ? '🖼' : '📄';
-    var sizeMB = (item.file.size / 1048576).toFixed(1);
-    var statusHtml = '';
-    if (item.status === 'wait') statusHtml = '<span style="color:#666;font-size:11px;letter-spacing:1px;">EN ATTENTE</span>';
-    else if (item.status === 'uploading') statusHtml = '<span style="color:var(--or);font-size:11px;">&#8635; UPLOAD...</span>';
-    else if (item.status === 'done') statusHtml = '<span style="color:#4ac84a;font-size:13px;">&#10003; OK</span>';
-    else if (item.status === 'error') statusHtml = '<span style="color:#f66;font-size:11px;" title="' + (item.msg||'') + '">&#10005; ERREUR</span>';
-
-    var row = document.createElement('div');
-    row.className = 'queue-item ' + (item.status !== 'wait' ? item.status : '');
-    row.id = 'qi-' + idx;
-    row.innerHTML = '<div class="qi-icon">' + icon + '</div>'
-      + '<div class="qi-info">'
-      + '<input class="qi-name-input" value="' + esc(item.name) + '" onchange="docQueue[' + idx + '].name=this.value" placeholder="Nom du document">'
-      + '<div class="qi-size">' + sizeMB + ' MB · ' + item.file.name + '</div>'
-      + '</div>'
-      + '<div>' + statusHtml + '</div>'
-      + (item.status === 'wait' ? '<button class="qi-rm" onclick="removeFromQueue(' + idx + ')">&#10005;</button>' : '');
-    listDiv.appendChild(row);
-  });
+function clearDocFile() {
+  selDocFile = null; pf.value = '';
+  document.getElementById('sel-file').style.display = 'none';
+  document.getElementById('btn-upload').disabled = true;
+  document.getElementById('drop-icon').textContent = '\uD83D\uDCC4';
+  document.getElementById('drop-title').textContent = 'Glissez ou cliquez pour ajouter';
+  document.getElementById('doc-img-prev').innerHTML = '';
 }
 
-function removeFromQueue(idx) {
-  docQueue.splice(idx, 1);
-  renderQueue();
-}
-
-function clearQueue() {
-  docQueue = [];
-  document.getElementById('file-queue').style.display = 'none';
-  document.getElementById('upload-results').style.display = 'none';
-  document.getElementById('upload-results').innerHTML = '';
-}
-
-async function uploadAllDocs() {
+async function uploadDoc() {
   var key = document.getElementById('adm-key').value.trim();
-  if (!key) { toast('Entrez la clé admin', 'err'); return; }
+  var name = document.getElementById('doc-name').value.trim();
   var cat = document.getElementById('doc-cat').value;
-  var pending = docQueue.filter(function(q){ return q.status === 'wait'; });
-  if (!pending.length) { toast('Aucun fichier en attente', 'err'); return; }
+  if (!key) { toast('Entrez la cl\u00e9 admin', 'err'); return; }
+  if (!selDocFile) { toast('S\u00e9lectionnez un fichier', 'err'); return; }
 
-  var btn = document.getElementById('btn-upload-all');
-  btn.disabled = true;
-
+  var isImg = selDocFile.type.startsWith('image/');
   var prog = document.getElementById('prog');
   var fill = document.getElementById('prog-fill');
   var msg = document.getElementById('prog-msg');
-  var results = document.getElementById('upload-results');
-  prog.style.display = 'block';
-  results.style.display = 'block';
-  results.innerHTML = '';
+  prog.style.display = 'block'; fill.style.width = '15%';
+  msg.textContent = isImg ? 'Groq Vision analyse l\'image...' : 'Envoi en cours...';
+  msg.className = 'prog-msg';
+  document.getElementById('btn-upload').disabled = true;
 
-  var total = pending.length;
-  var done = 0;
-  var errors = 0;
-
-  // Marquer tous comme uploading
-  docQueue.forEach(function(item) {
-    if (item.status === 'wait') item.status = 'uploading';
-  });
-  renderQueue();
-  msg.textContent = 'Envoi de ' + total + ' fichier(s) en cours...';
-  fill.style.width = '30%';
+  var fd = new FormData();
+  fd.append('file', selDocFile);
+  fd.append('document_name', name || selDocFile.name.replace(/\.(pdf|jpg|jpeg|png)$/i, ''));
+  fd.append('category', cat);
+  fd.append('admin_key', key);
+  fill.style.width = '40%';
+  msg.textContent = isImg ? 'Analyse IA (30s)...' : 'Indexation (1-2 min)...';
 
   try {
-    var fd = new FormData();
-    fd.append('admin_key', key);
-    fd.append('category', cat);
-    pending.forEach(function(item) {
-      fd.append('files', item.file);
-    });
-
-    fill.style.width = '60%';
-    var r = await fetch('/api/documents/upload-batch', { method: 'POST', body: fd });
+    var ep = isImg ? '/api/documents/upload-image' : '/api/documents/upload';
+    var r = await fetch(ep, { method: 'POST', body: fd });
     var d = await r.json();
-    fill.style.width = '100%';
-
-    if (d.results) {
-      d.results.forEach(function(res, i) {
-        var item = docQueue.find(function(q){ return q.file.name === res.filename; });
-        if (!item) return;
-        if (res.success) {
-          item.status = 'done';
-          results.innerHTML += '<div class="upload-result-ok">&#10003; ' + res.filename + ' — ' + res.chunks + ' chunks indexés</div>';
-          done++;
-        } else {
-          item.status = 'error';
-          item.msg = res.error;
-          results.innerHTML += '<div class="upload-result-err">&#10005; ' + res.filename + ' — ' + res.error + '</div>';
-          errors++;
-          done++;
-        }
-      });
+    if (r.ok && d.success) {
+      fill.style.width = '100%';
+      msg.textContent = (isImg ? 'Image analys\u00e9e ! ' : '') + d.chunks_stored + ' chunks index\u00e9s.';
+      msg.className = 'prog-msg ok';
+      clearDocFile();
+      toast((isImg ? 'Image' : 'PDF') + ' index\u00e9 : ' + d.chunks_stored + ' chunks', 'ok');
+      setTimeout(function() { prog.style.display = 'none'; fill.style.width = '0%'; }, 4000);
+    } else {
+      msg.textContent = 'Erreur : ' + (d.detail || JSON.stringify(d));
+      msg.className = 'prog-msg err'; fill.style.width = '0%';
     }
-    msg.textContent = (done-errors) + ' fichier(s) indexés · ' + (d.total_chunks||0) + ' chunks au total';
-    renderQueue();
   } catch(e) {
-    docQueue.forEach(function(item){ if(item.status==='uploading') { item.status='error'; item.msg=e.message; } });
-    results.innerHTML += '<div class="upload-result-err">&#10005; Erreur connexion serveur</div>';
-    msg.textContent = 'Erreur upload';
-    renderQueue();
+    msg.textContent = 'Erreur de connexion'; msg.className = 'prog-msg err'; fill.style.width = '0%';
   }
-
-  btn.disabled = false;
-  toast((done - errors) + '/' + total + ' fichiers indexés', errors ? 'err' : 'ok');
-  loadDocs();
+  document.getElementById('btn-upload').disabled = false;
 }
 
-// Garder pour compatibilité
-function setDocFile(f) { addFilesToQueue([f]); }
-function clearDocFile() { clearQueue(); }
-async function uploadDoc() { uploadAllDocs(); }
-
-// uploadDoc — voir uploadAllDocs()
 async function loadDocs() {
   var key = document.getElementById('adm-key').value.trim();
-  if (!key) { toast('Entrez la clé admin', 'err'); return; }
+  if (!key) { toast('Entrez la cl\u00e9 admin', 'err'); return; }
   var grid = document.getElementById('docs-grid');
   grid.innerHTML = '<div style="color:var(--gris);">Chargement...</div>';
   try {
@@ -2035,7 +1211,7 @@ async function loadDocs() {
       var fn = (doc.filename || 'Sans nom').replace(/'/g, "\\'");
       c.innerHTML = '<div class="doc-chunks">' + (doc.chunks || 0) + ' chunks</div>'
         + '<div class="doc-name">' + esc(doc.filename || 'Sans nom') + '</div>'
-        + '<div class="doc-cat">' + esc(doc.category || 'Général') + '</div>'
+        + '<div class="doc-cat">' + esc(doc.category || 'G\u00e9n\u00e9ral') + '</div>'
         + '<button class="btn-del-doc" onclick="delDoc(\'' + fn + '\',\'' + key + '\',this.parentElement)">Supprimer</button>';
       grid.appendChild(c);
     });
@@ -2046,14 +1222,14 @@ async function delDoc(name, key, card) {
   if (!confirm('Supprimer "' + name + '" ?')) return;
   try {
     var r = await fetch('/api/documents/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({filename:name,admin_key:key}) });
-    if (r.ok) { card.remove(); toast('Supprimé', 'ok'); }
+    if (r.ok) { card.remove(); toast('Supprim\u00e9', 'ok'); }
     else toast('Erreur suppression', 'err');
   } catch(e) { toast('Erreur connexion', 'err'); }
 }
 
-// ═══════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 // STATS
-// ═══════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 async function loadStats() {
   try {
     var r = await fetch('/health');
@@ -2065,236 +1241,43 @@ async function loadStats() {
   }
 }
 
-// ═══════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 // CONV MANAGER
-// ═══════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 function openConvModal() {
   document.getElementById('conv-modal').classList.add('open');
   var list = document.getElementById('conv-list');
   list.innerHTML = '';
-  if (!conversations.length) {
-    list.innerHTML = '<div style="color:#555;font-size:13px;padding:12px;text-align:center;">Aucune conversation</div>';
-    return;
-  }
-  conversations.forEach(function(conv) {
+  if (!mem.length) { list.innerHTML = '<div style="color:#555;font-size:13px;padding:12px;text-align:center;">Aucune conversation</div>'; return; }
+  mem.slice().reverse().forEach(function(m, i) {
+    var realIdx = mem.length - 1 - i;
     var item = document.createElement('div');
     item.className = 'conv-item';
-    var date = new Date(conv.created).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-    item.innerHTML = '<div style="flex:1;min-width:0;">'
-      + '<div class="conv-q">' + esc(conv.title) + '</div>'
-      + '<div style="font-size:10px;color:#444;margin-top:2px;">' + date + ' · ' + conv.msgs.length + ' messages</div>'
-      + '</div>'
-      + '<button class="btn-conv-del" onclick="delConvById(\'' + conv.id + '\')" >&#10005;</button>';
+    item.innerHTML = '<span class="conv-q">' + esc(m.q.substring(0, 60)) + (m.q.length > 60 ? '...' : '') + '</span>'
+      + '<button class="btn-conv-del" onclick="delConv(' + realIdx + ')">&#10005;</button>';
     list.appendChild(item);
   });
 }
 
-function delConvById(id) {
-  conversations = conversations.filter(function(c){ return c.id !== id; });
-  if (activeId === id) { activeId = null; }
-  saveConvs();
-  openConvModal();
-  buildHistList();
-  // Si on vient de supprimer la conv active → nouvelle conv
-  if (!activeId) newConversation();
+function delConv(i) {
+  mem.splice(i, 1);
+  localStorage.setItem('sntf_mem', JSON.stringify(mem));
+  openConvModal(); buildHistList();
 }
 
 function delAllConvs() {
   if (!confirm('Supprimer toutes les conversations ?')) return;
-  conversations = []; activeId = null;
-  localStorage.removeItem('sntf_convs');
-  localStorage.removeItem('sntf_active');
+  mem = []; localStorage.removeItem('sntf_mem');
   document.getElementById('conv-modal').classList.remove('open');
-  buildHistList();
-  newConversation();
-  toast('Toutes les conversations supprimées', 'ok');
+  buildHistList(); toast('Conversations supprim\u00e9es', 'ok');
 }
 
-// ═══════════════════════════════════════════
-// GESTION UTILISATEURS (Admin) — via API Supabase
-// ═══════════════════════════════════════════
-
-async function toggleAutoApprove(val) {
-  try {
-    await fetch('/api/users/config', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({admin_key: AKEY, key: 'auto_approve', value: val ? 'true' : 'false'})
-    });
-    var st = document.getElementById('auto-approve-status');
-    if (st) {
-      st.innerHTML = val
-        ? '&#9679; Inscription automatique activée'
-        : '&#9679; Approbation manuelle requise — les nouveaux comptes attendent votre validation';
-      st.style.color = val ? '#4ac84a' : '#f5a623';
-    }
-    toast(val ? 'Inscription auto activée' : 'Approbation manuelle activée', 'ok');
-  } catch(e) { toast('Erreur serveur', 'err'); }
-}
-
-async function initAutoApproveUI() {
-  try {
-    var r = await fetch('/api/users/config/get', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({admin_key: AKEY, key: 'auto_approve'})
-    });
-    var d = await r.json();
-    var val = d.value === 'true';
-    var toggle = document.getElementById('auto-approve-toggle');
-    if (toggle) toggle.checked = val;
-    var st = document.getElementById('auto-approve-status');
-    if (st) {
-      st.innerHTML = val
-        ? '&#9679; Inscription automatique activée'
-        : '&#9679; Approbation manuelle requise';
-      st.style.color = val ? '#4ac84a' : '#f5a623';
-    }
-  } catch(e) {}
-}
-
-async function loadUsers() {
-  var grid = document.getElementById('users-grid');
-  if (!grid) return;
-  grid.innerHTML = '<div style="color:#555;font-size:13px;padding:20px;text-align:center;letter-spacing:1px;">Chargement...</div>';
-  try {
-    var r = await fetch('/api/users/list', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({admin_key: AKEY})
-    });
-    var d = await r.json();
-    if (!d.success) { grid.innerHTML = '<div style="color:#f66;padding:16px;">Erreur: ' + d.detail + '</div>'; return; }
-
-    // Mettre à jour les compteurs
-    var s = d.stats || {};
-    var statsHtml = '<div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">'
-      + badge(s.pending || 0, 'En attente', '#f5a623')
-      + badge(s.approved || 0, 'Approuvés', '#4ac84a')
-      + badge(s.blocked || 0, 'Bloqués', '#f66')
-      + badge(s.total || 0, 'Total', '#888')
-      + '</div>';
-
-    if (!d.users || !d.users.length) {
-      grid.innerHTML = statsHtml + '<div style="color:#555;font-size:13px;padding:16px;text-align:center;letter-spacing:1px;">Aucun utilisateur inscrit</div>';
-      return;
-    }
-
-    grid.innerHTML = statsHtml;
-    d.users.forEach(function(u) {
-      var row = document.createElement('div');
-      row.className = 'user-row ' + u.status;
-      var init = (u.display_name || u.email)[0].toUpperCase();
-      var badgeLabel = {approved:'Approuvé', pending:'En attente', blocked:'Bloqué'}[u.status] || u.status;
-      var lastLogin = u.last_login ? new Date(u.last_login).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}) : 'jamais';
-      var providerIcon = u.provider === 'google' ? 'G' : '@';
-
-      var btns = '<div class="user-actions">';
-      if (u.status === 'pending') {
-        btns += '<button class="btn-approve" onclick="adminApprove(\'' + u.email + '\')">&#10003;</button>'
-               + '<button class="btn-block" onclick="adminBlock(\'' + u.email + '\')">&#9974;</button>';
-      } else if (u.status === 'approved') {
-        btns += '<button class="btn-block" onclick="adminBlock(\'' + u.email + '\')">&#9974; Bloquer</button>';
-      } else {
-        btns += '<button class="btn-approve" onclick="adminApprove(\'' + u.email + '\')">&#10003; Débloquer</button>';
-      }
-      btns += '<button class="btn-block" style="background:rgba(255,50,50,0.15);margin-left:4px;" onclick="adminDelete(\'' + u.email + '\')">&#128465;</button>';
-      btns += '</div>';
-
-      row.innerHTML = '<div class="user-av" style="font-size:11px;">' + providerIcon + '</div>'
-        + '<div class="user-info">'
-        + '<div class="user-email">' + u.email + '</div>'
-        + '<div class="user-meta">Connexions: ' + u.login_count + ' · Dernier: ' + lastLogin + '</div>'
-        + '</div>'
-        + '<span class="user-badge ' + u.status + '">' + badgeLabel + '</span>'
-        + btns;
-      grid.appendChild(row);
-    });
-  } catch(e) {
-    grid.innerHTML = '<div style="color:#f66;padding:16px;">Erreur connexion serveur</div>';
-  }
-}
-
-function badge(count, label, color) {
-  return '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 14px;text-align:center;">'
-    + '<div style="font-size:22px;font-weight:900;color:' + color + ';">' + count + '</div>'
-    + '<div style="font-size:10px;letter-spacing:1px;color:#555;">' + label + '</div>'
-    + '</div>';
-}
-
-async function adminApprove(email) {
-  try {
-    await fetch('/api/users/approve', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({admin_key: AKEY, email: email})
-    });
-    toast('✓ ' + email + ' approuvé', 'ok');
-    loadUsers();
-  } catch(e) { toast('Erreur', 'err'); }
-}
-
-async function adminBlock(email) {
-  if (!confirm('Bloquer ' + email + ' ?')) return;
-  try {
-    await fetch('/api/users/block', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({admin_key: AKEY, email: email})
-    });
-    toast('⊘ ' + email + ' bloqué', 'err');
-    loadUsers();
-  } catch(e) { toast('Erreur', 'err'); }
-}
-
-async function adminDelete(email) {
-  if (!confirm('Supprimer définitivement ' + email + ' ?')) return;
-  try {
-    await fetch('/api/users/delete', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({admin_key: AKEY, email: email})
-    });
-    toast('🗑 ' + email + ' supprimé', 'ok');
-    loadUsers();
-  } catch(e) { toast('Erreur', 'err'); }
-}
-
-// ═══════════════════════════════════════════
-// SUPPRESSION COMPTE
-// ═══════════════════════════════════════════
-async function deleteAccount() {
-  if (!confirm('Supprimer définitivement votre compte ? Cette action est irréversible.')) return;
-  try {
-    var user = auth.currentUser;
-    if (!user) { toast('Aucun compte connecté', 'err'); return; }
-    // Si Google — re-authentifier avant suppression
-    if (user.providerData && user.providerData[0] && user.providerData[0].providerId === 'google.com') {
-      var provider = new firebase.auth.GoogleAuthProvider();
-      await auth.currentUser.reauthenticateWithPopup(provider);
-    }
-    await user.delete();
-    // Nettoyer local
-    conversations = []; activeId = null;
-    localStorage.removeItem('sntf_convs');
-    localStorage.removeItem('sntf_active');
-    localStorage.removeItem('sntf_qs');
-    toast('Compte supprimé', 'ok');
-    setTimeout(function(){ showLogin(); }, 1500);
-  } catch(e) {
-    var msg = 'Erreur suppression';
-    if (e.code === 'auth/requires-recent-login') msg = 'Reconnectez-vous d\'abord';
-    if (e.code === 'auth/popup-closed-by-user') msg = 'Annulé';
-    toast(msg, 'err');
-  }
-}
-
-// ═══════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 // KEEP ALIVE
-// ═══════════════════════════════════════════
+// \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 setInterval(function() { fetch('/health').catch(function(){}); }, 600000);
 
-// Cache l'écran launch
+// Cache l'\u00e9cran launch
 setTimeout(function() {
   var el = document.getElementById('screen-launch');
   if (!el) return;
@@ -2302,6 +1285,65 @@ setTimeout(function() {
   el.style.opacity = '0';
   setTimeout(function() { el.style.display = 'none'; }, 400);
 }, 3000);
+
+
+// ═══════════════════════════════════════════
+// ADKARS PAGE LOGIN
+// ═══════════════════════════════════════════
+var adkarsLogin = [
+  { ar: 'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ', fr: 'Au nom d\'Allah, le Tout Miséricordieux' },
+  { ar: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ', fr: 'Gloire à Allah et louange à Lui' },
+  { ar: 'لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ', fr: 'Pas de divinité sauf Allah, Seul, sans associé' },
+  { ar: 'رَبِّ اشْرَحْ لِي صَدْرِي وَيَسِّرْ لِي أَمْرِي', fr: 'Seigneur, ouvre ma poitrine et facilite mon affaire' },
+  { ar: 'حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ', fr: 'Allah nous suffit, quel excellent Garant !' },
+  { ar: 'اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا', fr: 'Ô Allah, je Te demande une science utile' },
+  { ar: 'سُبْحَانَكَ لَا عِلْمَ لَنَا إِلَّا مَا عَلَّمْتَنَا', fr: 'Tu es parfait, nous n\'avons de savoir que ce que Tu nous as enseigné' },
+  { ar: 'اللَّهُمَّ يَسِّرْ وَلَا تُعَسِّرْ', fr: 'Ô Allah, facilite et ne complique pas' },
+  { ar: 'تَوَكَّلْتُ عَلَى اللَّهِ وَكَفَى بِاللَّهِ وَكِيلًا', fr: 'J\'ai mis ma confiance en Allah, Il suffit comme Garant' },
+  { ar: 'اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَى نَبِيِّنَا مُحَمَّدٍ', fr: 'Ô Allah, bénis et salue notre Prophète Mohammed' }
+];
+var dikrLoginIdx = 0;
+var dikrLoginTimer = null;
+
+function rotateDikrLogin(manual) {
+  if (manual) dikrLoginIdx = (dikrLoginIdx + 1) % adkarsLogin.length;
+  else dikrLoginIdx = Math.floor(Math.random() * adkarsLogin.length);
+  var ar = document.getElementById('dikr-login-ar');
+  var fr = document.getElementById('dikr-login-fr');
+  var box = document.getElementById('dikr-login-box');
+  if (!ar || !fr) return;
+  box.style.opacity = '0.4';
+  box.style.transform = 'scale(0.98)';
+  setTimeout(function() {
+    ar.textContent = adkarsLogin[dikrLoginIdx].ar;
+    fr.textContent = adkarsLogin[dikrLoginIdx].fr;
+    box.style.opacity = '1';
+    box.style.transform = 'scale(1)';
+  }, 200);
+}
+
+// Démarrer la rotation automatique
+document.addEventListener('DOMContentLoaded', function() {
+  var box = document.getElementById('dikr-login-box');
+  if (box) {
+    box.style.transition = 'all 0.3s ease';
+    rotateDikrLogin(false);
+    dikrLoginTimer = setInterval(function() { rotateDikrLogin(false); }, 9000);
+  }
+});
+
+// ═══════════════════════════════════════════
+// SON DE TRAIN AMÉLIORÉ (Web Audio API)
+// ═══════════════════════════════════════════
+var audioCtx = null;
+var trainSoundActive = false;
+
+function initAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  }
+}
+
 
 </script>
 </body>
