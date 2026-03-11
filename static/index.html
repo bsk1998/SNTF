@@ -255,41 +255,113 @@ body{background:var(--noir);color:var(--blanc);font-family:'Rajdhani',sans-serif
 .toast.err{border-color:rgba(255,100,100,0.3);color:#f64;}
 
 input[type=file]{display:none;}
-@media(max-width:768px){
-  .sidebar{display:none;}
-  .fields{grid-template-columns:1fr;}
-  #app{flex-direction:column;}
-  .main{height:calc(100vh - 56px);}
-  .mobile-bar{display:flex !important;}
-  .msgs{padding:12px;}
-  .chat-foot{padding:10px 12px;}
-  .pdf-wrap{padding:16px;}
-  .stats-wrap{padding:16px;}
+.mobile-header{
+  display:none;position:fixed;top:0;left:0;right:0;
+  height:56px;background:var(--noir2);
+  border-bottom:1px solid rgba(201,168,76,0.1);
+  z-index:300;align-items:center;
+  justify-content:space-between;padding:0 16px;
 }
+.mh-logo{font-family:'Playfair Display',serif;font-size:20px;font-weight:900;background:linear-gradient(135deg,var(--or),var(--or3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:0.1em;}
+.mh-right{display:flex;align-items:center;gap:10px;}
+.mh-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--rouge),var(--rouge2));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;}
+.mh-new{background:linear-gradient(135deg,var(--rouge),var(--rouge2));border:none;border-radius:20px;color:#fff;font-size:11px;font-family:'Rajdhani',sans-serif;letter-spacing:1px;padding:6px 14px;cursor:pointer;font-weight:700;}
 .mobile-bar{
   display:none;position:fixed;bottom:0;left:0;right:0;
-  height:56px;background:var(--noir2);
-  border-top:1px solid rgba(201,168,76,0.1);
-  z-index:200;
+  height:60px;background:var(--noir2);
+  border-top:1px solid rgba(201,168,76,0.12);
+  z-index:300;padding-bottom:env(safe-area-inset-bottom);
 }
+.mb-inner{display:flex;height:60px;align-items:stretch;}
 .mb-btn{
   flex:1;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:2px;cursor:pointer;
-  font-size:10px;letter-spacing:1px;color:#444;
-  text-transform:uppercase;transition:color 0.2s;
+  justify-content:center;gap:3px;cursor:pointer;
+  font-size:9px;letter-spacing:0.5px;color:#555;
+  text-transform:uppercase;transition:all 0.2s;
   border:none;background:none;font-family:'Rajdhani',sans-serif;
-  padding:0;
+  padding:0;position:relative;
 }
 .mb-btn.active{color:var(--rouge);}
-.mb-btn span.mb-icon{font-size:18px;}
-.mb-logout{
+.mb-btn.active::after{content:'';position:absolute;top:0;left:20%;right:20%;height:2px;background:var(--rouge);border-radius:0 0 2px 2px;}
+.mb-icon{font-size:20px;line-height:1;display:block;}
+.mb-btn-new{
   flex:1;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:2px;cursor:pointer;
-  font-size:10px;letter-spacing:1px;color:#444;
-  text-transform:uppercase;border:none;background:none;
-  font-family:'Rajdhani',sans-serif;padding:0;
+  justify-content:center;gap:0;cursor:pointer;
+  border:none;background:none;padding:0;padding-bottom:8px;
 }
-.mb-logout:hover{color:#f66;}
+.mb-new-circle{
+  width:44px;height:44px;border-radius:50%;
+  background:linear-gradient(135deg,var(--rouge),var(--rouge2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;color:#fff;margin-top:-12px;
+  box-shadow:0 4px 16px rgba(192,0,26,0.5);
+}
+.mb-logout-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;cursor:pointer;
+  font-size:9px;letter-spacing:0.5px;color:#555;
+  text-transform:uppercase;border:none;background:none;
+  font-family:'Rajdhani',sans-serif;padding:0;transition:color 0.2s;
+}
+.mb-logout-btn:active{color:#f66;}
+.mobile-drawer{
+  display:none;position:fixed;top:56px;left:0;right:0;bottom:60px;
+  background:var(--noir2);z-index:250;overflow-y:auto;padding:16px;
+  transform:translateX(-100%);transition:transform 0.28s ease;
+}
+.mobile-drawer.open{transform:translateX(0);}
+.md-title{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--or);margin-bottom:12px;}
+.md-search{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(201,168,76,0.15);border-radius:8px;padding:10px 14px;color:#ccc;font-size:15px;font-family:'Rajdhani',sans-serif;outline:none;margin-bottom:12px;box-sizing:border-box;}
+.md-conv{padding:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;margin-bottom:8px;cursor:pointer;transition:all 0.2s;display:flex;justify-content:space-between;align-items:center;}
+.md-conv.active-conv{background:rgba(192,0,26,0.12);border-color:rgba(192,0,26,0.3);}
+.md-conv-left{flex:1;min-width:0;}
+.md-conv-title{font-size:14px;color:#ccc;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:3px;}
+.md-conv.active-conv .md-conv-title{color:var(--blanc);}
+.md-conv-meta{font-size:11px;color:#444;}
+.md-conv-del{background:none;border:none;color:#333;font-size:16px;cursor:pointer;padding:4px 8px;}
+.md-conv-del:active{color:#f66;}
+.md-user-card{background:var(--noir3);border:1px solid rgba(201,168,76,0.1);border-radius:10px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;}
+.md-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--rouge),var(--rouge2));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0;}
+.md-user-info{}
+.md-name{font-size:16px;font-weight:700;color:var(--blanc);}
+.md-status{font-size:11px;color:#4a4;letter-spacing:1px;}
+@media(max-width:768px){
+  .sidebar{display:none;}
+  #app{flex-direction:column;}
+  .main{height:100vh;padding-top:56px;padding-bottom:60px;}
+  .panel{height:100%;}
+  .mobile-header{display:flex;}
+  .mobile-bar{display:block !important;}
+  .mobile-drawer{display:block;}
+  .chat-head{display:none;}
+  .msgs{padding:12px 10px 8px;}
+  .msg-bbl{font-size:15px;line-height:1.65;}
+  .msg-av{width:30px;height:30px;font-size:12px;}
+  .msg{gap:8px;margin-bottom:14px;}
+  .chat-foot{padding:8px 10px;}
+  .chat-inp{font-size:16px;padding:11px 14px;}
+  .btn-send{height:46px;padding:0 14px;font-size:18px;}
+  .btn-cam{height:46px;width:40px;font-size:16px;}
+  #welcome{padding:24px 12px;}
+  .w-title{font-size:24px;}
+  .w-sub{font-size:13px;}
+  .suggestions{gap:8px;}
+  .sug{font-size:13px;padding:9px 14px;}
+  .pdf-wrap{padding:16px 14px;}
+  .fields{grid-template-columns:1fr;}
+  .drop-zone{padding:24px 16px;}
+  .sec-title{font-size:20px;}
+  .stats-wrap{padding:16px 14px;}
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .login-card{padding:40px 20px;border-radius:0;width:100%;border-left:none;border-right:none;min-height:100vh;}
+  #screen-login{align-items:flex-start;}
+  .login-logo-text{font-size:56px;}
+  #dikr-box{bottom:72px;right:10px;left:10px;max-width:none;}
+  .toast{bottom:70px;}
+  .fg input,.fg select,.adm-row input{font-size:16px;}
+  .modal-box{border-radius:12px 12px 0 0;position:fixed;bottom:0;left:0;right:0;width:100%;max-height:80vh;}
+  #conv-modal{align-items:flex-end;}
+}
 </style>
 </head>
 <body>
@@ -514,23 +586,51 @@ input[type=file]{display:none;}
  </div><!-- /app-inner -->
 </div><!-- /app -->
 
+<!-- MOBILE HEADER -->
+<div class="mobile-header" id="mobile-header">
+  <div class="mh-logo">SNTF</div>
+  <div class="mh-right">
+    <button class="mh-new" onclick="newConversation()">+ Nouveau</button>
+    <div class="mh-avatar" id="mh-avatar">?</div>
+  </div>
+</div>
+
+<!-- MOBILE DRAWER (historique) -->
+<div class="mobile-drawer" id="mobile-drawer">
+  <div class="md-user-card">
+    <div class="md-avatar" id="md-avatar">?</div>
+    <div class="md-user-info">
+      <div class="md-name" id="md-name">—</div>
+      <div class="md-status">&#9679; Connecté</div>
+    </div>
+  </div>
+  <div class="md-title">Conversations</div>
+  <input class="md-search" type="text" placeholder="Rechercher..." oninput="filterDrawer(this.value)" id="md-search">
+  <div id="md-list">Aucune conversation</div>
+</div>
+
 <!-- MOBILE BOTTOM BAR -->
 <div class="mobile-bar" id="mobile-bar">
-  <button class="mb-btn active" id="mb-chat" onclick="showTabMobile('chat')">
-    <span class="mb-icon">&#128172;</span>Chat
-  </button>
-  <button class="mb-btn" id="mb-new" onclick="newConversation()">
-    <span class="mb-icon" style="color:var(--rouge);font-size:22px;">&#43;</span>Nouveau
-  </button>
-  <button class="mb-btn" id="mb-pdf" onclick="showTabMobile('pdf')" style="display:none;">
-    <span class="mb-icon">&#128196;</span>Docs
-  </button>
-  <button class="mb-btn" id="mb-stats" onclick="showTabMobile('stats')" style="display:none;">
-    <span class="mb-icon">&#128200;</span>Stats
-  </button>
-  <button class="mb-logout" onclick="logout()">
-    <span class="mb-icon">&#128682;</span>Quitter
-  </button>
+  <div class="mb-inner">
+    <button class="mb-btn active" id="mb-chat" onclick="showTabMobile('chat')">
+      <span class="mb-icon">&#128172;</span>Chat
+    </button>
+    <button class="mb-btn" id="mb-hist" onclick="toggleDrawer()">
+      <span class="mb-icon">&#128337;</span>Historique
+    </button>
+    <button class="mb-btn-new" onclick="newConversation()">
+      <div class="mb-new-circle">&#43;</div>
+    </button>
+    <button class="mb-btn" id="mb-pdf" onclick="showTabMobile('pdf')" style="display:none;">
+      <span class="mb-icon">&#128196;</span>Docs
+    </button>
+    <button class="mb-btn" id="mb-stats" onclick="showTabMobile('stats')" style="display:none;">
+      <span class="mb-icon">&#128200;</span>Stats
+    </button>
+    <button class="mb-logout-btn" onclick="logout()">
+      <span class="mb-icon">&#128682;</span>Quitter
+    </button>
+  </div>
 </div>
 
 <!-- MODAL CONVERSATIONS -->
@@ -680,6 +780,13 @@ function showApp(user) {
   var name = user.displayName || user.email || 'Admin';
   document.getElementById('user-name').textContent = name.split(' ')[0];
   document.getElementById('user-initial').textContent = name[0].toUpperCase();
+  // Mobile header + drawer
+  var mhAv = document.getElementById('mh-avatar');
+  var mdAv = document.getElementById('md-avatar');
+  var mdNm = document.getElementById('md-name');
+  if (mhAv) mhAv.textContent = name[0].toUpperCase();
+  if (mdAv) mdAv.textContent = name[0].toUpperCase();
+  if (mdNm) mdNm.textContent = name.split(' ')[0];
   document.getElementById('sb-qs').textContent = qCount;
   document.getElementById('st-qs').textContent = qCount;
   userEmail = user.email || '';
@@ -777,12 +884,54 @@ function showTab(t) {
     var nb = document.getElementById('nav-' + id);
     if (nb) nb.className = 'sb-btn' + (id === t ? ' active' : '');
     var mb = document.getElementById('mb-' + id);
-    if (mb) mb.className = 'mb-btn' + (id === t ? ' active' : '');
+    if (mb && mb.className.indexOf('mb-btn') >= 0) mb.className = 'mb-btn' + (id === t ? ' active' : '');
   });
+  // Fermer le drawer si ouvert
+  closeDrawer();
   if (t === 'stats') loadStats();
 }
 
 function showTabMobile(t) { showTab(t); }
+
+// ── DRAWER MOBILE ──
+function toggleDrawer() {
+  var d = document.getElementById('mobile-drawer');
+  if (!d) return;
+  if (d.classList.contains('open')) closeDrawer();
+  else openDrawer();
+}
+function openDrawer() {
+  var d = document.getElementById('mobile-drawer');
+  if (d) { d.classList.add('open'); buildDrawerList(); }
+}
+function closeDrawer() {
+  var d = document.getElementById('mobile-drawer');
+  if (d) d.classList.remove('open');
+}
+
+function buildDrawerList(q) {
+  var list = document.getElementById('md-list');
+  if (!list) return;
+  var data = q ? conversations.filter(function(c){
+    return c.title.toLowerCase().indexOf(q.toLowerCase()) >= 0;
+  }) : conversations;
+  if (!data.length) { list.innerHTML = '<div style="color:#555;font-size:13px;padding:16px;text-align:center;">Aucune conversation</div>'; return; }
+  list.innerHTML = '';
+  data.slice(0,15).forEach(function(conv) {
+    var d = document.createElement('div');
+    d.className = 'md-conv' + (conv.id === activeId ? ' active-conv' : '');
+    var date = new Date(conv.created).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
+    d.innerHTML = '<div class="md-conv-left">'
+      + '<div class="md-conv-title">' + esc(conv.title) + '</div>'
+      + '<div class="md-conv-meta">' + date + ' · ' + conv.msgs.length + ' msgs</div>'
+      + '</div>'
+      + '<button class="md-conv-del" onclick="event.stopPropagation();delConvById(\'' + conv.id + '\')" >&#10005;</button>';
+    d.onclick = function() { loadConversation(conv.id); closeDrawer(); };
+    list.appendChild(d);
+  });
+}
+
+function filterDrawer(q) { buildDrawerList(q); }
 
 // ═══════════════════════════════════════════
 // CONVERSATIONS — structure type Claude
