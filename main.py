@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse
 from routes.auth import router as auth_router
 from routes.chat import router as chat_router
 from routes.documents import router as documents_router
-from users import router as users_router
+from routes.users import router as users_router
 
 app = FastAPI(title="SNTF Assistant API", version="2.0.0")
 
