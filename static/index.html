@@ -953,9 +953,15 @@ function showLogin() {
 function showApp(user) {
   document.getElementById('screen-login').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
-  var name = user.displayName || user.email || 'Admin';
+
+  userEmail = user.email || '';
+  var isAdmin = (userEmail === 'admin');
+
+  // Nom affiché
+  var name = isAdmin ? 'Admin' : (user.displayName || user.email.split('@')[0] || 'Utilisateur');
   document.getElementById('user-name').textContent = name.split(' ')[0];
   document.getElementById('user-initial').textContent = name[0].toUpperCase();
+
   // Mobile header + drawer
   var mhAv = document.getElementById('mh-avatar');
   var mdAv = document.getElementById('md-avatar');
@@ -963,17 +969,36 @@ function showApp(user) {
   if (mhAv) mhAv.textContent = name[0].toUpperCase();
   if (mdAv) mdAv.textContent = name[0].toUpperCase();
   if (mdNm) mdNm.textContent = name.split(' ')[0];
+
   document.getElementById('sb-qs').textContent = qCount;
   document.getElementById('st-qs').textContent = qCount;
-  userEmail = user.email || '';
-  // Si pas de conversation active, en créer une nouvelle
+
+  // Boutons admin sidebar — visibles seulement si admin
+  var navPdf = document.getElementById('nav-pdf');
+  var navStats = document.getElementById('nav-stats');
+  if (navPdf) navPdf.style.display = isAdmin ? 'flex' : 'none';
+  if (navStats) navStats.style.display = isAdmin ? 'flex' : 'none';
+
+  // Drawer mobile — nav admin
+  var mdAdminNav = document.getElementById('md-admin-nav');
+  if (mdAdminNav) mdAdminNav.style.display = isAdmin ? 'block' : 'none';
+
+  // Panel users dans stats
+  var uPanel = document.getElementById('users-panel');
+  if (uPanel) uPanel.style.display = isAdmin ? 'block' : 'none';
+
+  // Toujours commencer sur chat
+  showTab('chat');
+
+  // Conversations
   if (!activeId || !getActiveConv()) {
     activeId = conversations.length > 0 ? conversations[0].id : null;
     if (activeId) loadConversation(activeId);
   }
   buildHistList();
-  if (userEmail && userEmail !== 'admin') loadRemoteHist();
-  loadStats();
+
+  if (!isAdmin) loadRemoteHist();
+  if (isAdmin) { loadStats(); initAutoApproveUI(); }
 }
 
 // Login tab
