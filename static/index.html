@@ -204,12 +204,18 @@ body{background:var(--noir);color:var(--blanc);font-family:'Rajdhani',sans-serif
 
 /* INPUT AREA */
 .chat-foot{padding:16px 24px;border-top:1px solid rgba(201,168,76,0.08);flex-shrink:0;}
-#img-prev-wrap{display:none;padding:0 0 10px 0;}
-.img-prev-inner{display:inline-flex;align-items:center;gap:10px;background:var(--noir3);border:1px solid rgba(201,168,76,0.2);border-radius:4px;padding:8px 12px;}
-.img-prev-inner img{height:48px;width:auto;border-radius:3px;object-fit:cover;max-width:100px;}
-.img-prev-name{font-size:11px;color:var(--or);letter-spacing:1px;}
-.btn-rm-img{background:rgba(192,0,26,0.2);border:1px solid rgba(192,0,26,0.3);color:#f66;padding:4px 10px;border-radius:2px;cursor:pointer;font-size:12px;}
-.inp-row{display:flex;gap:8px;align-items:flex-end;}
+/* PREVIEW MULTI-FICHIERS */
+#img-prev-wrap{display:none;padding:0 0 10px 0;overflow-x:auto;}
+.files-preview{display:flex;gap:8px;flex-wrap:wrap;padding:2px 0;}
+.file-chip{position:relative;display:inline-flex;align-items:center;gap:8px;background:var(--noir3);border:1px solid rgba(201,168,76,0.2);border-radius:8px;padding:6px 10px;max-width:200px;flex-shrink:0;}
+.file-chip-img{height:40px;width:40px;border-radius:5px;object-fit:cover;flex-shrink:0;}
+.file-chip-icon{width:40px;height:40px;border-radius:5px;background:rgba(201,168,76,0.1);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.file-chip-info{min-width:0;flex:1;}
+.file-chip-name{font-size:11px;color:#ccc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px;}
+.file-chip-type{font-size:10px;color:#555;letter-spacing:1px;}
+.file-chip-rm{position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:var(--rouge);border:none;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
+.files-add-btn{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:56px;height:56px;border:1px dashed rgba(201,168,76,0.3);border-radius:8px;background:none;cursor:pointer;color:#555;font-size:10px;flex-shrink:0;transition:all 0.2s;}
+.files-add-btn:hover{border-color:var(--or);color:var(--or);}
 .btn-cam{background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.15);border-radius:3px;color:var(--or);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0;height:50px;width:44px;font-size:18px;}
 .btn-cam:hover{background:rgba(201,168,76,0.15);}
 .chat-inp{flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(201,168,76,0.15);border-radius:3px;padding:13px 16px;color:var(--blanc);font-size:14px;font-family:'Rajdhani',sans-serif;letter-spacing:0.5px;outline:none;resize:none;min-height:50px;max-height:120px;transition:border-color 0.2s;}
@@ -236,6 +242,20 @@ body{background:var(--noir);color:var(--blanc);font-family:'Rajdhani',sans-serif
 .fg input,.fg select{background:rgba(255,255,255,0.04);border:1px solid rgba(201,168,76,0.15);border-radius:3px;padding:10px 12px;color:var(--blanc);font-size:13px;font-family:'Rajdhani',sans-serif;outline:none;}
 .fg select option{background:var(--noir2);}
 .sel-file{display:none;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.15);border-radius:3px;margin-bottom:12px;}
+.queue-item{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--noir3);border:1px solid rgba(255,255,255,0.05);border-radius:6px;margin-bottom:6px;}
+.queue-item.uploading{border-color:rgba(201,168,76,0.3);}
+.queue-item.done{border-color:rgba(74,200,74,0.3);background:rgba(74,200,74,0.03);}
+.queue-item.error{border-color:rgba(255,100,100,0.3);}
+.qi-icon{font-size:22px;flex-shrink:0;}
+.qi-info{flex:1;min-width:0;}
+.qi-name{font-size:13px;color:#ccc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.qi-name-input{background:rgba(255,255,255,0.04);border:1px solid rgba(201,168,76,0.15);border-radius:3px;padding:4px 8px;color:#ccc;font-size:12px;font-family:'Rajdhani',sans-serif;width:calc(100% - 16px);outline:none;margin-top:4px;}
+.qi-size{font-size:10px;color:#555;letter-spacing:1px;}
+.qi-status{font-size:12px;letter-spacing:1px;flex-shrink:0;min-width:80px;text-align:right;}
+.qi-rm{background:none;border:none;color:#444;cursor:pointer;font-size:16px;padding:4px;flex-shrink:0;}
+.qi-rm:hover{color:#f66;}
+.upload-result-ok{padding:8px 14px;background:rgba(74,200,74,0.08);border:1px solid rgba(74,200,74,0.2);border-radius:6px;margin-bottom:6px;font-size:12px;color:#4ac84a;letter-spacing:1px;}
+.upload-result-err{padding:8px 14px;background:rgba(255,100,100,0.08);border:1px solid rgba(255,100,100,0.2);border-radius:6px;margin-bottom:6px;font-size:12px;color:#f66;letter-spacing:1px;}
 .sel-file-name{font-size:13px;color:var(--or);letter-spacing:1px;}
 .btn-rm{background:none;border:none;color:#f66;cursor:pointer;font-size:12px;letter-spacing:1px;}
 .btn-upload{width:100%;padding:14px;background:linear-gradient(135deg,var(--rouge),var(--rouge2));border:none;border-radius:3px;color:#fff;font-size:13px;font-family:'Rajdhani',sans-serif;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:all 0.2s;}
@@ -652,19 +672,13 @@ input[type=file]{display:none;}
         </div>
       </div>
       <div class="chat-foot">
+        <!-- PREVIEW MULTI-FICHIERS -->
         <div id="img-prev-wrap">
-          <div class="img-prev-inner">
-            <img id="img-prev" src="" alt="">
-            <div>
-              <div class="img-prev-name" id="img-prev-name"></div>
-              <div style="font-size:10px;color:var(--gris);">Prête à envoyer</div>
-            </div>
-            <button class="btn-rm-img" onclick="clearImg()">&#10005;</button>
-          </div>
+          <div class="files-preview" id="files-preview"></div>
         </div>
         <div class="inp-row">
-          <button class="btn-cam" onclick="document.getElementById('img-file').click()" title="Photo">&#128247;</button>
-          <input type="file" id="img-file" accept="image/*">
+          <button class="btn-cam" onclick="document.getElementById('multi-file').click()" title="Ajouter photos/PDFs">&#128247;</button>
+          <input type="file" id="multi-file" accept="image/*,application/pdf" multiple>
           <textarea class="chat-inp" id="chat-inp" placeholder="Posez votre question ou envoyez une photo..." rows="1"
             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}"
             oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
@@ -682,16 +696,18 @@ input[type=file]{display:none;}
           <span style="color:var(--or);font-size:12px;letter-spacing:2px;white-space:nowrap;">Clé Admin</span>
           <input type="password" id="adm-key" placeholder="Clé administrateur...">
         </div>
+        <!-- ZONE DROP MULTI-FICHIERS -->
         <div class="drop-zone" id="drop-zone" onclick="document.getElementById('pdf-file').click()">
-          <div class="drop-icon" id="drop-icon">&#128196;</div>
-          <h3 id="drop-title">Glissez ou cliquez pour ajouter</h3>
-          <p>PDF, JPG, PNG — Max 50 MB</p>
+          <div class="drop-icon">&#128196;</div>
+          <h3>Glissez ou cliquez pour ajouter</h3>
+          <p>PDF, JPG, PNG — Plusieurs fichiers — Max 50 MB chacun</p>
         </div>
-        <input type="file" id="pdf-file" accept=".pdf,image/jpeg,image/png">
-        <div class="fields">
-          <div class="fg"><label>Nom du document</label><input type="text" id="doc-name" placeholder="Ex: Manuel sécurité 2024"></div>
+        <input type="file" id="pdf-file" accept=".pdf,image/jpeg,image/png" multiple>
+
+        <!-- CATÉGORIE GLOBALE -->
+        <div class="fields" style="margin-top:14px;">
           <div class="fg">
-            <label>Catégorie</label>
+            <label>Catégorie pour tous les fichiers</label>
             <select id="doc-cat">
               <option value="Securite">Sécurité</option>
               <option value="Exploitation">Exploitation</option>
@@ -702,17 +718,28 @@ input[type=file]{display:none;}
             </select>
           </div>
         </div>
-        <div id="doc-img-prev"></div>
-        <div class="sel-file" id="sel-file">
-          <span class="sel-file-name" id="sel-file-name">—</span>
-          <button class="btn-rm" onclick="clearDocFile()">&#10005; Retirer</button>
+
+        <!-- FILE QUEUE -->
+        <div id="file-queue" style="display:none;margin-top:14px;">
+          <div style="font-size:11px;letter-spacing:2px;color:var(--or);margin-bottom:10px;">&#9654; FICHIERS EN ATTENTE</div>
+          <div id="queue-list"></div>
+          <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center;">
+            <button class="btn-upload" id="btn-upload-all" onclick="uploadAllDocs()">&#8679; Indexer tous</button>
+            <button onclick="document.getElementById('pdf-file').click()" style="background:none;border:1px solid rgba(201,168,76,0.2);color:var(--or);padding:10px 16px;border-radius:3px;cursor:pointer;font-family:'Rajdhani',sans-serif;letter-spacing:1px;font-size:12px;">&#43; Ajouter d'autres</button>
+            <button onclick="clearQueue()" style="background:none;border:1px solid rgba(255,100,100,0.2);color:#f66;padding:10px 16px;border-radius:3px;cursor:pointer;font-family:'Rajdhani',sans-serif;letter-spacing:1px;font-size:12px;">&#10005; Vider</button>
+          </div>
         </div>
-        <button class="btn-upload" id="btn-upload" onclick="uploadDoc()" disabled>&#8679; Indexer dans la base</button>
-        <div class="prog" id="prog">
+
+        <!-- PROGRESS -->
+        <div class="prog" id="prog" style="margin-top:14px;">
           <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
           <div class="prog-msg" id="prog-msg"></div>
         </div>
-        <button class="btn-refresh" onclick="loadDocs()">&#128196; Actualiser la liste</button>
+
+        <!-- RÉSULTATS -->
+        <div id="upload-results" style="margin-top:14px;"></div>
+
+        <button class="btn-refresh" onclick="loadDocs()" style="margin-top:14px;">&#128196; Actualiser la liste</button>
         <div class="docs-grid" id="docs-grid"></div>
       </div>
     </div>
@@ -970,7 +997,8 @@ auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 var AKEY = '123456SNTF.';
 var userEmail = '';
 var qCount = parseInt(localStorage.getItem('sntf_qs') || '0');
-var selImg = null;
+var selImg = null;       // legacy — gardé pour compatibilité
+var selFiles = [];       // nouveau : tableau multi-fichiers [{b64, type, name, isPdf}]
 var selDocFile = null;
 
 // Auth state — attend que launch screen soit fini
@@ -1613,18 +1641,33 @@ function askQ(el) {
 async function send() {
   var inp = document.getElementById('chat-inp');
   var q = inp.value.trim();
-  if (!q && !selImg) return;
+  if (!q && !selFiles.length) return;
 
   var w = document.getElementById('welcome');
   if (w) w.remove();
   inp.value = '';
   inp.style.height = 'auto';
 
-  var img = selImg;
+  var files = selFiles.slice(); // copie
   clearImg();
 
-  if (img) addMsgImg(q || '(photo)', 'user', img.b64);
-  else addMsg(q, 'user');
+  // Afficher le message utilisateur avec aperçu fichiers
+  if (files.length) {
+    var label = q || '(' + files.length + ' fichier' + (files.length > 1 ? 's' : '') + ')';
+    // Afficher aperçu images dans le chat
+    var imgs = files.filter(function(f){ return !f.isPdf; });
+    var pdfs = files.filter(function(f){ return f.isPdf; });
+    if (imgs.length === 1 && !pdfs.length) {
+      addMsgImg(label, 'user', imgs[0].b64);
+    } else {
+      var fileLabel = label;
+      if (pdfs.length) fileLabel += ' [' + pdfs.map(function(p){ return '📄 '+p.name; }).join(', ') + ']';
+      if (imgs.length > 1) fileLabel += ' [' + imgs.length + ' images]';
+      addMsg(fileLabel, 'user');
+    }
+  } else {
+    addMsg(q, 'user');
+  }
 
   var typing = addTyping();
   document.getElementById('btn-send').disabled = true;
@@ -1634,24 +1677,44 @@ async function send() {
   try {
     var ctx = getCtx();
 
-    if (img) {
-      // IMAGE — pas de streaming
-      var b64 = img.b64.split(',')[1];
+    if (files.length) {
+      // FICHIERS — construire payload multi-fichiers
+      var images = [];
+      var pdfTexts = [];
+
+      // Extraire texte PDFs côté client (base64 envoyé au serveur)
+      for (var fi = 0; fi < files.length; fi++) {
+        var f = files[fi];
+        if (f.isPdf) {
+          pdfTexts.push({ name: f.name, b64: f.b64.split(',')[1] });
+        } else {
+          images.push({ b64: f.b64.split(',')[1], type: f.type, name: f.name });
+        }
+      }
+
+      var defaultQ = files.length === 1
+        ? (files[0].isPdf ? 'Analyse ce document PDF, résume son contenu et réponds à toutes les questions.' : 'Analyse cette image. Lis tout le texte visible, identifie pannes et erreurs, donne une solution.')
+        : 'Analyse tous ces fichiers en détail. Résume le contenu de chacun et identifie les informations importantes.';
+
       var rb = await fetch('/api/chat/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          question: q || 'Analyse cette image. Lis tout le texte visible, identifie pannes et erreurs, donne une solution.',
-          image: b64,
-          image_type: img.type,
-          user_email: userEmail
+          question: q || defaultQ,
+          images: images,
+          pdfs: pdfTexts,
+          // Rétrocompatibilité : si 1 seule image
+          image: images.length === 1 ? images[0].b64 : null,
+          image_type: images.length === 1 ? images[0].type : null,
+          user_email: userEmail,
+          memory: ctx
         })
       });
       var rd = await rb.json();
       typing.remove(); hideDikr();
-      var ans = rd.answer || rd.response || 'Erreur analyse image';
+      var ans = rd.answer || rd.response || 'Erreur analyse fichiers';
       addMsg(ans, 'bot', true);
-      saveMem(q || '(photo)', ans);
+      saveMem(q || defaultQ, ans);
       incQ();
     } else {
       // TEXTE — streaming SSE
@@ -1727,34 +1790,81 @@ function incQ() {
 }
 
 // ═══════════════════════════════════════════
-// IMAGE DANS CHAT
+// MULTI-FICHIERS DANS CHAT (images + PDFs)
 // ═══════════════════════════════════════════
-document.getElementById('img-file').addEventListener('change', function(e) {
-  var f = e.target.files[0];
-  if (!f) return;
-  var rd = new FileReader();
-  rd.onload = function(ev) {
-    selImg = { b64: ev.target.result, type: f.type, name: f.name };
-    document.getElementById('img-prev').src = ev.target.result;
-    document.getElementById('img-prev-name').textContent = f.name.substring(0, 28) + (f.name.length > 28 ? '...' : '');
-    document.getElementById('img-prev-wrap').style.display = 'block';
-    document.getElementById('chat-inp').placeholder = 'Question sur cette photo (optionnel)...';
-  };
-  rd.readAsDataURL(f);
+document.getElementById('multi-file').addEventListener('change', function(e) {
+  var files = Array.from(e.target.files);
+  if (!files.length) return;
+  files.forEach(function(f) {
+    if (selFiles.length >= 5) { toast('Maximum 5 fichiers à la fois', 'err'); return; }
+    var isPdf = f.type === 'application/pdf';
+    var isImg = f.type.startsWith('image/');
+    if (!isPdf && !isImg) { toast(f.name + ' : format non supporté', 'err'); return; }
+    var rd = new FileReader();
+    rd.onload = function(ev) {
+      var fileObj = { b64: ev.target.result, type: f.type, name: f.name, isPdf: isPdf };
+      selFiles.push(fileObj);
+      renderFilesPreview();
+    };
+    rd.readAsDataURL(f);
+  });
   this.value = '';
 });
 
+function renderFilesPreview() {
+  var wrap = document.getElementById('img-prev-wrap');
+  var preview = document.getElementById('files-preview');
+  if (!selFiles.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  preview.innerHTML = '';
+  selFiles.forEach(function(f, idx) {
+    var chip = document.createElement('div');
+    chip.className = 'file-chip';
+    var iconHtml = f.isPdf
+      ? '<div class="file-chip-icon">&#128196;</div>'
+      : '<img class="file-chip-img" src="' + f.b64 + '" alt="">';
+    chip.innerHTML = iconHtml
+      + '<div class="file-chip-info">'
+      + '<div class="file-chip-name">' + f.name.substring(0, 20) + (f.name.length > 20 ? '...' : '') + '</div>'
+      + '<div class="file-chip-type">' + (f.isPdf ? 'PDF' : 'IMAGE') + '</div>'
+      + '</div>'
+      + '<button class="file-chip-rm" onclick="removeFile(' + idx + ')">&#10005;</button>';
+    preview.appendChild(chip);
+  });
+  // Bouton + pour ajouter d'autres fichiers
+  if (selFiles.length < 5) {
+    var addBtn = document.createElement('button');
+    addBtn.className = 'files-add-btn';
+    addBtn.innerHTML = '&#43;<br><span style="font-size:9px;">Ajouter</span>';
+    addBtn.onclick = function() { document.getElementById('multi-file').click(); };
+    preview.appendChild(addBtn);
+  }
+  document.getElementById('chat-inp').placeholder = selFiles.length + ' fichier(s) — Question optionnelle...';
+}
+
+function removeFile(idx) {
+  selFiles.splice(idx, 1);
+  if (!selFiles.length) {
+    document.getElementById('chat-inp').placeholder = 'Posez votre question ou envoyez une photo/PDF...';
+  }
+  renderFilesPreview();
+}
+
 function clearImg() {
   selImg = null;
+  selFiles = [];
   document.getElementById('img-prev-wrap').style.display = 'none';
-  document.getElementById('img-prev').src = '';
-  document.getElementById('img-prev-name').textContent = '';
-  document.getElementById('chat-inp').placeholder = 'Posez votre question ou envoyez une photo...';
+  document.getElementById('files-preview').innerHTML = '';
+  document.getElementById('chat-inp').placeholder = 'Posez votre question ou envoyez une photo/PDF...';
 }
 
 // ═══════════════════════════════════════════
 // UPLOAD DOC (PDF / IMAGE)
 // ═══════════════════════════════════════════
+// ═══════════════════════════════════════════
+// UPLOAD MULTI-DOCUMENTS (queue)
+// ═══════════════════════════════════════════
+var docQueue = []; // [{file, name, status: 'wait'|'uploading'|'done'|'error', msg}]
 var dz = document.getElementById('drop-zone');
 var pf = document.getElementById('pdf-file');
 
@@ -1762,82 +1872,148 @@ dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.classList.a
 dz.addEventListener('dragleave', function() { dz.classList.remove('over'); });
 dz.addEventListener('drop', function(e) {
   e.preventDefault(); dz.classList.remove('over');
-  var f = e.dataTransfer.files[0];
-  if (f && (f.type === 'application/pdf' || f.type.startsWith('image/'))) setDocFile(f);
+  addFilesToQueue(Array.from(e.dataTransfer.files));
 });
-pf.addEventListener('change', function(e) { if (e.target.files[0]) setDocFile(e.target.files[0]); });
+pf.addEventListener('change', function(e) {
+  addFilesToQueue(Array.from(e.target.files));
+  pf.value = '';
+});
 
-function setDocFile(f) {
-  selDocFile = f;
-  var isImg = f.type.startsWith('image/');
-  document.getElementById('sel-file').style.display = 'flex';
-  document.getElementById('sel-file-name').textContent = (isImg ? '\uD83D\uDDBC ' : '\uD83D\uDCC4 ') + f.name;
-  document.getElementById('doc-name').value = f.name.replace(/\.(pdf|jpg|jpeg|png)$/i, '');
-  document.getElementById('btn-upload').disabled = false;
-  document.getElementById('drop-icon').textContent = isImg ? '\uD83D\uDDBC' : '\uD83D\uDCC4';
-  document.getElementById('drop-title').textContent = f.name;
-  var prev = document.getElementById('doc-img-prev');
-  if (isImg) {
-    var rd = new FileReader();
-    rd.onload = function(ev) { prev.innerHTML = '<div style="margin:12px 0;text-align:center"><img src="' + ev.target.result + '" style="max-height:120px;max-width:100%;border-radius:4px;border:1px solid rgba(201,168,76,0.2)"></div>'; };
-    rd.readAsDataURL(f);
-  } else { prev.innerHTML = ''; }
+function addFilesToQueue(files) {
+  files.forEach(function(f) {
+    var ok = f.type === 'application/pdf' || f.type.startsWith('image/');
+    if (!ok) { toast(f.name + ' : format non supporté', 'err'); return; }
+    if (f.size > 52428800) { toast(f.name + ' : fichier trop lourd (max 50MB)', 'err'); return; }
+    var alreadyIn = docQueue.some(function(q){ return q.file.name === f.name && q.file.size === f.size; });
+    if (alreadyIn) { toast(f.name + ' : déjà dans la liste', 'err'); return; }
+    var nameClean = f.name.replace(/\.(pdf|jpg|jpeg|png)$/i, '');
+    docQueue.push({ file: f, name: nameClean, status: 'wait' });
+  });
+  renderQueue();
 }
 
-function clearDocFile() {
-  selDocFile = null; pf.value = '';
-  document.getElementById('sel-file').style.display = 'none';
-  document.getElementById('btn-upload').disabled = true;
-  document.getElementById('drop-icon').textContent = '\uD83D\uDCC4';
-  document.getElementById('drop-title').textContent = 'Glissez ou cliquez pour ajouter';
-  document.getElementById('doc-img-prev').innerHTML = '';
+function renderQueue() {
+  var queueDiv = document.getElementById('file-queue');
+  var listDiv = document.getElementById('queue-list');
+  if (!docQueue.length) { queueDiv.style.display = 'none'; return; }
+  queueDiv.style.display = 'block';
+  listDiv.innerHTML = '';
+  docQueue.forEach(function(item, idx) {
+    var isImg = item.file.type.startsWith('image/');
+    var icon = isImg ? '🖼' : '📄';
+    var sizeMB = (item.file.size / 1048576).toFixed(1);
+    var statusHtml = '';
+    if (item.status === 'wait') statusHtml = '<span style="color:#666;font-size:11px;letter-spacing:1px;">EN ATTENTE</span>';
+    else if (item.status === 'uploading') statusHtml = '<span style="color:var(--or);font-size:11px;">&#8635; UPLOAD...</span>';
+    else if (item.status === 'done') statusHtml = '<span style="color:#4ac84a;font-size:13px;">&#10003; OK</span>';
+    else if (item.status === 'error') statusHtml = '<span style="color:#f66;font-size:11px;" title="' + (item.msg||'') + '">&#10005; ERREUR</span>';
+
+    var row = document.createElement('div');
+    row.className = 'queue-item ' + (item.status !== 'wait' ? item.status : '');
+    row.id = 'qi-' + idx;
+    row.innerHTML = '<div class="qi-icon">' + icon + '</div>'
+      + '<div class="qi-info">'
+      + '<input class="qi-name-input" value="' + esc(item.name) + '" onchange="docQueue[' + idx + '].name=this.value" placeholder="Nom du document">'
+      + '<div class="qi-size">' + sizeMB + ' MB · ' + item.file.name + '</div>'
+      + '</div>'
+      + '<div>' + statusHtml + '</div>'
+      + (item.status === 'wait' ? '<button class="qi-rm" onclick="removeFromQueue(' + idx + ')">&#10005;</button>' : '');
+    listDiv.appendChild(row);
+  });
 }
 
-async function uploadDoc() {
+function removeFromQueue(idx) {
+  docQueue.splice(idx, 1);
+  renderQueue();
+}
+
+function clearQueue() {
+  docQueue = [];
+  document.getElementById('file-queue').style.display = 'none';
+  document.getElementById('upload-results').style.display = 'none';
+  document.getElementById('upload-results').innerHTML = '';
+}
+
+async function uploadAllDocs() {
   var key = document.getElementById('adm-key').value.trim();
-  var name = document.getElementById('doc-name').value.trim();
-  var cat = document.getElementById('doc-cat').value;
   if (!key) { toast('Entrez la clé admin', 'err'); return; }
-  if (!selDocFile) { toast('Sélectionnez un fichier', 'err'); return; }
+  var cat = document.getElementById('doc-cat').value;
+  var pending = docQueue.filter(function(q){ return q.status === 'wait'; });
+  if (!pending.length) { toast('Aucun fichier en attente', 'err'); return; }
 
-  var isImg = selDocFile.type.startsWith('image/');
+  var btn = document.getElementById('btn-upload-all');
+  btn.disabled = true;
+
   var prog = document.getElementById('prog');
   var fill = document.getElementById('prog-fill');
   var msg = document.getElementById('prog-msg');
-  prog.style.display = 'block'; fill.style.width = '15%';
-  msg.textContent = isImg ? 'Groq Vision analyse l\'image...' : 'Envoi en cours...';
-  msg.className = 'prog-msg';
-  document.getElementById('btn-upload').disabled = true;
+  var results = document.getElementById('upload-results');
+  prog.style.display = 'block';
+  results.style.display = 'block';
+  results.innerHTML = '';
 
-  var fd = new FormData();
-  fd.append('file', selDocFile);
-  fd.append('document_name', name || selDocFile.name.replace(/\.(pdf|jpg|jpeg|png)$/i, ''));
-  fd.append('category', cat);
-  fd.append('admin_key', key);
-  fill.style.width = '40%';
-  msg.textContent = isImg ? 'Analyse IA (30s)...' : 'Indexation (1-2 min)...';
+  var total = pending.length;
+  var done = 0;
+  var errors = 0;
+
+  // Marquer tous comme uploading
+  docQueue.forEach(function(item) {
+    if (item.status === 'wait') item.status = 'uploading';
+  });
+  renderQueue();
+  msg.textContent = 'Envoi de ' + total + ' fichier(s) en cours...';
+  fill.style.width = '30%';
 
   try {
-    var ep = isImg ? '/api/documents/upload-image' : '/api/documents/upload';
-    var r = await fetch(ep, { method: 'POST', body: fd });
+    var fd = new FormData();
+    fd.append('admin_key', key);
+    fd.append('category', cat);
+    pending.forEach(function(item) {
+      fd.append('files', item.file);
+    });
+
+    fill.style.width = '60%';
+    var r = await fetch('/api/documents/upload-batch', { method: 'POST', body: fd });
     var d = await r.json();
-    if (r.ok && d.success) {
-      fill.style.width = '100%';
-      msg.textContent = (isImg ? 'Image analysée ! ' : '') + d.chunks_stored + ' chunks indexés.';
-      msg.className = 'prog-msg ok';
-      clearDocFile();
-      toast((isImg ? 'Image' : 'PDF') + ' indexé : ' + d.chunks_stored + ' chunks', 'ok');
-      setTimeout(function() { prog.style.display = 'none'; fill.style.width = '0%'; }, 4000);
-    } else {
-      msg.textContent = 'Erreur : ' + (d.detail || JSON.stringify(d));
-      msg.className = 'prog-msg err'; fill.style.width = '0%';
+    fill.style.width = '100%';
+
+    if (d.results) {
+      d.results.forEach(function(res, i) {
+        var item = docQueue.find(function(q){ return q.file.name === res.filename; });
+        if (!item) return;
+        if (res.success) {
+          item.status = 'done';
+          results.innerHTML += '<div class="upload-result-ok">&#10003; ' + res.filename + ' — ' + res.chunks + ' chunks indexés</div>';
+          done++;
+        } else {
+          item.status = 'error';
+          item.msg = res.error;
+          results.innerHTML += '<div class="upload-result-err">&#10005; ' + res.filename + ' — ' + res.error + '</div>';
+          errors++;
+          done++;
+        }
+      });
     }
+    msg.textContent = (done-errors) + ' fichier(s) indexés · ' + (d.total_chunks||0) + ' chunks au total';
+    renderQueue();
   } catch(e) {
-    msg.textContent = 'Erreur de connexion'; msg.className = 'prog-msg err'; fill.style.width = '0%';
+    docQueue.forEach(function(item){ if(item.status==='uploading') { item.status='error'; item.msg=e.message; } });
+    results.innerHTML += '<div class="upload-result-err">&#10005; Erreur connexion serveur</div>';
+    msg.textContent = 'Erreur upload';
+    renderQueue();
   }
-  document.getElementById('btn-upload').disabled = false;
+
+  btn.disabled = false;
+  toast((done - errors) + '/' + total + ' fichiers indexés', errors ? 'err' : 'ok');
+  loadDocs();
 }
 
+// Garder pour compatibilité
+function setDocFile(f) { addFilesToQueue([f]); }
+function clearDocFile() { clearQueue(); }
+async function uploadDoc() { uploadAllDocs(); }
+
+// uploadDoc — voir uploadAllDocs()
 async function loadDocs() {
   var key = document.getElementById('adm-key').value.trim();
   if (!key) { toast('Entrez la clé admin', 'err'); return; }
