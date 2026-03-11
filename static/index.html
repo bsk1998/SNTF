@@ -580,7 +580,7 @@ firebase.initializeApp({
   projectId: "sntf-assistan",
   storageBucket: "sntf-assistan.firebasestorage.app",
   messagingSenderId: "388691776105",
-  appId: "1:388671776105:web:c9ec06bfced2e015af08f8"
+  appId: "1:388691776105:web:c9ec06bfced2e015af08f8"
 });
 var auth = firebase.auth();
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
@@ -655,15 +655,45 @@ async function handleAuth() {
   var e = document.getElementById('inp-email').value.trim();
   var p = document.getElementById('inp-pass').value;
   if (!e || !p) { setErr('Remplissez tous les champs'); return; }
+  if (p.length < 6) { setErr('Mot de passe : 6 caractères minimum'); return; }
+  var btn = document.getElementById('btn-auth');
+  btn.disabled = true;
+  btn.textContent = '...';
   try {
-    if (loginTab === 'conn') await auth.signInWithEmailAndPassword(e, p);
-    else await auth.createUserWithEmailAndPassword(e, p);
-  } catch(err) { setErr(err.message); }
+    if (loginTab === 'conn') {
+      await auth.signInWithEmailAndPassword(e, p);
+    } else {
+      await auth.createUserWithEmailAndPassword(e, p);
+    }
+  } catch(err) {
+    var msg = err.message;
+    if (err.code === 'auth/user-not-found') msg = 'Aucun compte avec cet email';
+    if (err.code === 'auth/wrong-password') msg = 'Mot de passe incorrect';
+    if (err.code === 'auth/email-already-in-use') msg = 'Email déjà utilisé — connectez-vous';
+    if (err.code === 'auth/invalid-email') msg = 'Email invalide';
+    if (err.code === 'auth/weak-password') msg = 'Mot de passe trop faible (6 caractères min)';
+    if (err.code === 'auth/operation-not-allowed') msg = 'Connexion email désactivée dans Firebase';
+    setErr(msg);
+  }
+  btn.disabled = false;
+  btn.textContent = loginTab === 'conn' ? 'Se connecter' : 'Créer un compte';
 }
 
 async function loginGoogle() {
-  try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
-  catch(e) { setErr('Erreur Google : ' + e.message); }
+  var btn = document.querySelector('.btn-google');
+  if (btn) { btn.disabled = true; btn.textContent = 'Connexion...'; }
+  try {
+    var provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    await auth.signInWithPopup(provider);
+  } catch(e) {
+    var msg = 'Erreur Google';
+    if (e.code === 'auth/popup-closed-by-user') msg = 'Fenêtre fermée — réessayez';
+    if (e.code === 'auth/unauthorized-domain') msg = 'Domaine non autorisé dans Firebase';
+    if (e.code === 'auth/operation-not-allowed') msg = 'Google Sign-In désactivé dans Firebase';
+    setErr(msg);
+  }
+  if (btn) { btn.disabled = false; btn.textContent = 'Continuer avec Google'; }
 }
 
 var adminOpen = false;
