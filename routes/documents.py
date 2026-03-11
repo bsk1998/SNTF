@@ -275,95 +275,96 @@ def delete_document(req: DeleteRequest):
         raise HTTPException(500, str(e))
 
 
-# ══════════════════════════════════════
-# INDEXATION D'IMAGES VIA GROQ VISION
-# ══════════════════════════════════════
-import base64
-
-def extract_text_from_image(file_bytes: bytes, filename: str) -> str:
-    """Utilise Groq Vision pour extraire le texte et décrire l'image"""
-    groq_key = os.environ.get("GROQ_API_KEY")
-    if not groq_key:
-        return f"Image: {filename}"
-    try:
-        import requests as req
-        b64 = base64.b64encode(file_bytes).decode('utf-8')
-        # Détecter le type
-        ext = filename.lower().split('.')[-1]
-        mime = 'image/jpeg' if ext in ['jpg','jpeg'] else 'image/png'
-        r = req.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
-            json={
-                "model": "meta-llama/llama-4-scout-17b-16e-instruct",
-                "messages": [{"role": "user", "content": [
-                    {"type": "text", "text": "Tu es un assistant SNTF. Décris cette image en détail et extrait tout le texte visible. Sois exhaustif pour permettre une recherche future."},
-                    {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}}
-                ]}],
-                "max_tokens": 1024
-            },
-            timeout=60
-        )
-        if r.status_code == 200:
-            return r.json()["choices"][0]["message"]["content"]
-        return f"Image: {filename} (erreur analyse)"
-    except Exception as e:
-        return f"Image: {filename} — {str(e)}"
 
 
-@router.post("/upload-image")
-async def upload_image(
-    file: UploadFile = File(...),
-    document_name: str = Form(""),
-    category: str = Form("General"),
-    admin_key: str = Form(...)
+# ═══════════════════════════════════════
+# UPLOAD BATCH — Plusieurs fichiers en une requête
+# ═══════════════════════════════════════
+from typing import List
+
+@router.post("/upload-batch")
+async def upload_batch(
+    files: List[UploadFile] = File(...),
+    category: str = Form(default="General"),
+    admin_key: str = Form(default="")
 ):
     if admin_key != ADMIN_KEY:
         raise HTTPException(403, "Clé admin incorrecte")
 
-    # Vérifier type
-    allowed = ['image/jpeg', 'image/png', 'image/jpg']
-    if file.content_type not in allowed:
-        raise HTTPException(400, f"Type non supporté: {file.content_type}")
+    if not files:
+        raise HTTPException(400, "Aucun fichier reçu")
 
-    file_bytes = await file.read()
-    filename = document_name or file.filename
+    results = []
 
-    print(f"🖼️ Analyse image: {filename}")
+    for file in files:
+        filename  = file.filename.lower()
+        mime_type = file.content_type or ""
+        is_pdf    = filename.endswith('.pdf')
+        is_image  = filename.endswith(('.jpg', '.jpeg', '.png', '.webp')) or mime_type.startswith('image/')
 
-    # Extraire texte/description via Groq Vision
-    text = extract_text_from_image(file_bytes, filename)
-    print(f"📝 Texte extrait: {text[:100]}...")
+        if not is_pdf and not is_image:
+            results.append({
+                "filename": file.filename,
+                "success": False,
+                "error": "Format non supporté (PDF, JPG, PNG uniquement)"
+            })
+            continue
 
-    # Découper en chunks si texte long
-    chunk_size = 800
-    chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)] if len(text) > chunk_size else [text]
+        try:
+            file_bytes = await file.read()
+            print(f"📁 Batch: {file.filename} ({len(file_bytes)} bytes)")
 
-    # Indexer dans Supabase
-    stored = 0
-    try:
-        conn = get_db()
-        cur = conn.cursor()
-        for i, chunk in enumerate(chunks):
-            emb = get_embedding(chunk)
-            if not emb:
+            if is_pdf:
+                text = extract_text_from_pdf(file_bytes)
+                file_type = "pdf"
+                if not text:
+                    results.append({"filename": file.filename, "success": False, "error": "Impossible d'extraire le texte du PDF"})
+                    continue
+            else:
+                if filename.endswith('.png'):
+                    detected_mime = "image/png"
+                elif filename.endswith('.webp'):
+                    detected_mime = "image/webp"
+                else:
+                    detected_mime = "image/jpeg"
+                text = extract_text_from_image(file_bytes, detected_mime, file.filename)
+                file_type = "image"
+
+            print(f"📝 {file.filename} → {len(text)} chars")
+
+            chunks = split_text_into_chunks(text)
+            if not chunks:
+                results.append({"filename": file.filename, "success": False, "error": "Document vide ou trop court"})
                 continue
-            emb_str = "[" + ",".join(map(str, emb)) + "]"
-            meta = json.dumps({"filename": filename, "category": category, "type": "image", "chunk": i})
-            cur.execute(
-                f"INSERT INTO {VECTOR_TABLE} (text, metadata, embedding) VALUES (%s, %s::jsonb, %s::vector)",
-                (chunk, meta, emb_str)
-            )
-            stored += 1
-        conn.commit()
-        cur.close()
-        conn.close()
-    except Exception as e:
-        raise HTTPException(500, f"Erreur Supabase: {e}")
+
+            doc_name = file.filename.rsplit('.', 1)[0]
+            stored = save_chunks(chunks, doc_name, category, file.filename, file_type)
+
+            print(f"✅ {file.filename} → {stored} chunks")
+            results.append({
+                "filename": file.filename,
+                "success": True,
+                "chunks": stored,
+                "file_type": file_type
+            })
+
+        except Exception as e:
+            print(f"❌ {file.filename}: {e}")
+            results.append({
+                "filename": file.filename,
+                "success": False,
+                "error": str(e)
+            })
+
+    total_ok    = sum(1 for r in results if r.get("success"))
+    total_err   = sum(1 for r in results if not r.get("success"))
+    total_chunks = sum(r.get("chunks", 0) for r in results)
 
     return {
         "success": True,
-        "filename": filename,
-        "chunks_stored": stored,
-        "preview": text[:200]
+        "total_files": len(files),
+        "total_ok": total_ok,
+        "total_errors": total_err,
+        "total_chunks": total_chunks,
+        "results": results
     }
