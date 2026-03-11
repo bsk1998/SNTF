@@ -507,7 +507,26 @@ input[type=file]{display:none;}
 
 <!-- LOGIN -->
 <div id="screen-login">
-  <div class="login-card">
+
+  <!-- ÉCRAN EN ATTENTE D'APPROBATION -->
+  <div id="pending-screen" style="display:none;flex-direction:column;align-items:center;text-align:center;max-width:400px;padding:40px 20px;">
+    <div style="font-size:56px;margin-bottom:16px;">⏳</div>
+    <div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:900;background:linear-gradient(135deg,var(--or),var(--or3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px;">Compte en attente</div>
+    <div style="font-size:14px;color:#888;letter-spacing:1px;line-height:1.8;margin-bottom:20px;">
+      Votre compte <strong id="pending-email" style="color:var(--or);"></strong> a bien été créé.<br>
+      L'administrateur doit approuver votre accès.<br>
+      Vous recevrez l'accès dès validation.
+    </div>
+    <div style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.15);border-radius:10px;padding:16px 20px;margin-bottom:24px;width:100%;box-sizing:border-box;">
+      <div style="font-family:'Noto Sans Arabic',sans-serif;font-size:18px;color:var(--blanc);direction:rtl;line-height:2;">
+        رَبِّ اشْرَحْ لِي صَدْرِي وَيَسِّرْ لِي أَمْرِي
+      </div>
+      <div style="font-size:11px;color:#555;letter-spacing:1px;margin-top:8px;">Seigneur, ouvre ma poitrine et facilite mon affaire</div>
+    </div>
+    <button onclick="showLogin()" style="background:none;border:1px solid rgba(255,255,255,0.1);color:#666;padding:10px 24px;border-radius:6px;cursor:pointer;font-family:'Rajdhani',sans-serif;letter-spacing:2px;font-size:12px;">← Retour à la connexion</button>
+  </div>
+
+  <div class="login-card" id="login-card-main">
     <div class="login-logo-text">SNTF</div>
     <div class="login-logo-sub">Assistant Intelligent</div>
 
@@ -553,7 +572,7 @@ input[type=file]{display:none;}
       <button class="login-dikr-btn" onclick="rotateDikrLogin()">&#8635; Autre dhikr</button>
     </div>
 
-  </div>
+  </div><!-- /login-card-main -->
 </div>
 
 <!-- APP -->
@@ -981,9 +1000,26 @@ auth.onAuthStateChanged(function(user) {
 function showLogin() {
   document.getElementById('screen-login').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
-  // Cacher le header mobile sur la page login
+  // Remettre la login card, cacher l'écran pending
+  var lc = document.getElementById('login-card-main');
+  var ps = document.getElementById('pending-screen');
+  if (lc) lc.style.display = 'block';
+  if (ps) ps.style.display = 'none';
   var mh = document.getElementById('mobile-header');
   if (mh) mh.style.display = 'none';
+}
+
+function showPendingScreen(email) {
+  document.getElementById('screen-login').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  var lc = document.getElementById('login-card-main');
+  var ps = document.getElementById('pending-screen');
+  if (lc) lc.style.display = 'none';
+  if (ps) {
+    ps.style.display = 'flex';
+    var em = document.getElementById('pending-email');
+    if (em) em.textContent = email;
+  }
 }
 
 function showApp(user) {
@@ -1079,23 +1115,36 @@ async function handleAuth() {
   try {
     if (loginTab === 'conn') {
       await auth.signInWithEmailAndPassword(e, p);
-      // Vérifier si l'accès est autorisé
-      var access = checkUserAccess(e);
-      if (access === 'blocked') {
+      // Vérifier le statut dans Supabase
+      var chkRes = await fetch('/api/users/check', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({email: e, display_name: '', provider: 'email'})
+      });
+      var chkData = await chkRes.json();
+      if (chkData.status === 'blocked') {
         await auth.signOut();
-        throw { code: 'auth/user-blocked', message: 'Votre compte a été bloqué' };
+        throw { code: 'auth/user-blocked', message: 'Votre compte a été suspendu' };
       }
-      if (access === 'pending') {
+      if (chkData.status === 'pending') {
         await auth.signOut();
-        throw { code: 'auth/pending', message: 'Votre compte est en attente d\'approbation' };
+        showPendingScreen(e);
+        btn.disabled = false;
+        btn.textContent = loginMode === 'user' ? 'Se connecter' : 'Créer un compte';
+        return;
       }
     } else {
       await auth.createUserWithEmailAndPassword(e, p);
-      // Enregistrer le nouvel utilisateur
-      var newAccess = checkUserAccess(e);
-      if (newAccess === 'pending') {
+      // Enregistrer dans Supabase
+      var regRes = await fetch('/api/users/register', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({email: e, display_name: '', provider: 'email'})
+      });
+      var regData = await regRes.json();
+      if (regData.status === 'pending') {
         await auth.signOut();
-        setErr('Compte créé — en attente d\'approbation par l\'admin');
+        showPendingScreen(e);
         btn.disabled = false;
         btn.textContent = 'Créer un compte';
         return;
@@ -1118,12 +1167,37 @@ async function handleAuth() {
 }
 
 async function loginGoogle() {
-  var btn = document.querySelector('.btn-google');
+  var btn = document.getElementById('btn-google');
   if (btn) { btn.disabled = true; btn.textContent = 'Connexion...'; }
   try {
     var provider = new firebase.auth.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    await auth.signInWithPopup(provider);
+    var result = await auth.signInWithPopup(provider);
+    // Enregistrer/vérifier le user dans Supabase
+    var u = result.user;
+    var res = await fetch('/api/users/register', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        email: u.email,
+        display_name: u.displayName || '',
+        provider: 'google'
+      })
+    });
+    var d = await res.json();
+    if (d.status === 'blocked') {
+      await auth.signOut();
+      setErr('Votre compte a été suspendu. Contactez l\'administrateur.');
+      if (btn) { btn.disabled = false; btn.textContent = 'Continuer avec Google'; }
+      return;
+    }
+    if (d.status === 'pending') {
+      await auth.signOut();
+      showPendingScreen(u.email);
+      if (btn) { btn.disabled = false; btn.textContent = 'Continuer avec Google'; }
+      return;
+    }
+    // status === approved → showApp géré par onAuthStateChanged
   } catch(e) {
     var msg = 'Erreur Google';
     if (e.code === 'auth/popup-closed-by-user') msg = 'Fenêtre fermée — réessayez';
@@ -1174,15 +1248,7 @@ function logout() {
   showLogin();
 }
 
-function initAutoApproveUI() {
-  var toggle = document.getElementById('auto-approve-toggle');
-  if (toggle) toggle.checked = autoApprove;
-  var st = document.getElementById('auto-approve-status');
-  if (st) {
-    st.textContent = autoApprove ? '&#9679; Inscription automatique activée' : '&#9679; Approbation manuelle requise';
-    st.style.color = autoApprove ? '#4ac84a' : '#f5a623';
-  }
-}
+// initAutoApproveUI — voir version async ci-dessus
 
 // ═══════════════════════════════════════════
 // NAVIGATION
@@ -1869,100 +1935,153 @@ function delAllConvs() {
 }
 
 // ═══════════════════════════════════════════
-// GESTION UTILISATEURS (Admin)
-// Stockage dans localStorage admin pour simplicité
+// GESTION UTILISATEURS (Admin) — via API Supabase
 // ═══════════════════════════════════════════
-var autoApprove = localStorage.getItem('sntf_auto_approve') !== 'false';
-var pendingUsers = JSON.parse(localStorage.getItem('sntf_pending') || '[]');
-var approvedUsers = JSON.parse(localStorage.getItem('sntf_approved') || '[]');
-var blockedUsers = JSON.parse(localStorage.getItem('sntf_blocked') || '[]');
 
-function saveUserData() {
-  localStorage.setItem('sntf_pending', JSON.stringify(pendingUsers));
-  localStorage.setItem('sntf_approved', JSON.stringify(approvedUsers));
-  localStorage.setItem('sntf_blocked', JSON.stringify(blockedUsers));
+async function toggleAutoApprove(val) {
+  try {
+    await fetch('/api/users/config', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({admin_key: AKEY, key: 'auto_approve', value: val ? 'true' : 'false'})
+    });
+    var st = document.getElementById('auto-approve-status');
+    if (st) {
+      st.innerHTML = val
+        ? '&#9679; Inscription automatique activée'
+        : '&#9679; Approbation manuelle requise — les nouveaux comptes attendent votre validation';
+      st.style.color = val ? '#4ac84a' : '#f5a623';
+    }
+    toast(val ? 'Inscription auto activée' : 'Approbation manuelle activée', 'ok');
+  } catch(e) { toast('Erreur serveur', 'err'); }
 }
 
-function toggleAutoApprove(val) {
-  autoApprove = val;
-  localStorage.setItem('sntf_auto_approve', val ? 'true' : 'false');
-  var st = document.getElementById('auto-approve-status');
-  if (st) {
-    st.textContent = val ? '&#9679; Inscription automatique activée' : '&#9679; Approbation manuelle requise';
-    st.style.color = val ? '#4ac84a' : '#f5a623';
-  }
-  toast(val ? 'Inscription auto activée' : 'Approbation manuelle activée', 'ok');
+async function initAutoApproveUI() {
+  try {
+    var r = await fetch('/api/users/config/get', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({admin_key: AKEY, key: 'auto_approve'})
+    });
+    var d = await r.json();
+    var val = d.value === 'true';
+    var toggle = document.getElementById('auto-approve-toggle');
+    if (toggle) toggle.checked = val;
+    var st = document.getElementById('auto-approve-status');
+    if (st) {
+      st.innerHTML = val
+        ? '&#9679; Inscription automatique activée'
+        : '&#9679; Approbation manuelle requise';
+      st.style.color = val ? '#4ac84a' : '#f5a623';
+    }
+  } catch(e) {}
 }
 
-// Appelé à chaque inscription — vérifier si l'utilisateur est autorisé
-function checkUserAccess(email) {
-  if (blockedUsers.includes(email)) return 'blocked';
-  if (autoApprove) return 'approved';
-  if (approvedUsers.includes(email)) return 'approved';
-  // Pas encore approuvé → ajouter aux pending
-  if (!pendingUsers.includes(email) && !approvedUsers.includes(email)) {
-    pendingUsers.push(email);
-    saveUserData();
-  }
-  return 'pending';
-}
-
-function loadUsers() {
+async function loadUsers() {
   var grid = document.getElementById('users-grid');
   if (!grid) return;
-  // Récupérer les users Firebase Auth (via API si dispo, sinon local)
-  var allUsers = [];
-  approvedUsers.forEach(function(e){ allUsers.push({email:e,status:'approved'}); });
-  pendingUsers.forEach(function(e){ allUsers.push({email:e,status:'pending'}); });
-  blockedUsers.forEach(function(e){ allUsers.push({email:e,status:'blocked'}); });
+  grid.innerHTML = '<div style="color:#555;font-size:13px;padding:20px;text-align:center;letter-spacing:1px;">Chargement...</div>';
+  try {
+    var r = await fetch('/api/users/list', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({admin_key: AKEY})
+    });
+    var d = await r.json();
+    if (!d.success) { grid.innerHTML = '<div style="color:#f66;padding:16px;">Erreur: ' + d.detail + '</div>'; return; }
 
-  if (!allUsers.length) {
-    grid.innerHTML = '<div style="color:#555;font-size:13px;padding:16px;text-align:center;letter-spacing:1px;">Aucun utilisateur enregistré</div>';
-    return;
-  }
-  grid.innerHTML = '';
-  allUsers.forEach(function(u) {
-    var row = document.createElement('div');
-    row.className = 'user-row ' + u.status;
-    var init = u.email[0].toUpperCase();
-    var badgeLabel = u.status === 'approved' ? 'Approuvé' : u.status === 'pending' ? 'En attente' : 'Bloqué';
-    var btns = '';
-    if (u.status === 'pending') {
-      btns = '<div class="user-actions">'
-        + '<button class="btn-approve" onclick="approveUser(\'' + u.email + '\')">&#10003; Approuver</button>'
-        + '<button class="btn-block" onclick="blockUser(\'' + u.email + '\')">&#10005; Bloquer</button>'
-        + '</div>';
-    } else if (u.status === 'approved') {
-      btns = '<div class="user-actions">'
-        + '<button class="btn-block" onclick="blockUser(\'' + u.email + '\')">&#10005; Bloquer</button>'
-        + '</div>';
-    } else {
-      btns = '<div class="user-actions">'
-        + '<button class="btn-approve" onclick="approveUser(\'' + u.email + '\')">Débloquer</button>'
-        + '</div>';
+    // Mettre à jour les compteurs
+    var s = d.stats || {};
+    var statsHtml = '<div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">'
+      + badge(s.pending || 0, 'En attente', '#f5a623')
+      + badge(s.approved || 0, 'Approuvés', '#4ac84a')
+      + badge(s.blocked || 0, 'Bloqués', '#f66')
+      + badge(s.total || 0, 'Total', '#888')
+      + '</div>';
+
+    if (!d.users || !d.users.length) {
+      grid.innerHTML = statsHtml + '<div style="color:#555;font-size:13px;padding:16px;text-align:center;letter-spacing:1px;">Aucun utilisateur inscrit</div>';
+      return;
     }
-    row.innerHTML = '<div class="user-av">' + init + '</div>'
-      + '<div class="user-info"><div class="user-email">' + u.email + '</div><div class="user-meta">' + u.status + '</div></div>'
-      + '<span class="user-badge ' + u.status + '">' + badgeLabel + '</span>'
-      + btns;
-    grid.appendChild(row);
-  });
+
+    grid.innerHTML = statsHtml;
+    d.users.forEach(function(u) {
+      var row = document.createElement('div');
+      row.className = 'user-row ' + u.status;
+      var init = (u.display_name || u.email)[0].toUpperCase();
+      var badgeLabel = {approved:'Approuvé', pending:'En attente', blocked:'Bloqué'}[u.status] || u.status;
+      var lastLogin = u.last_login ? new Date(u.last_login).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}) : 'jamais';
+      var providerIcon = u.provider === 'google' ? 'G' : '@';
+
+      var btns = '<div class="user-actions">';
+      if (u.status === 'pending') {
+        btns += '<button class="btn-approve" onclick="adminApprove(\'' + u.email + '\')">&#10003;</button>'
+               + '<button class="btn-block" onclick="adminBlock(\'' + u.email + '\')">&#9974;</button>';
+      } else if (u.status === 'approved') {
+        btns += '<button class="btn-block" onclick="adminBlock(\'' + u.email + '\')">&#9974; Bloquer</button>';
+      } else {
+        btns += '<button class="btn-approve" onclick="adminApprove(\'' + u.email + '\')">&#10003; Débloquer</button>';
+      }
+      btns += '<button class="btn-block" style="background:rgba(255,50,50,0.15);margin-left:4px;" onclick="adminDelete(\'' + u.email + '\')">&#128465;</button>';
+      btns += '</div>';
+
+      row.innerHTML = '<div class="user-av" style="font-size:11px;">' + providerIcon + '</div>'
+        + '<div class="user-info">'
+        + '<div class="user-email">' + u.email + '</div>'
+        + '<div class="user-meta">Connexions: ' + u.login_count + ' · Dernier: ' + lastLogin + '</div>'
+        + '</div>'
+        + '<span class="user-badge ' + u.status + '">' + badgeLabel + '</span>'
+        + btns;
+      grid.appendChild(row);
+    });
+  } catch(e) {
+    grid.innerHTML = '<div style="color:#f66;padding:16px;">Erreur connexion serveur</div>';
+  }
 }
 
-function approveUser(email) {
-  pendingUsers = pendingUsers.filter(function(e){ return e !== email; });
-  blockedUsers = blockedUsers.filter(function(e){ return e !== email; });
-  if (!approvedUsers.includes(email)) approvedUsers.push(email);
-  saveUserData(); loadUsers();
-  toast(email + ' approuvé', 'ok');
+function badge(count, label, color) {
+  return '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 14px;text-align:center;">'
+    + '<div style="font-size:22px;font-weight:900;color:' + color + ';">' + count + '</div>'
+    + '<div style="font-size:10px;letter-spacing:1px;color:#555;">' + label + '</div>'
+    + '</div>';
 }
 
-function blockUser(email) {
-  pendingUsers = pendingUsers.filter(function(e){ return e !== email; });
-  approvedUsers = approvedUsers.filter(function(e){ return e !== email; });
-  if (!blockedUsers.includes(email)) blockedUsers.push(email);
-  saveUserData(); loadUsers();
-  toast(email + ' bloqué', 'err');
+async function adminApprove(email) {
+  try {
+    await fetch('/api/users/approve', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({admin_key: AKEY, email: email})
+    });
+    toast('✓ ' + email + ' approuvé', 'ok');
+    loadUsers();
+  } catch(e) { toast('Erreur', 'err'); }
+}
+
+async function adminBlock(email) {
+  if (!confirm('Bloquer ' + email + ' ?')) return;
+  try {
+    await fetch('/api/users/block', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({admin_key: AKEY, email: email})
+    });
+    toast('⊘ ' + email + ' bloqué', 'err');
+    loadUsers();
+  } catch(e) { toast('Erreur', 'err'); }
+}
+
+async function adminDelete(email) {
+  if (!confirm('Supprimer définitivement ' + email + ' ?')) return;
+  try {
+    await fetch('/api/users/delete', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({admin_key: AKEY, email: email})
+    });
+    toast('🗑 ' + email + ' supprimé', 'ok');
+    loadUsers();
+  } catch(e) { toast('Erreur', 'err'); }
 }
 
 // ═══════════════════════════════════════════
