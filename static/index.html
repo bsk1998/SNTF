@@ -270,14 +270,19 @@ body{background:var(--noir);color:var(--blanc);font-family:'Rajdhani',sans-serif
   to{opacity:1;transform:translateY(0) scale(1);}
 }
 
-/* Bouton admin invisible — coin haut droit */
+/* Bouton admin — tout petit point discret coin haut droit */
 #admin-secret-btn{
-  position:absolute;top:0;right:0;
-  width:36px;height:36px;
-  background:transparent;border:none;cursor:default;
-  z-index:20;opacity:0;
+  position:absolute;top:10px;right:12px;
+  width:8px;height:8px;
+  background:rgba(160,130,80,0.25);
+  border:none;border-radius:50%;
+  cursor:pointer;z-index:20;
+  transition:background 0.3s, transform 0.2s;
 }
-#admin-secret-btn:active{cursor:pointer;}
+#admin-secret-btn:hover{
+  background:rgba(201,168,76,0.55);
+  transform:scale(1.4);
+}
 
 .login-logo-text{
   font-family:'Cinzel',serif;font-size:44px;font-weight:900;
@@ -937,8 +942,8 @@ input[type=file]{display:none;}
     <div class="sb-section">
       <div class="sb-label">Navigation</div>
       <button class="sb-btn active" id="nav-chat" onclick="showTab('chat')"><span>&#128172;</span> Chat</button>
-      <button class="sb-btn" id="nav-pdf" onclick="showTab('pdf')"><span>&#128196;</span> Documents</button>
-      <button class="sb-btn" id="nav-stats" onclick="showTab('stats')"><span>&#128200;</span> Statistiques</button>
+      <button class="sb-btn admin-only" id="nav-pdf" onclick="showTab('pdf')" style="display:none;"><span>&#128196;</span> Documents</button>
+      <button class="sb-btn admin-only" id="nav-stats" onclick="showTab('stats')" style="display:none;"><span>&#128200;</span> Statistiques</button>
     </div>
     <div class="sb-section sb-hist">
       <div class="sb-label">Historique</div>
@@ -1208,8 +1213,20 @@ function showLogin() {
 }
 
 function showApp(user) {
-  // Connexion Google = utilisateur normal (jamais admin)
+  // Connexion Google = TOUJOURS utilisateur normal, jamais admin
   isAdminSession = false;
+  var train = document.getElementById('train-body');
+  var trainMoving = train && train.classList.contains('depart');
+  // Si le train n'a pas encore démarré (auto-login Firebase), lancer l'animation
+  if (!trainMoving) {
+    launchTrainAnimation(function() { _openAppForUser(user); });
+    return;
+  }
+  // Sinon (train déjà en mouvement depuis loginGoogle), attendre la fin
+  setTimeout(function() { _openAppForUser(user); }, 1400);
+}
+
+function _openAppForUser(user) {
   document.getElementById('screen-login').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   var name = user.displayName || user.email || 'Utilisateur';
@@ -1223,11 +1240,23 @@ function showApp(user) {
   buildHistList();
   if (userEmail) loadRemoteHist();
   loadStats();
-  // Cacher le panneau admin pour les utilisateurs normaux
-  var adminPanels = document.querySelectorAll('[id^="panel-stats"],[id^="nav-stats"],[id^="nav-users"],[id^="nav-docs"]');
-  adminPanels.forEach(function(el) {
-    if (!isAdminSession) el.style.display = 'none';
+  applyRoleUI();
+  setupMobileUI();
+}
+
+function applyRoleUI() {
+  // Éléments réservés admin
+  var adminEls = document.querySelectorAll('.admin-only');
+  adminEls.forEach(function(el) {
+    el.style.display = isAdminSession ? '' : 'none';
   });
+  // Si l'utilisateur était sur un panel admin, le ramener au chat
+  if (!isAdminSession) {
+    var pdfPanel = document.getElementById('panel-pdf');
+    var statsPanel = document.getElementById('panel-stats');
+    if (pdfPanel && pdfPanel.style.display !== 'none') showTab('chat');
+    if (statsPanel && statsPanel.style.display !== 'none') showTab('chat');
+  }
 }
 
 // Login tab
@@ -1241,8 +1270,12 @@ function setErr(msg) { document.getElementById('login-error').textContent = msg;
 async function loginGoogle() {
   var btn = document.getElementById('btn-google');
   if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; btn.textContent = 'Connexion...'; }
-  launchTrainAnimation();
-  trainSound();
+  // Le train démarre d'abord, puis on lance la connexion en parallèle
+  var googlePopupLaunched = false;
+  launchTrainAnimation(function() {
+    // Callback : si la connexion a réussi, showApp sera appelé par onAuthStateChanged
+    // Si pas encore connecté : ne rien faire, onAuthStateChanged le gérera
+  });
   setTimeout(function() {
     try {
       auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
@@ -1897,7 +1930,14 @@ function rotateDikrLogin(manual) {
 }
 function resetDikrTimer() {
   if (dikrTimer) clearInterval(dikrTimer);
-  dikrTimer = setInterval(function() { nextDikr(); }, 12000);
+  // Aléatoire toutes les 5 secondes
+  dikrTimer = setInterval(function() {
+    var newIdx;
+    do { newIdx = Math.floor(Math.random() * adkarsLogin.length); }
+    while (newIdx === dikrIdx && adkarsLogin.length > 1);
+    dikrIdx = newIdx;
+    showDikr(dikrIdx, true);
+  }, 5000);
 }
 
 // Horloge gare en temps réel
@@ -1947,19 +1987,23 @@ function loginAdminModal() {
   var errEl = document.getElementById('admin-modal-error');
   if (val === AKEY) {
     closeAdminModal();
-    // Fermer écran login — ouvrir APP en mode admin
-    isAdminSession = true;
-    document.getElementById('screen-login').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    document.getElementById('user-name').textContent = 'Admin';
-    document.getElementById('user-initial').textContent = 'A';
-    var sbQs = document.getElementById('sb-qs');
-    var stQs = document.getElementById('st-qs');
-    if (sbQs) sbQs.textContent = qCount;
-    if (stQs) stQs.textContent = qCount;
-    userEmail = 'admin';
-    buildHistList();
-    loadStats();
+    // Train démarre → puis ouvre l'app admin
+    launchTrainAnimation(function() {
+      isAdminSession = true;
+      document.getElementById('screen-login').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('user-name').textContent = 'Admin';
+      document.getElementById('user-initial').textContent = 'A';
+      var sbQs = document.getElementById('sb-qs');
+      var stQs = document.getElementById('st-qs');
+      if (sbQs) sbQs.textContent = qCount;
+      if (stQs) stQs.textContent = qCount;
+      userEmail = 'admin';
+      buildHistList();
+      loadStats();
+      applyRoleUI();
+      setupMobileUI();
+    });
   } else {
     errEl.textContent = '✗ Clé incorrecte';
     setTimeout(function(){ errEl.textContent=''; }, 2000);
@@ -1967,17 +2011,36 @@ function loginAdminModal() {
 }
 
 // Animation train au démarrage de connexion Google
-function launchTrainAnimation() {
+function launchTrainAnimation(onDone) {
   var smoke = document.getElementById('smoke-wrap');
   var train = document.getElementById('train-body');
-  if (smoke) {
-    smoke.style.transition = 'opacity 0.5s';
-    smoke.style.opacity = '1';
-  }
+  var card = document.getElementById('login-card-main');
+
+  // Fumée apparaît
+  if (smoke) { smoke.style.transition = 'opacity 0.6s'; smoke.style.opacity = '1'; }
+
+  // Son de train
+  trainSound();
+
+  // Après 1.4s : le train démarre
   setTimeout(function() {
-    if (train) train.classList.replace('parked','depart');
+    if (train) {
+      train.style.transition = 'transform 2.2s cubic-bezier(0.4,0,1,1)';
+      train.classList.remove('parked');
+      train.classList.add('depart');
+    }
     if (smoke) { smoke.style.opacity = '0'; }
-  }, 1800);
+  }, 1400);
+
+  // La carte login sort vers le bas discrètement
+  setTimeout(function() {
+    if (card) { card.style.transition = 'opacity 0.6s, transform 0.6s'; card.style.opacity = '0'; card.style.transform = 'translateY(30px) scale(0.97)'; }
+  }, 2000);
+
+  // Après 3.2s : ouvrir le chat
+  setTimeout(function() {
+    if (onDone) onDone();
+  }, 3200);
 }
 
 
