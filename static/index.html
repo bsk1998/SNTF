@@ -48,7 +48,12 @@ body{background:var(--noir);color:var(--blanc);font-family:'Rajdhani',sans-serif
 .login-card{width:460px;max-width:95vw;background:var(--noir2);border:1px solid rgba(201,168,76,0.2);border-radius:4px;padding:48px 40px;box-shadow:0 24px 80px rgba(0,0,0,0.8);}
 .login-logo-text{font-family:'Playfair Display',serif;font-size:40px;font-weight:900;background:linear-gradient(135deg,var(--or),var(--or3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:0.15em;text-align:center;}
 .login-logo-sub{font-size:11px;letter-spacing:3px;color:var(--gris);text-transform:uppercase;margin-top:6px;text-align:center;margin-bottom:32px;}
-.login-tabs{display:flex;margin-bottom:28px;border-bottom:1px solid rgba(201,168,76,0.1);}
+.login-tabs{display:flex;margin-bottom:28px;background:rgba(255,255,255,0.03);border-radius:8px;padding:4px;gap:4px;}
+.login-tab{flex:1;padding:10px;text-align:center;cursor:pointer;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--gris);border-radius:6px;transition:all 0.2s;border:none;}
+.login-tab.active{background:rgba(201,168,76,0.1);color:var(--or);border:1px solid rgba(201,168,76,0.2);}
+.admin-hint{display:flex;align-items:center;gap:14px;padding:16px;background:rgba(201,168,76,0.05);border:1px solid rgba(201,168,76,0.1);border-radius:8px;margin-bottom:20px;}
+.login-sep-small{text-align:center;font-size:11px;color:#444;letter-spacing:2px;margin-top:14px;}
+#login-error-admin{font-size:13px;color:#f66;letter-spacing:1px;min-height:18px;margin-bottom:8px;text-align:center;}
 .login-tab{flex:1;padding:10px;text-align:center;cursor:pointer;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--gris);border-bottom:2px solid transparent;transition:all 0.2s;}
 .login-tab.active{color:var(--or);border-bottom-color:var(--or);}
 .login-form{display:flex;flex-direction:column;gap:14px;}
@@ -505,23 +510,42 @@ input[type=file]{display:none;}
   <div class="login-card">
     <div class="login-logo-text">SNTF</div>
     <div class="login-logo-sub">Assistant Intelligent</div>
+
+    <!-- ONGLETS : Utilisateur | Admin -->
     <div class="login-tabs">
-      <div class="login-tab active" id="tab-conn" onclick="switchTab('conn')">Connexion</div>
-      <div class="login-tab" id="tab-insc" onclick="switchTab('insc')">Inscription</div>
+      <div class="login-tab active" id="tab-user" onclick="switchLoginMode('user')">&#128100; Utilisateur</div>
+      <div class="login-tab" id="tab-admin" onclick="switchLoginMode('admin')">&#9881; Admin</div>
     </div>
-    <div class="login-form">
-      <input class="login-input" type="email" id="inp-email" placeholder="Adresse email">
-      <input class="login-input" type="password" id="inp-pass" placeholder="Mot de passe">
+
+    <!-- MODE UTILISATEUR -->
+    <div id="zone-user">
       <div id="login-error"></div>
-      <button class="btn-login" id="btn-auth" onclick="handleAuth()">Se connecter</button>
-      <div class="login-sep">ou</div>
-      <button class="btn-google" onclick="loginGoogle()">Continuer avec Google</button>
+      <button class="btn-google" onclick="loginGoogle()" id="btn-google">
+        <svg width="18" height="18" viewBox="0 0 48 48" style="vertical-align:middle;margin-right:10px;"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.5 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17z"/><path fill="#FBBC05" d="M10.6 28.6A14.6 14.6 0 0 1 9.5 24c0-1.6.3-3.1.7-4.6l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.3 0 11.6-2.1 15.5-5.6l-7.5-5.8c-2.1 1.4-4.8 2.3-8 2.3-6.2 0-11.5-4.2-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>
+        Continuer avec Google
+      </button>
+      <div class="login-sep-small">Connexion sécurisée via Google</div>
     </div>
-    <div class="admin-toggle" onclick="toggleAdmin()">Espace administrateur</div>
-    <div id="admin-zone" style="display:none;margin-top:16px;flex-direction:column;gap:10px;">
-      <input class="login-input" type="password" id="inp-admin" placeholder="Clé administrateur">
-      <button class="btn-login" onclick="loginAdmin()" style="background:linear-gradient(135deg,#444,#222);">Accès Admin</button>
+
+    <!-- MODE ADMIN -->
+    <div id="zone-admin" style="display:none;">
+      <div class="admin-hint">
+        <span style="font-size:20px;">&#128274;</span>
+        <div>
+          <div style="font-size:13px;color:var(--blanc);font-weight:600;letter-spacing:1px;">Accès Administrateur</div>
+          <div style="font-size:11px;color:#555;margin-top:2px;">Entrez la clé secrète</div>
+        </div>
+      </div>
+      <div id="login-error-admin"></div>
+      <input class="login-input" type="password" id="inp-admin"
+        placeholder="Clé administrateur"
+        onkeydown="if(event.key==='Enter')loginAdmin()">
+      <button class="btn-login" onclick="loginAdmin()" id="btn-admin-login"
+        style="background:linear-gradient(135deg,#2a2a2a,#1a1a1a);border:1px solid rgba(201,168,76,0.2);">
+        &#9654; Accéder au panneau admin
+      </button>
     </div>
+
   </div>
 </div>
 
@@ -953,13 +977,24 @@ function showApp(user) {
 }
 
 // Login tab
-var loginTab = 'conn';
-function switchTab(t) {
-  loginTab = t;
-  document.getElementById('tab-conn').className = 'login-tab' + (t === 'conn' ? ' active' : '');
-  document.getElementById('tab-insc').className = 'login-tab' + (t === 'insc' ? ' active' : '');
-  document.getElementById('btn-auth').textContent = t === 'conn' ? 'Se connecter' : 'Créer un compte';
-  document.getElementById('login-error').textContent = '';
+var loginMode = 'user';
+function switchTab(t) {} // legacy — ne rien faire
+
+function switchLoginMode(mode) {
+  loginMode = mode;
+  // Onglets
+  document.getElementById('tab-user').className = 'login-tab' + (mode === 'user' ? ' active' : '');
+  document.getElementById('tab-admin').className = 'login-tab' + (mode === 'admin' ? ' active' : '');
+  // Zones
+  document.getElementById('zone-user').style.display = mode === 'user' ? 'block' : 'none';
+  document.getElementById('zone-admin').style.display = mode === 'admin' ? 'block' : 'none';
+  // Nettoyer erreurs
+  var e1 = document.getElementById('login-error');
+  var e2 = document.getElementById('login-error-admin');
+  if (e1) e1.textContent = '';
+  if (e2) e2.textContent = '';
+  // Focus
+  if (mode === 'admin') setTimeout(function(){ var i=document.getElementById('inp-admin'); if(i)i.focus(); },100);
 }
 
 function setErr(msg) { document.getElementById('login-error').textContent = msg; }
@@ -1037,9 +1072,28 @@ function toggleAdmin() {
 }
 
 function loginAdmin() {
-  if (document.getElementById('inp-admin').value.trim() === AKEY) {
-    showApp({ displayName: 'Administrateur', email: 'admin' });
-  } else { setErr('Clé incorrecte'); }
+  var inp = document.getElementById('inp-admin');
+  var btn = document.getElementById('btn-admin-login');
+  if (!inp) return;
+  var val = inp.value.trim();
+  if (!val) { setErrAdmin('Entrez la clé administrateur'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+  setTimeout(function() {
+    if (val === AKEY) {
+      inp.value = '';
+      showApp({ displayName: 'Administrateur', email: 'admin' });
+    } else {
+      setErrAdmin('Clé incorrecte');
+      inp.value = '';
+      inp.focus();
+    }
+    if (btn) { btn.disabled = false; btn.textContent = '⏵ Accéder au panneau admin'; }
+  }, 400);
+}
+
+function setErrAdmin(msg) {
+  var el = document.getElementById('login-error-admin');
+  if (el) el.textContent = msg;
 }
 
 function logout() {
