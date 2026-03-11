@@ -546,6 +546,13 @@ input[type=file]{display:none;}
       </button>
     </div>
 
+    <!-- DIKR ALÉATOIRE -->
+    <div class="login-dikr" id="login-dikr-box">
+      <div class="login-dikr-label">&#10024; ذِكْر</div>
+      <div class="login-dikr-txt" id="login-dikr-txt"></div>
+      <button class="login-dikr-btn" onclick="rotateDikrLogin()">&#8635; Autre dhikr</button>
+    </div>
+
   </div>
 </div>
 
@@ -836,6 +843,32 @@ function getDikr() {
   return d;
 }
 
+function rotateDikrLogin() {
+  var txt = document.getElementById('login-dikr-txt');
+  if (!txt) return;
+  var box = document.getElementById('login-dikr-box');
+  // Animation
+  box.style.opacity = '0';
+  box.style.transform = 'translateY(6px)';
+  setTimeout(function() {
+    txt.textContent = DIKR[Math.floor(Math.random() * DIKR.length)];
+    box.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    box.style.opacity = '1';
+    box.style.transform = 'translateY(0)';
+  }, 250);
+}
+
+// Initialiser le dikr login dès le chargement de la page
+document.addEventListener('DOMContentLoaded', function() {
+  rotateDikrLogin();
+  // Rotation automatique toutes les 8 secondes sur la page login
+  setInterval(function() {
+    if (document.getElementById('screen-login').style.display !== 'none') {
+      rotateDikrLogin();
+    }
+  }, 8000);
+});
+
 function showBar() {
   var bar = document.getElementById('islamic-bar');
   var txt = document.getElementById('dikr-bar-txt');
@@ -948,11 +981,17 @@ auth.onAuthStateChanged(function(user) {
 function showLogin() {
   document.getElementById('screen-login').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
+  // Cacher le header mobile sur la page login
+  var mh = document.getElementById('mobile-header');
+  if (mh) mh.style.display = 'none';
 }
 
 function showApp(user) {
   document.getElementById('screen-login').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
+  // Remettre le header mobile
+  var mhEl = document.getElementById('mobile-header');
+  if (mhEl) mhEl.style.removeProperty('display');
 
   userEmail = user.email || '';
   var isAdmin = (userEmail === 'admin');
@@ -987,13 +1026,18 @@ function showApp(user) {
   var uPanel = document.getElementById('users-panel');
   if (uPanel) uPanel.style.display = isAdmin ? 'block' : 'none';
 
+  // Charger les conversations de CET utilisateur
+  conversations = JSON.parse(localStorage.getItem(convKey()) || '[]');
+  activeId = localStorage.getItem(activeKey()) || null;
+
   // Toujours commencer sur chat
   showTab('chat');
 
-  // Conversations
-  if (!activeId || !getActiveConv()) {
-    activeId = conversations.length > 0 ? conversations[0].id : null;
-    if (activeId) loadConversation(activeId);
+  // Restaurer la conv active
+  if (activeId && getActiveConv()) {
+    loadConversation(activeId);
+  } else if (conversations.length > 0) {
+    loadConversation(conversations[0].id);
   }
   buildHistList();
 
@@ -1123,7 +1167,9 @@ function setErrAdmin(msg) {
 
 function logout() {
   auth.signOut().catch(function(){});
-  userEmail = ''; activeId = null;
+  conversations = [];
+  activeId = null;
+  userEmail = '';
   closeDrawer();
   showLogin();
 }
@@ -1206,9 +1252,15 @@ var activeId = localStorage.getItem('sntf_active') || null;
 
 function genId() { return 'c' + Date.now() + Math.random().toString(36).slice(2,6); }
 
+function convKey() {
+  return 'sntf_convs_' + (userEmail || 'guest');
+}
+function activeKey() {
+  return 'sntf_active_' + (userEmail || 'guest');
+}
 function saveConvs() {
-  localStorage.setItem('sntf_convs', JSON.stringify(conversations));
-  localStorage.setItem('sntf_active', activeId || '');
+  localStorage.setItem(convKey(), JSON.stringify(conversations));
+  localStorage.setItem(activeKey(), activeId || '');
 }
 
 function getActiveConv() {
