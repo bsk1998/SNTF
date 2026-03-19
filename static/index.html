@@ -1598,11 +1598,14 @@ async function send() {
       var full = '', sources = [], webUsed = false;
       var cur = '<span style="display:inline-block;width:2px;height:1em;background:var(--or);vertical-align:middle;margin-left:2px;animation:blink 0.7s infinite"></span>';
 
+      var buf = '';
       var streamDone = false;
       while (!streamDone) {
         var chunk = await reader.read();
         if (chunk.done) break;
-        var lines = dec.decode(chunk.value).split('\\\n');
+        buf += dec.decode(chunk.value, {stream: true});
+        var lines = buf.split('\n');
+        buf = lines.pop(); // garder la ligne incomplète pour le prochain chunk
         for (var i = 0; i < lines.length; i++) {
           var line = lines[i].trim();
           if (!line.startsWith('data:')) continue;
