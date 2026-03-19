@@ -1,18 +1,18 @@
 services:
   - type: web
-    name: sntf-assistant-api
+    name: sntf-assistant
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DB_HOST
-        value: aws-1-eu-central-1.pooler.supabase.com
-      - key: DB_NAME
-        value: postgres
-      - key: DB_USER
-        value: postgres.zlnkagxpbqjcaumdttnt
+        sync: false
       - key: DB_PORT
-        value: "5432"
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
       - key: DB_PASSWORD
         sync: false
       - key: GROQ_API_KEY
