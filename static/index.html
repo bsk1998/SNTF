@@ -1599,16 +1599,16 @@ async function send() {
       var full = '', sources = [], webUsed = false;
       var cur = '<span style="display:inline-block;width:2px;height:1em;background:var(--or);vertical-align:middle;margin-left:2px;animation:blink 0.7s infinite"></span>';
 
-      while (true) {
+      var streamDone = false;
+      while (!streamDone) {
         var chunk = await reader.read();
         if (chunk.done) break;
-        var lines = dec.decode(chunk.value).split('\
-');
+        var lines = dec.decode(chunk.value).split('\\\n');
         for (var i = 0; i < lines.length; i++) {
           var line = lines[i].trim();
           if (!line.startsWith('data:')) continue;
           var data = line.slice(5).trim();
-          if (data === '[DONE]') break;
+          if (data === '[DONE]') { streamDone = true; break; }
           try {
             var p = JSON.parse(data);
             if (p.sources !== undefined) { sources = p.sources || []; webUsed = p.web || false; continue; }
