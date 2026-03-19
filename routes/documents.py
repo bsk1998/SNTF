@@ -54,17 +54,138 @@ def get_embedding(text: str) -> list:
 # EXTRACTION TEXTE PDF
 # ═══════════════════════════════════════
 def extract_text_from_pdf(pdf_bytes: bytes) -> str:
+    import re, base64
+
+    def fix_spacing(text):
+        if not text:
+            return ""
+        text = re.sub(r" {2,}", " ", text)
+        text = re.sub(r"([a-zàâéèêëîïôùûü])([A-ZÀÂÉÈÊËÎÏÔÙÛÜ])", r"\1 \2", text)
+        text = re.sub(r"\n{3,}", "\n\n", text)
+        lines = text.split("\n")
+        clean = []
+        for line in lines:
+            s = line.strip()
+            if not s:
+                clean.append("")
+                continue
+            words = s.split()
+            if len(words) >= 3 or (len(words) >= 1 and s[0].isupper() and len(s) >= 5):
+                clean.append(s)
+        return re.sub(r"\n{3,}", "\n\n", "\n".join(clean)).strip()
+
+    def quality(text):
+        if not text or len(text) < 50:
+            return 0.0
+        words = text.split()
+        if not words:
+            return 0.0
+        correct = [w for w in words if len(w) >= 3 and sum(c.isalpha() for c in w) >= len(w) * 0.6]
+        ratio = len(correct) / len(words)
+        french = ["les", "des", "est", "que", "pour", "une", "dans", "avec", "sur", "par", "la", "le", "en"]
+        bonus = sum(1 for w in french if w in text.lower()) * 0.015
+        return min(ratio + bonus, 1.0)
+
+    best_text = ""
+    best_score = 0.0
+
+    # METHODE 1 : pdfplumber (plusieurs tolerances)
     try:
-        reader = PdfReader(io.BytesIO(pdf_bytes))
-        text = ""
-        for page in reader.pages:
-            extracted = page.extract_text()
-            if extracted:
-                text += extracted + "\n"
-        return text.strip()
+        import pdfplumber
+        for tol in [1, 2, 3, 5]:
+            try:
+                with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+                    pages = []
+                    for page in pdf.pages:
+                        t = page.extract_text(x_tolerance=tol, y_tolerance=tol)
+                        if t:
+                            pages.append(t)
+                    text = fix_spacing("\n\n".join(pages))
+                    q = quality(text)
+                    print(f"pdfplumber tol={tol}: {len(text)} chars score={q:.2f}")
+                    if q > best_score and len(text) >= 100:
+                        best_score = q
+                        best_text = text
+                    if q >= 0.75:
+                        break
+            except Exception as e:
+                print(f"pdfplumber tol={tol}: {e}")
+    except ImportError:
+        print("pdfplumber non dispo")
     except Exception as e:
-        print(f"pypdf failed: {e}")
-        return ""
+        print(f"pdfplumber: {e}")
+
+    if best_score >= 0.65 and len(best_text) >= 100:
+        print(f"OK pdfplumber score={best_score:.2f} chars={len(best_text)}")
+        return best_text
+
+    # METHODE 2 : pypdf
+    try:
+        from pypdf import PdfReader
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        pages = []
+        for page in reader.pages:
+            t = page.extract_text() or ""
+            if t:
+                pages.append(fix_spacing(t))
+        text = "\n\n".join(p for p in pages if p)
+        q = quality(text)
+        print(f"pypdf: {len(text)} chars score={q:.2f}")
+        if q > best_score and len(text) >= 100:
+            best_score = q
+            best_text = text
+    except Exception as e:
+        print(f"pypdf: {e}")
+
+    if best_score >= 0.60 and len(best_text) >= 100:
+        print(f"OK pypdf score={best_score:.2f} chars={len(best_text)}")
+        return best_text
+
+    # METHODE 3 : Groq Vision + PyMuPDF
+    groq_key = os.environ.get("GROQ_API_KEY", "")
+    if groq_key:
+        try:
+            import fitz
+            doc_pdf = fitz.open(stream=pdf_bytes, filetype="pdf")
+            pages_text = []
+            print(f"Groq Vision: {len(doc_pdf)} pages...")
+            for i in range(min(len(doc_pdf), 20)):
+                page = doc_pdf[i]
+                pix = page.get_pixmap(matrix=fitz.Matrix(2.0, 2.0), colorspace=fitz.csRGB)
+                img_b64 = base64.b64encode(pix.tobytes("jpeg")).decode()
+                r = requests.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
+                    json={
+                        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+                        "messages": [{"role": "user", "content": [
+                            {"type": "text", "text": "Transcris INTEGRALEMENT tout le texte de cette page. Respecte les titres et paragraphes. Transcris mot pour mot sans reformuler."},
+                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}}
+                        ]}],
+                        "max_tokens": 2048
+                    },
+                    timeout=60
+                )
+                if r.status_code == 200:
+                    t = r.json()["choices"][0]["message"]["content"]
+                    pages_text.append(t)
+                    print(f"Page {i+1}: {len(t)} chars")
+            if pages_text:
+                result = "\n\n".join(pages_text)
+                print(f"OK Groq Vision: {len(result)} chars")
+                return result
+        except ImportError:
+            print("PyMuPDF non dispo")
+        except Exception as e:
+            print(f"Groq Vision: {e}")
+
+    if best_text:
+        print(f"Fallback: {len(best_text)} chars score={best_score:.2f}")
+        return best_text
+
+    return ""
+
+
 
 # ═══════════════════════════════════════
 # EXTRACTION TEXTE IMAGE via Llama 4 Scout
