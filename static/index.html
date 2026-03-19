@@ -1575,7 +1575,7 @@ async function send() {
       var rs = await fetch('/api/chat/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: q, memory: ctx, user_email: userEmail })
+        body: JSON.stringify({ question: q, user_email: userEmail })
       });
       var reader = rs.body.getReader();
       var dec = new TextDecoder();
