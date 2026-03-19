@@ -12,7 +12,7 @@ class ChatRequest(BaseModel):
     image_type: Optional[str] = None
     images: Optional[list] = None
     pdfs: Optional[list] = None
-    memory: Optional[list] = None
+    memory: Optional[object] = None  # accepte string, list ou null
     user_email: Optional[str] = None
     stream: Optional[bool] = True
 
