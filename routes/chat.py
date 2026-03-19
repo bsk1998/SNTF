@@ -8,7 +8,7 @@ router = APIRouter()
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 HF_API_KEY   = os.environ.get("HF_API_KEY")
-VECTOR_TABLE = "n8n_vectors"
+VECTOR_TABLE = "document_chunks"
 
 # ═══════════════════════════════════════
 # CACHE MODÈLE EMBEDDING
@@ -78,7 +78,7 @@ def search_docs(question: str, limit=3):
         conn = get_db()
         cur  = conn.cursor()
         cur.execute(f"""
-            SELECT text, metadata, 1-(embedding <=> %s::vector) AS score
+            SELECT content, metadata, 1-(embedding <=> %s::vector) AS score
             FROM {VECTOR_TABLE}
             ORDER BY embedding <=> %s::vector
             LIMIT %s
@@ -122,6 +122,17 @@ def save_conversation(user_email: str, question: str, answer: str):
         from database import get_db
         conn = get_db()
         cur  = conn.cursor()
+        # Créer la table si elle n'existe pas
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS conversations (
+                id SERIAL PRIMARY KEY,
+                user_email TEXT,
+                question TEXT,
+                answer TEXT,
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        """)
+        conn.commit()
         cur.execute(
             "INSERT INTO conversations (user_email, question, answer) VALUES (%s, %s, %s)",
             (user_email, question[:1000], answer[:5000])
@@ -137,6 +148,11 @@ def load_history(user_email: str, limit=6):
         from database import get_db
         conn = get_db()
         cur  = conn.cursor()
+        # Vérifier que la table existe
+        cur.execute("SELECT to_regclass('public.conversations')")
+        if cur.fetchone()[0] is None:
+            cur.close(); conn.close()
+            return []
         cur.execute(
             "SELECT question, answer, created_at FROM conversations WHERE user_email=%s ORDER BY created_at DESC LIMIT %s",
             (user_email, limit)
