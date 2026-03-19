@@ -173,14 +173,24 @@ async def ask(req: ChatRequest):
         conn = get_db()
         cur = conn.cursor()
         cur.execute(
-            "SELECT content FROM document_chunks ORDER BY embedding <=> %s::vector LIMIT 3",
+            "SELECT content, metadata FROM document_chunks ORDER BY embedding <=> %s::vector LIMIT 5",
             (emb_str,)
         )
         rows = cur.fetchall()
         cur.close()
         conn.close()
         if rows:
-            context = "\n\n".join(r[0][:400] for r in rows if r[0])
+            parts = []
+            for r in rows:
+                if r[0]:
+                    try:
+                        meta = json.loads(r[1]) if r[1] else {}
+                    except:
+                        meta = {}
+                    fname = meta.get("filename", "")
+                    prefix = f"[{fname}]\n" if fname else ""
+                    parts.append(prefix + r[0])
+            context = "\n\n---\n\n".join(parts)
     except Exception as e:
         print(f"[context error - non bloquant] {e}")
         context = ""
@@ -218,18 +228,29 @@ async def ask(req: ChatRequest):
         history = []
 
     # Messages Groq
-    system = """Tu es l'assistant officiel SNTF (Société Nationale des Transports Ferroviaires d'Algérie).
-Tu réponds de façon claire, concise et professionnelle.
-Si la question est en arabe, réponds en arabe.
-Si tu as des documents de contexte, base-toi dessus pour répondre."""
+    system = """Tu es l'assistant officiel de la SNTF (Société Nationale des Transports Ferroviaires d'Algérie).
+
+RÈGLES ABSOLUES :
+1. Réponds UNIQUEMENT en te basant sur les documents fournis dans le contexte
+2. Recopie les informations EXACTEMENT comme elles apparaissent dans les documents — ne résume pas, ne reformule pas, ne complète pas
+3. Si le contexte contient la réponse, cite-la intégralement et clairement
+4. Si le contexte ne contient PAS la réponse, dis simplement : "Je n'ai pas cette information dans les documents disponibles."
+5. Ne jamais inventer, déduire ou compléter avec des informations hors des documents
+6. Si la question est en arabe, réponds en arabe
+7. Réponds de façon structurée et professionnelle"""
 
     messages = [{"role": "system", "content": system}]
     messages.extend(history)
 
     if context:
-        messages.append({"role": "user", "content": f"Documents SNTF disponibles:\n{context}\n\nQuestion: {question}"})
+        messages.append({"role": "user", "content": f"""DOCUMENTS SNTF (source officielle) :
+{context}
+
+QUESTION : {question}
+
+Réponds en te basant STRICTEMENT sur les documents ci-dessus. Cite les informations exactes."""})
     else:
-        messages.append({"role": "user", "content": question})
+        messages.append({"role": "user", "content": f"{question}\n\n(Aucun document disponible — réponds de façon générale sur la SNTF)"})
 
     # Streaming SSE
     def generate():
