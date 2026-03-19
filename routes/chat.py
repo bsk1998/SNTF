@@ -228,29 +228,26 @@ async def ask(req: ChatRequest):
         history = []
 
     # Messages Groq
-    system = """Tu es l'assistant officiel de la SNTF (Société Nationale des Transports Ferroviaires d'Algérie).
+    system = """Tu es l'assistant officiel de la SNTF (Société Nationale des Transports Ferroviaires d'Algérie), sympathique et professionnel.
 
-RÈGLES ABSOLUES :
-1. Réponds UNIQUEMENT en te basant sur les documents fournis dans le contexte
-2. Recopie les informations EXACTEMENT comme elles apparaissent dans les documents — ne résume pas, ne reformule pas, ne complète pas
-3. Si le contexte contient la réponse, cite-la intégralement et clairement
-4. Si le contexte ne contient PAS la réponse, dis simplement : "Je n'ai pas cette information dans les documents disponibles."
-5. Ne jamais inventer, déduire ou compléter avec des informations hors des documents
-6. Si la question est en arabe, réponds en arabe
-7. Réponds de façon structurée et professionnelle"""
+COMPORTEMENT :
+- Pour les salutations et questions générales (bonjour, salut, merci, etc.) : réponds naturellement et propose ton aide
+- Pour les questions techniques SNTF : base-toi sur les documents fournis et cite les informations précises
+- Si la réponse n'est pas dans les documents : dis-le clairement et réponds avec tes connaissances générales sur la SNTF
+- Si la question est en arabe : réponds en arabe
+- Sois concis et direct"""
 
     messages = [{"role": "system", "content": system}]
     messages.extend(history)
 
-    if context:
-        messages.append({"role": "user", "content": f"""DOCUMENTS SNTF (source officielle) :
-{context}
+    # Ne pas injecter les documents pour les questions courtes/salutations
+    greetings = ["salut", "bonjour", "bonsoir", "merci", "hello", "hi", "salam", "مرحبا", "السلام"]
+    is_greeting = len(question.split()) <= 3 and any(g in question.lower() for g in greetings)
 
-QUESTION : {question}
-
-Réponds en te basant STRICTEMENT sur les documents ci-dessus. Cite les informations exactes."""})
+    if context and not is_greeting:
+        messages.append({"role": "user", "content": f"Documents SNTF disponibles :\n{context}\n\nQuestion : {question}"})
     else:
-        messages.append({"role": "user", "content": f"{question}\n\n(Aucun document disponible — réponds de façon générale sur la SNTF)"})
+        messages.append({"role": "user", "content": question})
 
     # Streaming SSE
     def generate():
