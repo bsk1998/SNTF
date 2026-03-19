@@ -112,13 +112,50 @@ Réponds en français, de façon complète et structurée. Commence par : 'Cette
 # ═══════════════════════════════════════
 # CHUNKS
 # ═══════════════════════════════════════
-def split_text_into_chunks(text: str, chunk_size: int = 500) -> list:
-    words = text.split()
+def split_text_into_chunks(text: str, chunk_size: int = 800, overlap: int = 100) -> list:
+    """
+    Découpage intelligent par phrases avec chevauchement.
+    - chunk_size : nombre de caractères max par chunk
+    - overlap    : chevauchement entre chunks pour ne pas couper les idées
+    """
+    # Nettoyer le texte
+    import re
+    text = re.sub(r'\n{3,}', '\n\n', text)  # max 2 sauts de ligne
+    text = re.sub(r' {2,}', ' ', text)          # espaces multiples
+
+    # Découper par paragraphes d'abord
+    paragraphs = [p.strip() for p in re.split(r'\n\n+', text) if p.strip()]
+
     chunks = []
-    for i in range(0, len(words), chunk_size):
-        chunk = " ".join(words[i:i + chunk_size])
-        if len(chunk.strip()) >= 30:
-            chunks.append(chunk)
+    current = ""
+
+    for para in paragraphs:
+        # Si le paragraphe seul dépasse chunk_size, le découper par phrases
+        if len(para) > chunk_size:
+            sentences = re.split(r'(?<=[.!?])\s+', para)
+            for sent in sentences:
+                if len(current) + len(sent) + 1 <= chunk_size:
+                    current += (" " if current else "") + sent
+                else:
+                    if current and len(current.strip()) >= 50:
+                        chunks.append(current.strip())
+                    # Chevauchement : garder les derniers mots du chunk précédent
+                    words = current.split()
+                    overlap_text = " ".join(words[-overlap//5:]) if words else ""
+                    current = (overlap_text + " " + sent).strip() if overlap_text else sent
+        else:
+            if len(current) + len(para) + 2 <= chunk_size:
+                current += ("\n\n" if current else "") + para
+            else:
+                if current and len(current.strip()) >= 50:
+                    chunks.append(current.strip())
+                words = current.split()
+                overlap_text = " ".join(words[-overlap//5:]) if words else ""
+                current = (overlap_text + "\n\n" + para).strip() if overlap_text else para
+
+    if current and len(current.strip()) >= 50:
+        chunks.append(current.strip())
+
     return chunks
 
 # ═══════════════════════════════════════
