@@ -1546,7 +1546,6 @@ async function send() {
 
   var typing = addTyping();
   document.getElementById('btn-send').disabled = true;
-  showDikr();
   trainSound();
 
   try {
@@ -1898,6 +1897,8 @@ var dikrIdx = 0;
 var dikrTimer = null;
 
 function showDikr(idx, animate) {
+  if (idx === undefined || idx === null) return;
+  if (!adkarsLogin || idx >= adkarsLogin.length || !adkarsLogin[idx]) return;
   var el = document.getElementById('dikr-ar-full');
   var ctr = document.getElementById('dikr-counter');
   if (!el) return;
