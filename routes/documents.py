@@ -8,7 +8,7 @@ router = APIRouter()
 
 ADMIN_KEY   = os.environ.get("ADMIN_KEY", "sntf_admin_2024")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-VECTOR_TABLE = "n8n_vectors"
+VECTOR_TABLE = "document_chunks"
 
 # ═══════════════════════════════════════
 # EMBEDDING
@@ -142,7 +142,7 @@ def save_chunks(chunks: list, doc_name: str, category: str, source_filename: str
             "total_chunks": len(chunks)
         })
         cur.execute(
-            f"INSERT INTO {VECTOR_TABLE} (text, metadata, embedding) VALUES (%s, %s::jsonb, %s::vector)",
+            f"INSERT INTO {VECTOR_TABLE} (content, metadata, embedding) VALUES (%s, %s::jsonb, %s::vector)",
             (chunk, metadata, emb_str)
         )
         stored += 1
