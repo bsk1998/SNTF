@@ -185,6 +185,34 @@ def classify_question(q: str) -> str:
     return "question"
 
 # ═══════════════════════════════════════════
+# GROQ VISION — Analyse d'image
+# ═══════════════════════════════════════════
+def call_groq_vision(question: str, image_b64: str, image_type: str) -> str:
+    key = os.environ.get("GROQ_API_KEY", "")
+    if not key:
+        return "⚠️ Clé Groq manquante."
+    try:
+        r = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json={
+                "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+                "messages": [{"role": "user", "content": [
+                    {"type": "text", "text": "Tu es l'assistant SNTF. Analyse cette image avec précision.\n- Lis TOUT le texte visible (codes, messages, chiffres, voyants)\n- Identifie le problème ou la situation\n- Donne une réponse claire et une solution si nécessaire\nQuestion : " + question},
+                    {"type": "image_url", "image_url": {"url": f"data:{image_type};base64,{image_b64}"}}
+                ]}],
+                "max_tokens": 1024
+            },
+            timeout=60
+        )
+        if r.status_code == 200:
+            return r.json()["choices"][0]["message"]["content"]
+        print(f"[vision] HTTP {r.status_code}: {r.text[:200]}")
+        return f"⚠️ Erreur analyse image ({r.status_code})"
+    except Exception as e:
+        return f"⚠️ Erreur vision : {str(e)}"
+
+# ═══════════════════════════════════════════
 # ASK — ENDPOINT PRINCIPAL
 # ═══════════════════════════════════════════
 @router.post("/ask")
@@ -194,6 +222,18 @@ async def ask(req: ChatRequest):
         raise HTTPException(400, "Question vide")
 
     key = os.environ.get("GROQ_API_KEY", "")
+
+    # ── GESTION IMAGE ──
+    if req.image:
+        b64 = req.image
+        if "base64," in b64:
+            b64 = b64.split("base64,")[1]
+        itype = req.image_type or "image/jpeg"
+        answer = call_groq_vision(question, b64, itype)
+        if req.user_email and req.user_email != "admin" and answer:
+            save_conv(req.user_email, "[image] " + question, answer)
+        return {"answer": answer, "sources": [], "mode": "vision"}
+
     lang = detect_lang(question)
     q_type = classify_question(question)
 
