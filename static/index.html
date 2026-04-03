@@ -794,6 +794,12 @@ body{background:#EEF2FF;color:#1A237E;font-family:'Rajdhani',sans-serif;min-heig
 .file-chip{background:#E8F0FE;border:1px solid #BBDEFB;border-radius:8px;padding:5px 10px;font-size:11px;color:#1565C0;display:inline-flex;align-items:center;gap:6px;}
 
 
+
+/* ════ MAIN + PANELS ════ */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+.panel{display:none;flex-direction:column;height:100%;overflow:hidden;}
+.panel.active{display:flex;}
+
 @keyframes shimmer{
   0%{background-position:0%;filter:brightness(1);}
   50%{background-position:100%;filter:brightness(1.15);}
@@ -997,12 +1003,21 @@ input[type=file]{display:none;}
    RESPONSIVE MOBILE — Tout l'écran
 ══════════════════════════════════════════════ */
 @media (max-width: 768px) {
-  .app-inner{flex-direction:column !important;height:100vh;overflow:hidden;}
+  /* Layout */
+  .app-inner{flex-direction:row !important;height:100vh;overflow:hidden;}
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+  .panel{display:none;flex-direction:column;height:100%;overflow:hidden;}
+  .panel.active{display:flex;}
+  #panel-chat{
+    animation:none !important;
+    display:flex;flex-direction:column;
+    height:100vh;min-height:0;
+  }
 
   /* Sidebar — drawer */
   .sidebar{
     position:fixed;left:0;top:0;bottom:0;z-index:500;
-    width:280px;background:#FFFFFF;
+    width:80vw;max-width:300px;background:#FFFFFF;
     transform:translateX(-100%);
     transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);
     box-shadow:4px 0 24px rgba(21,101,192,0.2);
@@ -1017,7 +1032,6 @@ input[type=file]{display:none;}
 
   /* Chat zone */
   .chat-zone,.panel-wrap{flex:1;width:100% !important;height:100vh;display:flex;flex-direction:column;}
-  #panel-chat{animation:none !important;display:flex;flex-direction:column;height:100%;}
 
   /* Mobile header */
   .mobile-header{
@@ -1048,6 +1062,24 @@ input[type=file]{display:none;}
 
   /* Cacher chat-head desktop */
   .chat-head{display:none !important;}
+
+  /* Chat structure sur mobile */
+  .msgs{flex:1;overflow-y:auto;padding:10px 12px;min-height:0;}
+  .chat-foot{
+    flex-shrink:0 !important;
+    padding:8px 10px 12px;
+    background:#FFFFFF !important;
+    border-top:2px solid #E3EAF5 !important;
+    position:relative;z-index:5;
+  }
+  .chat-inp{
+    font-size:16px !important; /* évite zoom iOS */
+    min-height:44px;
+    padding:10px 14px;
+  }
+  #btn-send{width:44px;height:44px;border-radius:10px;}
+  .btn-cam{width:44px;height:44px;border-radius:10px;}
+  .inp-row{gap:8px;}
 
   /* Messages */
   .msgs{flex:1;overflow-y:auto;padding:12px 12px;}
