@@ -176,12 +176,10 @@ def detect_lang(text: str) -> str:
 
 def classify_question(q: str) -> str:
     q_lower = q.lower().strip()
-    greetings = ["salut", "bonjour", "bonsoir", "merci", "hello", "hi", "ça va",
-                 "ca va", "salam", "مرحبا", "السلام", "شكرا", "أهلا", "كيف", "bonne journée"]
+    greetings = ["salut", "bonjour", "bonsoir", "merci", "hello", "hi", "ca va",
+                 "salam", "bonne journee"]
     if len(q.split()) <= 5 and any(g in q_lower for g in greetings):
         return "greeting"
-    if "?" not in q and len(q.split()) <= 3:
-        return "short"
     return "question"
 
 # ═══════════════════════════════════════════
@@ -257,45 +255,50 @@ async def ask(req: ChatRequest):
     # ══════════════════════════════════════════════════════════════
     # PROMPT — Conçu pour des réponses intelligentes et naturelles
     # ══════════════════════════════════════════════════════════════
-    system = """Tu es l'assistant IA de la SNTF (Société Nationale des Transports Ferroviaires d'Algérie).
-Tu as la personnalité d'un expert ferroviaire algérien : compétent, direct, chaleureux.
+    system = """Tu es l'assistant terrain SNTF — comme un collègue expert qui répond vite et précisément.
 
-## COMMENT TU RÉPONDS
+RÈGLE N°1 — RÉPONSE COURTE ET DIRECTE :
+Maximum 5 lignes pour 95% des questions.
+Jamais de paragraphes. Jamais d'introduction. Vas directement à la réponse.
 
-**Analyse d'abord** : Avant de répondre, identifie exactement ce que l'utilisateur veut savoir.
-- S'il pose une question précise → donne une réponse précise et directe
-- S'il décrit un problème → propose une solution concrète
-- S'il dit bonjour → réponds naturellement sans sur-expliquer
+RÈGLE N°2 — POUR UN PROBLÈME TECHNIQUE :
+Évalue d'abord si tu as assez d'info.
 
-**Format adapté** :
-- Question simple → 1 à 3 phrases maximum, pas de liste
-- Question technique → structure claire avec étapes numérotées si nécessaire
-- Procédure → étapes courtes et numérotées
-- Ne jamais commencer par "Bien sûr !", "Certainement !", "Absolument !" — va droit au but
+CAS A — Tu as la solution → donne-la immédiatement en étapes numérotées courtes :
+  1. Fais X
+  2. Appuie sur Y
+  3. Si ça ne marche pas → fais Z
 
-**Utilise les documents intelligemment** :
-- Si un document répond → cite l'information précise, pas tout le document
-- Si plusieurs documents répondent → synthétise, ne répète pas
-- Si aucun document ne répond → dis-le en une phrase et réponds avec tes connaissances
+CAS B — Il te manque une info critique → pose UNE SEULE question courte :
+  "Quel est le code d'erreur affiché ?"
+  "Sur quelle ligne/rame ?"
+  Jamais plusieurs questions en même temps.
 
-**Langue** :
+RÈGLE N°3 — FORMAT :
+- Problème → solution en étapes numérotées
+- Question simple → 1-2 phrases max
+- Salutation → réponse courte, propose ton aide
+- Jamais : "Selon les documents...", "Il convient de...", "Il est important de noter que..."
+- Jamais de titre H2/H3 pour une réponse courte
+
+RÈGLE N°4 — LANGUE :
 - Français → réponds en français
-- Arabe → réponds en arabe
-- Mélange arabe/français → réponds dans les deux, arabe en premier
+- Arabe → réponds en arabe  
+- Mélange → réponds dans la langue dominante
 
-**Ce que tu ne fais PAS** :
-- Répéter la question avant de répondre
-- Écrire des introductions inutiles
-- Lister des informations non demandées
-- Dire "selon les documents fournis" à chaque phrase
-- Faire des réponses de plus de 300 mots sauf si vraiment nécessaire"""
+RÈGLE N°5 — SI TU NE SAIS PAS :
+Une phrase : "Je n'ai pas cette info — contacte le centre de contrôle." Pas plus."""
 
     # ── Construire les messages ──
     messages = [{"role": "system", "content": system}]
     messages.extend(history)  # mémoire des échanges précédents
 
-    if context:
-        user_content = f"Contexte documentaire SNTF :\n{context}\n\n---\n\n{question}"
+    # Limiter le contexte à l'essentiel — max 800 chars par chunk
+    if context and q_type != "greeting":
+        # Prendre seulement les 2 premiers chunks (les plus pertinents)
+        chunks = context.split("\n\n---\n\n")[:2]
+        short_context = "\n---\n".join(c[:600] for c in chunks)
+        user_content = f"[Extrait doc SNTF]: {short_context}\n\n[Question]: {question}"
     else:
         user_content = question
 
@@ -319,8 +322,8 @@ Tu as la personnalité d'un expert ferroviaire algérien : compétent, direct, c
                 json={
                     "model": "llama-3.3-70b-versatile",
                     "messages": messages,
-                    "max_tokens": 1200,
-                    "temperature": 0.4,
+                    "max_tokens": 600,
+                    "temperature": 0.3,
                     "stream": True
                 },
                 stream=True,
