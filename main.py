@@ -32,6 +32,19 @@ def index():
 def upload_page():
     return FileResponse("static/upload.html")
 
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    """Favicon SNTF — évite le 404 dans les logs"""
+    # SVG favicon bleu SNTF encodé inline
+    svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+      <rect width="32" height="32" rx="6" fill="#1565C0"/>
+      <text x="16" y="22" font-family="Arial" font-size="16" font-weight="bold"
+            text-anchor="middle" fill="white">S</text>
+    </svg>"""
+    from fastapi.responses import Response
+    return Response(content=svg, media_type="image/svg+xml",
+                    headers={"Cache-Control": "public, max-age=86400"})
+
 @app.api_route("/health", methods=["GET", "HEAD"])
 def health():
     """Endpoint de santé — utilisé par UptimeRobot pour garder le service éveillé"""
