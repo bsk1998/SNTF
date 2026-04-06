@@ -6,6 +6,9 @@ import os, requests, json, hashlib, math, re
 
 router = APIRouter()
 
+# ═══════════════════════════════════════════
+# SCHÉMAS
+# ═══════════════════════════════════════════
 class ChatRequest(BaseModel):
     question: str
     image: Optional[str] = None
@@ -60,40 +63,69 @@ def test_all():
     return results
 
 # ═══════════════════════════════════════════
-# HISTORY ENDPOINT
+# EMBEDDING — HuggingFace (sémantique réel)
 # ═══════════════════════════════════════════
-@router.post("/history")
-def get_history(req: HistoryRequest):
-    try:
-        from database import get_db
-        conn = get_db()
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT question, answer, created_at FROM conversations WHERE user_email=%s ORDER BY created_at DESC LIMIT 20",
-            (req.user_email,)
-        )
-        rows = cur.fetchall()
-        cur.close(); conn.close()
-        rows.reverse()
-        return {"success": True, "history": [
-            {"question": r[0], "answer": r[1], "time": str(r[2] or "")} for r in rows
-        ], "count": len(rows)}
-    except Exception as e:
-        return {"success": False, "history": [], "count": 0, "error": str(e)}
+_hf_model = None
+
+def get_embedding(text: str) -> list:
+    """
+    Embedding sémantique via HuggingFace API.
+    Fallback sur sentence-transformers local, puis hash MD5.
+    """
+    global _hf_model
+    hf_key = os.environ.get("HF_API_KEY", "")
+
+    # 1. HuggingFace API (priorité)
+    if hf_key:
+        try:
+            r = requests.post(
+                "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+                headers={"Authorization": f"Bearer {hf_key}"},
+                json={"inputs": text[:512], "options": {"wait_for_model": True}},
+                timeout=20
+            )
+            if r.status_code == 200:
+                emb = r.json()
+                if isinstance(emb[0], list):
+                    import numpy as np
+                    emb = np.mean(emb, axis=0).tolist()
+                if len(emb) > 0:
+                    return emb
+        except Exception as e:
+            print(f"[HF API] {e}")
+
+    # 2. sentence-transformers local
+    if _hf_model is None:
+        try:
+            from sentence_transformers import SentenceTransformer
+            _hf_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+        except:
+            _hf_model = False
+
+    if _hf_model:
+        try:
+            return _hf_model.encode(text[:512]).tolist()
+        except:
+            pass
+
+    # 3. Fallback hash MD5
+    words = text.lower().split()
+    vector = [0.0] * 384
+    for i, word in enumerate(words[:200]):
+        h = int(hashlib.md5(word.encode()).hexdigest(), 16)
+        vector[h % 384] += 1.0 / (i + 1)
+    norm = math.sqrt(sum(x**2 for x in vector)) or 1.0
+    return [x / norm for x in vector]
 
 # ═══════════════════════════════════════════
 # RECHERCHE DOCUMENTS
 # ═══════════════════════════════════════════
-def search_docs(question: str, limit: int = 6) -> list:
+def search_docs(question: str, limit: int = 5) -> list:
     try:
         from database import get_db
-        words = question.lower().split()
-        vector = [0.0] * 384
-        for i, word in enumerate(words[:200]):
-            h = int(hashlib.md5(word.encode()).hexdigest(), 16)
-            vector[h % 384] += 1.0 / (i + 1)
-        norm = math.sqrt(sum(x**2 for x in vector)) or 1.0
-        emb = [x / norm for x in vector]
+        emb = get_embedding(question)
+        if not emb:
+            return []
         emb_str = "[" + ",".join(f"{x:.6f}" for x in emb) + "]"
         conn = get_db()
         cur = conn.cursor()
@@ -105,7 +137,7 @@ def search_docs(question: str, limit: int = 6) -> list:
         cur.close(); conn.close()
         results = []
         for r in rows:
-            if r[0] and float(r[2]) > 0.1:
+            if r[0] and float(r[2]) > 0.15:
                 try:
                     meta = json.loads(r[1]) if r[1] else {}
                 except:
@@ -113,6 +145,7 @@ def search_docs(question: str, limit: int = 6) -> list:
                 results.append({
                     "content": r[0],
                     "filename": meta.get("filename", ""),
+                    "chunk": meta.get("chunk", ""),
                     "score": float(r[2])
                 })
         return results
@@ -123,21 +156,25 @@ def search_docs(question: str, limit: int = 6) -> list:
 # ═══════════════════════════════════════════
 # MÉMOIRE CONVERSATION
 # ═══════════════════════════════════════════
-def load_history(user_email: str, limit: int = 8) -> list:
+def ensure_conv_table(cur, conn):
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS conversations (
+            id SERIAL PRIMARY KEY,
+            user_email TEXT,
+            question TEXT,
+            answer TEXT,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    """)
+    conn.commit()
+
+def load_history(user_email: str, limit: int = 4) -> list:
+    """Charge les N derniers échanges pour la mémoire courte."""
     try:
         from database import get_db
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS conversations (
-                id SERIAL PRIMARY KEY,
-                user_email TEXT,
-                question TEXT,
-                answer TEXT,
-                created_at TIMESTAMP DEFAULT NOW()
-            )
-        """)
-        conn.commit()
+        ensure_conv_table(cur, conn)
         cur.execute(
             "SELECT question, answer FROM conversations WHERE user_email=%s ORDER BY created_at DESC LIMIT %s",
             (user_email, limit)
@@ -146,8 +183,9 @@ def load_history(user_email: str, limit: int = 8) -> list:
         cur.close(); conn.close()
         history = []
         for r in reversed(rows):
-            history.append({"role": "user",      "content": r[0]})
-            history.append({"role": "assistant",  "content": r[1][:800]})
+            history.append({"role": "user", "content": r[0]})
+            # Résumé court de la réponse précédente — max 200 chars
+            history.append({"role": "assistant", "content": r[1][:200]})
         return history
     except Exception as e:
         print(f"[load_history] {e}")
@@ -158,9 +196,10 @@ def save_conv(user_email: str, question: str, answer: str):
         from database import get_db
         conn = get_db()
         cur = conn.cursor()
+        ensure_conv_table(cur, conn)
         cur.execute(
             "INSERT INTO conversations (user_email, question, answer) VALUES (%s, %s, %s)",
-            (user_email, question[:1000], answer[:5000])
+            (user_email, question[:1000], answer[:3000])
         )
         conn.commit()
         cur.close(); conn.close()
@@ -168,22 +207,42 @@ def save_conv(user_email: str, question: str, answer: str):
         print(f"[save_conv] {e}")
 
 # ═══════════════════════════════════════════
-# DÉTECTION LANGUE ET TYPE DE QUESTION
+# DÉTECTION LANGUE
 # ═══════════════════════════════════════════
 def detect_lang(text: str) -> str:
-    arabic_chars = sum(1 for c in text if '\u0600' <= c <= '\u06FF')
-    return "ar" if arabic_chars > len(text) * 0.3 else "fr"
+    arabic = sum(1 for c in text if "\u0600" <= c <= "\u06FF")
+    return "ar" if arabic > len(text) * 0.3 else "fr"
 
 def classify_question(q: str) -> str:
     q_lower = q.lower().strip()
-    greetings = ["salut", "bonjour", "bonsoir", "merci", "hello", "hi", "ca va",
-                 "salam", "bonne journee"]
+
+    # Salutations simples
+    greetings = ["salut", "bonjour", "bonsoir", "merci", "hello", "hi",
+                 "ca va", "salam", "bonne journee", "bonne nuit"]
     if len(q.split()) <= 5 and any(g in q_lower for g in greetings):
         return "greeting"
+
+    # Mots d'urgence / technique
+    urgent_words = [
+        "panne", "urgent", "urgence", "bloqué", "bloquée", "blocage",
+        "alarme", "alerte", "erreur", "code", "défaut", "incident",
+        "arrêt", "arrêté", "stopper", "démarrer", "démarrage",
+        "redémarrer", "marche pas", "fonctionne pas", "ne répond",
+        "comment", "procédure", "étape", "que faire", "quoi faire",
+        "عطل", "خطأ", "مشكل", "توقف", "كيف", "إيقاف", "تشغيل"
+    ]
+    if any(u in q_lower for u in urgent_words):
+        return "urgent"
+
+    # Demande de source explicite
+    source_words = ["source", "document", "page", "référence", "où", "dans quel"]
+    if any(s in q_lower for s in source_words):
+        return "source"
+
     return "question"
 
 # ═══════════════════════════════════════════
-# GROQ VISION — Analyse d'image
+# GROQ VISION
 # ═══════════════════════════════════════════
 def call_groq_vision(question: str, image_b64: str, image_type: str) -> str:
     key = os.environ.get("GROQ_API_KEY", "")
@@ -196,19 +255,60 @@ def call_groq_vision(question: str, image_b64: str, image_type: str) -> str:
             json={
                 "model": "meta-llama/llama-4-scout-17b-16e-instruct",
                 "messages": [{"role": "user", "content": [
-                    {"type": "text", "text": "Tu es l'assistant SNTF. Analyse cette image avec précision.\n- Lis TOUT le texte visible (codes, messages, chiffres, voyants)\n- Identifie le problème ou la situation\n- Donne une réponse claire et une solution si nécessaire\nQuestion : " + question},
+                    {"type": "text", "text": "Expert SNTF. Analyse cette image.\n- Lis tout le texte visible (codes erreur, voyants, affichages)\n- Identifie le problème\n- Donne la solution en étapes courtes\nQuestion : " + question},
                     {"type": "image_url", "image_url": {"url": f"data:{image_type};base64,{image_b64}"}}
                 ]}],
-                "max_tokens": 1024
+                "max_tokens": 600
             },
             timeout=60
         )
         if r.status_code == 200:
             return r.json()["choices"][0]["message"]["content"]
-        print(f"[vision] HTTP {r.status_code}: {r.text[:200]}")
-        return f"⚠️ Erreur analyse image ({r.status_code})"
+        return call_groq_text(question)
     except Exception as e:
         return f"⚠️ Erreur vision : {str(e)}"
+
+def call_groq_text(question: str) -> str:
+    key = os.environ.get("GROQ_API_KEY", "")
+    if not key:
+        return "⚠️ Clé Groq manquante."
+    try:
+        r = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json={"model": "llama-3.3-70b-versatile",
+                  "messages": [{"role": "user", "content": question}],
+                  "max_tokens": 600, "temperature": 0.3},
+            timeout=30
+        )
+        if r.status_code == 200:
+            return r.json()["choices"][0]["message"]["content"]
+        return f"⚠️ Erreur {r.status_code}"
+    except Exception as e:
+        return f"⚠️ Erreur : {str(e)}"
+
+# ═══════════════════════════════════════════
+# HISTORY ENDPOINT
+# ═══════════════════════════════════════════
+@router.post("/history")
+def get_history(req: HistoryRequest):
+    try:
+        from database import get_db
+        conn = get_db()
+        cur = conn.cursor()
+        ensure_conv_table(cur, conn)
+        cur.execute(
+            "SELECT question, answer, created_at FROM conversations WHERE user_email=%s ORDER BY created_at DESC LIMIT 50",
+            (req.user_email,)
+        )
+        rows = cur.fetchall()
+        cur.close(); conn.close()
+        rows.reverse()
+        return {"success": True, "history": [
+            {"question": r[0], "answer": r[1], "time": str(r[2] or "")} for r in rows
+        ], "count": len(rows)}
+    except Exception as e:
+        return {"success": False, "history": [], "count": 0, "error": str(e)}
 
 # ═══════════════════════════════════════════
 # ASK — ENDPOINT PRINCIPAL
@@ -221,94 +321,107 @@ async def ask(req: ChatRequest):
 
     key = os.environ.get("GROQ_API_KEY", "")
 
-    # ── GESTION IMAGE ──
+    # ── Image ──
     if req.image:
         b64 = req.image
         if "base64," in b64:
             b64 = b64.split("base64,")[1]
-        itype = req.image_type or "image/jpeg"
-        answer = call_groq_vision(question, b64, itype)
-        if req.user_email and req.user_email != "admin" and answer:
+        answer = call_groq_vision(question, b64, req.image_type or "image/jpeg")
+        if req.user_email and req.user_email != "admin":
             save_conv(req.user_email, "[image] " + question, answer)
         return {"answer": answer, "sources": [], "mode": "vision"}
 
-    lang = detect_lang(question)
-    q_type = classify_question(question)
+    lang    = detect_lang(question)
+    q_type  = classify_question(question)
 
-    # ── Recherche documents (sauf salutations) ──
+    # ── Recherche documents ──
     docs = []
     context = ""
-    if q_type == "question":
-        docs = search_docs(question, limit=6)
+    if q_type in ("question", "urgent", "source"):
+        docs = search_docs(question, limit=5)
         if docs:
+            # Trier par score décroissant — garder les 3 meilleurs
+            docs = sorted(docs, key=lambda d: d["score"], reverse=True)[:3]
             parts = []
             for d in docs:
                 prefix = f"[{d['filename']}]\n" if d['filename'] else ""
-                parts.append(prefix + d['content'])
-            context = "\n\n---\n\n".join(parts)
+                parts.append(prefix + d['content'][:500])
+            context = "\n---\n".join(parts)
 
-    # ── Historique conversation ──
+    # ── Historique court ──
     history = []
     if req.user_email and req.user_email != "admin":
-        history = load_history(req.user_email, limit=8)
+        history = load_history(req.user_email, limit=4)
 
     # ══════════════════════════════════════════════════════════════
-    # PROMPT — Conçu pour des réponses intelligentes et naturelles
+    # PROMPT selon le type de question
     # ══════════════════════════════════════════════════════════════
-    system = """Tu es l'assistant terrain SNTF — comme un collègue expert qui répond vite et précisément.
+    if q_type == "greeting":
+        system = "Tu es l'assistant SNTF. Réponds chaleureusement en 1-2 phrases et propose ton aide pour les questions techniques ou procédures SNTF."
 
-RÈGLE N°1 — RÉPONSE COURTE ET DIRECTE :
-Maximum 5 lignes pour 95% des questions.
-Jamais de paragraphes. Jamais d'introduction. Vas directement à la réponse.
+    elif q_type == "urgent":
+        system = """Assistant terrain SNTF — MODE URGENCE.
 
-RÈGLE N°2 — POUR UN PROBLÈME TECHNIQUE :
-Évalue d'abord si tu as assez d'info.
+RÈGLES STRICTES :
+1. Réponds en MAX 6 lignes
+2. Si tu as la solution → étapes numérotées immédiates (1. Fais X  2. Appuie sur Y)
+3. Si info manquante → UNE seule question : "Quel code erreur ?" ou "Quelle rame ?"
+4. Jamais d'introduction. Jamais de "selon les documents". Jamais de paragraphe.
+5. Termine par : "✅ Résolu ?" ou "⚠️ Si persiste → Centre de contrôle"
+6. Langue : """ + ("arabe" if lang == "ar" else "français")
 
-CAS A — Tu as la solution → donne-la immédiatement en étapes numérotées courtes :
-  1. Fais X
-  2. Appuie sur Y
-  3. Si ça ne marche pas → fais Z
+    elif q_type == "source":
+        system = """Assistant SNTF. L'utilisateur demande les sources.
+Réponds avec la réponse ET indique clairement : "📄 Source : [nom du fichier], chunk [numéro]"
+Sois précis sur l'origine de chaque information."""
 
-CAS B — Il te manque une info critique → pose UNE SEULE question courte :
-  "Quel est le code d'erreur affiché ?"
-  "Sur quelle ligne/rame ?"
-  Jamais plusieurs questions en même temps.
+    else:
+        system = """Assistant terrain SNTF — expert ferroviaire algérien.
 
-RÈGLE N°3 — FORMAT :
-- Problème → solution en étapes numérotées
-- Question simple → 1-2 phrases max
-- Salutation → réponse courte, propose ton aide
-- Jamais : "Selon les documents...", "Il convient de...", "Il est important de noter que..."
-- Jamais de titre H2/H3 pour une réponse courte
+RÈGLES :
+1. Réponse directe et courte — max 8 lignes
+2. Procédure → étapes numérotées courtes
+3. Pas d'introduction, pas de "selon les documents"
+4. Si info insuffisante → 1 seule question ciblée
+5. Langue : """ + ("arabe" if lang == "ar" else "français")
 
-RÈGLE N°4 — LANGUE :
-- Français → réponds en français
-- Arabe → réponds en arabe  
-- Mélange → réponds dans la langue dominante
-
-RÈGLE N°5 — SI TU NE SAIS PAS :
-Une phrase : "Je n'ai pas cette info — contacte le centre de contrôle." Pas plus."""
-
-    # ── Construire les messages ──
+    # ── Construction messages ──
     messages = [{"role": "system", "content": system}]
-    messages.extend(history)  # mémoire des échanges précédents
+    messages.extend(history)
 
-    # Limiter le contexte à l'essentiel — max 800 chars par chunk
-    if context and q_type != "greeting":
-        # Prendre seulement les 2 premiers chunks (les plus pertinents)
-        chunks = context.split("\n\n---\n\n")[:2]
-        short_context = "\n---\n".join(c[:600] for c in chunks)
-        user_content = f"[Extrait doc SNTF]: {short_context}\n\n[Question]: {question}"
+    if context:
+        user_content = f"[Doc SNTF]: {context}\n\n[Question]: {question}"
     else:
         user_content = question
 
     messages.append({"role": "user", "content": user_content})
 
+    # ── Boutons de suivi (générés selon contexte) ──
+    def get_quick_replies(q_type: str, has_docs: bool) -> list:
+        if q_type == "greeting":
+            return []
+        buttons = []
+        if q_type == "urgent":
+            buttons = ["✅ Résolu", "⚠️ Ça persiste", "📞 Centre de contrôle"]
+        elif has_docs:
+            buttons = ["📄 Sources du document", "🔍 Plus de détails", "📋 Étape suivante"]
+        else:
+            buttons = ["🔍 Plus de détails", "📋 Autre question", "📞 Assistance"]
+        return buttons
+
+    quick_replies = get_quick_replies(q_type, bool(docs))
+    sources = list(set(d["filename"] for d in docs if d["filename"]))
+
     # ── Streaming ──
     def generate():
         full_answer = ""
-        sources = list(set(d['filename'] for d in docs if d['filename']))
-        yield "data: " + json.dumps({"sources": sources, "web": False}) + "\n\n"
+
+        # Premier chunk : métadonnées
+        yield "data: " + json.dumps({
+            "sources": sources,
+            "web": False,
+            "quick_replies": quick_replies
+        }) + "\n\n"
 
         if not key:
             yield "data: " + json.dumps({"token": "⚠️ GROQ_API_KEY manquante."}) + "\n\n"
