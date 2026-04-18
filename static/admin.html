@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SNTF — Panneau Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Rajdhani:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bleu-vif: #1565C0;
+  --bleu-fonce: #0D47A1;
+  --fond: #EEF2FF;
+  --blanc: #FFFFFF;
+  --rouge: #C62828;
+  --vert: #2E7D32;
+  --jaune: #F57F17;
+  --gris: #90A4AE;
+  --bordure: #E3EAF5;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--fond);
+  color: #1A237E;
+  font-family: 'Rajdhani', sans-serif;
+  min-height: 100vh;
+}
+
+/* ════════════ LOGIN ════════════ */
+#screen-login {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #0A1628 0%, #0D1F3C 60%, #1E4080 100%);
+}
+.login-card {
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 44px 40px 36px;
+  width: 420px; max-width: 94vw;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+}
+.login-logo {
+  font-family: 'Cinzel', serif;
+  font-size: 48px; font-weight: 900;
+  background: linear-gradient(135deg, #1565C0, #0D47A1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-align: center; letter-spacing: 10px; margin-bottom: 6px;
+}
+.login-sub {
+  font-size: 11px; letter-spacing: 4px; color: #90A4AE;
+  text-align: center; text-transform: uppercase; margin-bottom: 32px;
+  font-family: 'Space Mono', monospace;
+}
+.login-err {
+  font-size: 12px; color: #C62828;
+  text-align: center; min-height: 20px; margin-bottom: 10px;
+  font-family: 'Space Mono', monospace;
+}
+.login-inp {
+  width: 100%; padding: 14px 18px; margin-bottom: 14px;
+  border: 1.5px solid #BBDEFB; border-radius: 12px;
+  font-size: 14px; font-family: 'Rajdhani', sans-serif;
+  outline: none; transition: border-color 0.2s;
+  color: #1A237E; background: #F5F7FF; letter-spacing: 2px;
+}
+.login-inp:focus { border-color: #1565C0; background: #fff; }
+.btn-login {
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, #1565C0, #0D47A1);
+  border: none; border-radius: 12px; color: #fff;
+  font-family: 'Rajdhani', sans-serif; font-size: 14px;
+  letter-spacing: 3px; cursor: pointer; transition: opacity 0.2s;
+}
+.btn-login:hover { opacity: 0.88; }
+
+/* ════════════ LAYOUT APP ════════════ */
+#app { display: none; height: 100vh; }
+.app-inner { display: flex; height: 100vh; overflow: hidden; }
+
+/* ════════════ SIDEBAR ════════════ */
+.sidebar {
+  width: 260px; min-width: 260px; height: 100vh;
+  background: #FFFFFF; border-right: 2px solid var(--bordure);
+  display: flex; flex-direction: column;
+  box-shadow: 4px 0 20px rgba(21,101,192,0.08);
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+.sb-logo {
+  padding: 22px 20px 18px;
+  border-bottom: 1px solid var(--bordure);
+  background: linear-gradient(135deg, #1565C0, #0D47A1);
+  flex-shrink: 0;
+}
+.sb-logo-txt { font-family: 'Cinzel', serif; font-size: 24px; font-weight: 900; color: #FFFFFF; letter-spacing: 6px; }
+.sb-logo-sub { font-size: 10px; letter-spacing: 3px; color: rgba(255,255,255,0.65); text-transform: uppercase; margin-top: 3px; }
+.sb-user {
+  padding: 16px 20px; border-bottom: 1px solid var(--bordure);
+  display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+}
+.sb-av {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: linear-gradient(135deg, #1565C0, #0D47A1);
+  color: #fff; font-family: 'Cinzel', serif; font-weight: 700; font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 3px 10px rgba(21,101,192,0.3);
+}
+.sb-name { font-size: 14px; font-weight: 700; color: #1A237E; }
+.sb-role { font-size: 11px; color: #1565C0; letter-spacing: 1px; }
+.sb-section { padding: 14px 12px 8px; }
+.sb-lbl {
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  color: #90A4AE; margin-bottom: 6px; padding: 0 8px;
+  font-family: 'Space Mono', monospace;
+}
+.sb-btn {
+  display: flex; align-items: center; gap: 10px; padding: 11px 14px;
+  background: none; border: none; color: #455A64; border-radius: 10px;
+  cursor: pointer; font-family: 'Rajdhani', sans-serif; font-size: 13px;
+  letter-spacing: 1px; transition: all 0.2s; width: 100%; text-align: left;
+  font-weight: 600;
+}
+.sb-btn:hover { background: #E8F0FE; color: #1565C0; transform: translateX(3px); }
+.sb-btn.active { background: #E8F0FE; color: #1565C0; border-left: 3px solid #1565C0; font-weight: 700; }
+.sb-footer { margin-top: auto; padding: 16px; border-top: 1px solid var(--bordure); flex-shrink: 0; }
+.btn-logout {
+  width: 100%; padding: 10px 16px;
+  background: #FFF3F3; border: 1px solid #FFCDD2;
+  border-radius: 10px; color: #C62828; font-size: 12px;
+  letter-spacing: 1px; cursor: pointer; text-align: center;
+  transition: all 0.2s; font-weight: 600; font-family: 'Rajdhani', sans-serif;
+}
+.btn-logout:hover { background: #FFEBEE; }
+
+/* ════════════ CONTENU PRINCIPAL ════════════ */
+.main {
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden; background: #F0F4FF; min-width: 0;
+}
+
+/* ════════════ PANELS ════════════ */
+.panel { display: none; flex-direction: column; height: 100%; overflow-y: auto; }
+.panel.active { display: flex; }
+.panel-inner { padding: 30px 36px; flex: 1; }
+
+.panel-head { margin-bottom: 24px; }
+.panel-title {
+  font-family: 'Cinzel', serif; font-size: 22px; font-weight: 700;
+  color: #1A237E; letter-spacing: 3px; margin-bottom: 4px;
+}
+.panel-sub {
+  font-size: 11px; color: #90A4AE; letter-spacing: 2px;
+  text-transform: uppercase; font-family: 'Space Mono', monospace;
+}
+
+/* ════════════ STATS CARDS ════════════ */
+.stats-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px; margin-bottom: 26px;
+}
+.stat-card {
+  background: #FFFFFF; border: 1px solid var(--bordure); border-radius: 14px;
+  padding: 22px 18px; text-align: center;
+  box-shadow: 0 2px 12px rgba(21,101,192,0.06);
+  transition: box-shadow 0.2s;
+}
+.stat-card:hover { box-shadow: 0 4px 20px rgba(21,101,192,0.12); }
+.stat-val { font-family: 'Cinzel', serif; font-size: 36px; font-weight: 700; color: #1565C0; }
+.stat-lbl { font-size: 10px; letter-spacing: 2px; color: #90A4AE; text-transform: uppercase; margin-top: 5px; font-family: 'Space Mono', monospace; }
+
+/* ════════════ SECTION ════════════ */
+.section-head { display: flex; align-items: center; justify-content: space-between; margin: 28px 0 16px; }
+.section-title { font-size: 15px; font-weight: 700; color: #1A237E; letter-spacing: 1px; }
+.btn-refresh {
+  padding: 8px 16px; border: 1.5px solid #BBDEFB; border-radius: 8px;
+  background: #fff; color: #1565C0; font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: 'Rajdhani', sans-serif; letter-spacing: 1px;
+  transition: all 0.2s;
+}
+.btn-refresh:hover { background: #E8F0FE; }
+
+/* ════════════ STATUS ════════════ */
+#db-status { font-size: 13px; color: #90A4AE; margin-bottom: 22px; letter-spacing: 1px; }
+
+/* ════════════ DOCUMENTS ════════════ */
+.upload-card {
+  background: #FFFFFF; border: 1px solid var(--bordure); border-radius: 16px;
+  padding: 24px 24px 20px; margin-bottom: 8px;
+  box-shadow: 0 2px 12px rgba(21,101,192,0.05);
+}
+.drop-zone {
+  border: 2px dashed #BBDEFB; border-radius: 14px;
+  padding: 36px 20px; text-align: center; cursor: pointer;
+  transition: all 0.2s; margin-bottom: 18px; background: #F8FAFF;
+}
+.drop-zone:hover, .drop-zone.over { border-color: #1565C0; background: #E8F0FE; }
+.drop-icon { font-size: 42px; margin-bottom: 10px; }
+.drop-title { font-size: 15px; font-weight: 600; color: #1A237E; margin-bottom: 5px; }
+.drop-desc { font-size: 12px; color: #90A4AE; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.form-group label {
+  display: block; font-size: 11px; letter-spacing: 2px;
+  text-transform: uppercase; color: #90A4AE; margin-bottom: 5px;
+  font-family: 'Space Mono', monospace;
+}
+.form-group input, .form-group select {
+  width: 100%; padding: 11px 14px;
+  border: 1.5px solid #BBDEFB; border-radius: 8px;
+  font-size: 13px; font-family: 'Rajdhani', sans-serif;
+  outline: none; background: #F5F7FF; color: #1A237E;
+  transition: border-color 0.2s;
+}
+.form-group input:focus, .form-group select:focus { border-color: #1565C0; background: #fff; }
+.form-group select option { background: #fff; color: #1A237E; }
+.key-field { margin-bottom: 16px; }
+.key-field label {
+  display: block; font-size: 11px; letter-spacing: 2px;
+  text-transform: uppercase; color: #90A4AE; margin-bottom: 5px;
+  font-family: 'Space Mono', monospace;
+}
+.key-field input {
+  width: 100%; padding: 11px 14px;
+  border: 1.5px solid #FFCDD2; border-radius: 8px;
+  font-size: 13px; font-family: 'Space Mono', monospace;
+  outline: none; background: #FFF3F3; color: #B71C1C;
+  letter-spacing: 2px;
+}
+.key-field input:focus { border-color: #EF5350; background: #fff; }
+.sel-file-row {
+  margin-bottom: 14px; padding: 10px 14px;
+  background: #E8F0FE; border-radius: 8px; border: 1px solid #BBDEFB;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sel-file-nm { font-size: 13px; color: #1565C0; font-weight: 600; }
+.btn-rm-f {
+  background: none; border: none; color: #C62828;
+  cursor: pointer; font-size: 12px; font-family: 'Rajdhani', sans-serif;
+  font-weight: 600; letter-spacing: 1px;
+}
+.btn-upload {
+  width: 100%; padding: 13px;
+  background: linear-gradient(135deg, #1565C0, #0D47A1);
+  border: none; border-radius: 10px; color: #fff;
+  font-family: 'Rajdhani', sans-serif; font-size: 14px;
+  letter-spacing: 2px; cursor: pointer; transition: opacity 0.2s; margin-top: 4px;
+}
+.btn-upload:hover:not(:disabled) { opacity: 0.88; }
+.btn-upload:disabled { opacity: 0.4; cursor: not-allowed; }
+.prog-wrap { display: none; margin-top: 14px; }
+.prog-bar { height: 4px; background: #E3EAF5; border-radius: 2px; overflow: hidden; margin-bottom: 6px; }
+.prog-fill { height: 100%; background: linear-gradient(90deg, #1565C0, #42A5F5); transition: width 0.5s; width: 0%; }
+.prog-msg { font-size: 12px; color: #90A4AE; letter-spacing: 1px; }
+.prog-msg.ok { color: #2E7D32; font-weight: 600; }
+.prog-msg.err { color: #C62828; font-weight: 600; }
+.docs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.doc-card {
+  background: #FFFFFF; border: 1px solid var(--bordure); border-radius: 12px;
+  padding: 16px; position: relative;
+  box-shadow: 0 2px 10px rgba(21,101,192,0.05); transition: box-shadow 0.2s;
+}
+.doc-card:hover { box-shadow: 0 4px 18px rgba(21,101,192,0.12); }
+.doc-chunks {
+  position: absolute; top: 10px; right: 10px; font-size: 10px;
+  color: #1565C0; background: #E8F0FE; padding: 2px 8px;
+  border-radius: 20px; font-family: 'Space Mono', monospace;
+}
+.doc-ico { font-size: 26px; margin-bottom: 8px; }
+.doc-nm { font-size: 13px; font-weight: 600; color: #1A237E; margin-bottom: 4px; padding-right: 64px; word-break: break-word; }
+.doc-ct { font-size: 11px; color: #90A4AE; letter-spacing: 1px; margin-bottom: 12px; }
+.btn-del-doc {
+  padding: 5px 14px; background: #FFF3F3; border: 1px solid #FFCDD2;
+  border-radius: 6px; color: #C62828; font-size: 11px; font-weight: 600;
+  cursor: pointer; font-family: 'Rajdhani', sans-serif; transition: all 0.2s;
+}
+.btn-del-doc:hover { background: #FFEBEE; }
+
+/* ════════════ USERS ════════════ */
+.users-stats-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.upill {
+  font-size: 12px; padding: 5px 14px; border-radius: 20px;
+  font-weight: 600; font-family: 'Rajdhani', sans-serif;
+}
+.upill-tot  { background: #E8F0FE; color: #1565C0; }
+.upill-ok   { background: #E8F5E9; color: #2E7D32; }
+.upill-pend { background: #FFF8E1; color: #F57F17; }
+.upill-blk  { background: #FFEBEE; color: #C62828; }
+.auto-toggle-bar {
+  display: flex; align-items: center; gap: 14px; padding: 14px 18px;
+  background: #F0F4FF; border-radius: 10px; margin-bottom: 16px;
+  border: 1px solid var(--bordure);
+}
+.atl { flex: 1; }
+.atl span { display: block; font-size: 13px; font-weight: 700; color: #1A237E; }
+.atl small { font-size: 11px; color: #90A4AE; }
+.tsw { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
+.tsw input { opacity: 0; width: 0; height: 0; }
+.ts-sl {
+  position: absolute; inset: 0; background: #B0BEC5;
+  border-radius: 26px; cursor: pointer; transition: 0.2s;
+}
+.tsw input:checked + .ts-sl { background: #1565C0; }
+.ts-sl::before {
+  content: ''; position: absolute; width: 20px; height: 20px;
+  left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: 0.2s;
+}
+.tsw input:checked + .ts-sl::before { transform: translateX(20px); }
+.users-toolbar { display: flex; gap: 8px; margin-bottom: 14px; align-items: center; flex-wrap: wrap; }
+.users-search {
+  flex: 1; min-width: 180px; padding: 10px 14px;
+  border: 1.5px solid #BBDEFB; border-radius: 8px;
+  font-size: 13px; outline: none; background: #F5F7FF; color: #1A237E;
+  font-family: 'Rajdhani', sans-serif; transition: border-color 0.2s;
+}
+.users-search:focus { border-color: #1565C0; background: #fff; }
+.flt-btn {
+  padding: 9px 14px; border: 1.5px solid #BBDEFB; border-radius: 8px;
+  background: #fff; color: #455A64; font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: 'Rajdhani', sans-serif; transition: all 0.2s;
+}
+.flt-btn:hover { background: #E8F0FE; color: #1565C0; border-color: #90CAF9; }
+.flt-btn.active { background: #E8F0FE; color: #1565C0; border-color: #1565C0; }
+.utbl { width: 100%; border-collapse: collapse; }
+.utbl th {
+  text-align: left; padding: 10px 14px;
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  color: #90A4AE; font-family: 'Space Mono', monospace; font-weight: 400;
+  border-bottom: 2px solid var(--bordure); white-space: nowrap;
+}
+.utbl td {
+  padding: 12px 14px; font-size: 13px; color: #37474F;
+  border-bottom: 1px solid #F0F4FF; vertical-align: middle;
+}
+.utbl tr:hover td { background: #F8FAFF; }
+.uav {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: #E8F0FE; display: inline-flex; align-items: center;
+  justify-content: center; font-size: 12px; font-weight: 700;
+  color: #1565C0; flex-shrink: 0; vertical-align: middle; margin-right: 8px;
+}
+.badge {
+  display: inline-flex; align-items: center; font-size: 11px;
+  padding: 3px 10px; border-radius: 20px; font-weight: 600; white-space: nowrap;
+}
+.badge-ok  { background: #E8F5E9; color: #2E7D32; }
+.badge-pnd { background: #FFF8E1; color: #F57F17; }
+.badge-blk { background: #FFEBEE; color: #C62828; }
+.ba {
+  padding: 5px 12px; border-radius: 6px; font-size: 11px;
+  cursor: pointer; font-family: 'Rajdhani', sans-serif;
+  font-weight: 600; border: 1px solid; transition: all 0.2s;
+  margin-right: 4px; white-space: nowrap;
+}
+.ba-apr { background: #E8F5E9; border-color: #A5D6A7; color: #2E7D32; }
+.ba-apr:hover { background: #C8E6C9; }
+.ba-blk { background: #FFF8E1; border-color: #FFE082; color: #F57F17; }
+.ba-blk:hover { background: #FFECB3; }
+.ba-unb { background: #E8F0FE; border-color: #BBDEFB; color: #1565C0; }
+.ba-unb:hover { background: #BBDEFB; }
+.ba-del { background: #FFEBEE; border-color: #FFCDD2; color: #C62828; }
+.ba-del:hover { background: #FFCDD2; }
+
+/* ════════════ LOADING ════════════ */
+.loading {
+  text-align: center; padding: 44px 20px;
+  color: #90A4AE; font-size: 13px; letter-spacing: 2px;
+  font-family: 'Space Mono', monospace;
+}
+
+/* ════════════ TOAST ════════════ */
+.toast {
+  position: fixed; bottom: 26px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #FFFFFF; border: 1.5px solid #BBDEFB;
+  border-radius: 12px; padding: 13px 26px; font-size: 13px; letter-spacing: 1px;
+  opacity: 0; transition: all 0.35s; pointer-events: none; z-index: 9999;
+  white-space: nowrap; box-shadow: 0 8px 28px rgba(21,101,192,0.15);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.ok  { border-color: #A5D6A7; color: #2E7D32; }
+.toast.err { border-color: #FFCDD2; color: #C62828; }
+
+/* ════════════ RESPONSIVE ════════════ */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .panel-inner { padding: 16px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════ ÉCRAN LOGIN ════ -->
+<div id="screen-login">
+  <div class="login-card">
+    <div class="login-logo">SNTF</div>
+    <div class="login-sub">Espace Administrateur</div>
+    <div id="login-err" class="login-err"></div>
+    <input class="login-inp" type="password" id="inp-key"
+      placeholder="Clé administrateur..."
+      onkeydown="if(event.key==='Enter') doLogin()">
+    <button class="btn-login" onclick="doLogin()">ACCÉDER</button>
+  </div>
+</div>
+
+<!-- ════ APPLICATION ════ -->
+<div id="app">
+  <div class="app-inner">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sb-logo">
+        <div class="sb-logo-txt">SNTF</div>
+        <div class="sb-logo-sub">Admin Panel</div>
+      </div>
+      <div class="sb-user">
+        <div class="sb-av">A</div>
+        <div>
+          <div class="sb-name">Administrateur</div>
+          <div class="sb-role">&#9679; Accès complet</div>
+        </div>
+      </div>
+      <div class="sb-section">
+        <div class="sb-lbl">Navigation</div>
+        <button class="sb-btn active" id="nav-stats" onclick="showPanel('stats')">
+          &#128200;&nbsp; Statistiques
+        </button>
+        <button class="sb-btn" id="nav-documents" onclick="showPanel('documents')">
+          &#128196;&nbsp; Documents
+        </button>
+        <button class="sb-btn" id="nav-users" onclick="showPanel('users')">
+          &#128101;&nbsp; Utilisateurs
+        </button>
+      </div>
+      <div class="sb-footer">
+        <button class="btn-logout" onclick="logout()">Déconnexion</button>
+      </div>
+    </aside>
+
+    <!-- CONTENU -->
+    <div class="main">
+
+      <!-- ═══ PANEL STATISTIQUES ═══ -->
+      <div class="panel active" id="panel-stats">
+        <div class="panel-inner">
+          <div class="panel-head">
+            <div class="panel-title">Statistiques</div>
+            <div class="panel-sub">Vue d'ensemble du système SNTF</div>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-val" id="st-docs">—</div>
+              <div class="stat-lbl">Documents indexés</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val" id="st-chunks">—</div>
+              <div class="stat-lbl">Chunks vectorisés</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val" id="st-users">—</div>
+              <div class="stat-lbl">Utilisateurs</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val" id="st-pending">—</div>
+              <div class="stat-lbl">En attente</div>
+            </div>
+          </div>
+          <div id="db-status">&#9679; Vérification de la connexion...</div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn-refresh" onclick="loadStats()">&#128260; Actualiser</button>
+            <button class="btn-refresh" onclick="showPanel('documents')">&#128196; Gérer les documents</button>
+            <button class="btn-refresh" onclick="showPanel('users')">&#128101; Gérer les utilisateurs</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ PANEL DOCUMENTS ═══ -->
+      <div class="panel" id="panel-documents">
+        <div class="panel-inner">
+          <div class="panel-head">
+            <div class="panel-title">Documents</div>
+            <div class="panel-sub">Indexation de la base de connaissances</div>
+          </div>
+          <div class="upload-card">
+            <div class="drop-zone" id="drop-zone" onclick="document.getElementById('pdf-file').click()">
+              <div class="drop-icon">&#128193;</div>
+              <div class="drop-title" id="drop-title">Glissez un fichier ou cliquez pour sélectionner</div>
+              <div class="drop-desc">PDF, JPG, PNG, WEBP — Max 50 MB</div>
+            </div>
+            <input type="file" id="pdf-file" accept=".pdf,image/jpeg,image/png,image/webp" style="display:none">
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Nom du document</label>
+                <input type="text" id="doc-name" placeholder="Ex: Manuel sécurité 2024">
+              </div>
+              <div class="form-group">
+                <label>Catégorie</label>
+                <select id="doc-cat">
+                  <option value="Securite">Sécurité</option>
+                  <option value="Exploitation">Exploitation</option>
+                  <option value="Technique">Technique</option>
+                  <option value="RH">Ressources Humaines</option>
+                  <option value="Administrative">Administrative</option>
+                  <option value="General" selected>Général</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="key-field">
+              <label>Clé Admin</label>
+              <input type="password" id="doc-admin-key" placeholder="Clé administrateur...">
+            </div>
+
+            <div id="sel-file-row" class="sel-file-row" style="display:none;">
+              <span class="sel-file-nm" id="sel-file-nm"></span>
+              <button class="btn-rm-f" onclick="clearDocFile()">&#10005; Retirer</button>
+            </div>
+
+            <button class="btn-upload" id="btn-upload" onclick="uploadDoc()" disabled>
+              &#8679; Indexer dans la base
+            </button>
+
+            <div class="prog-wrap" id="prog-wrap">
+              <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
+              <div class="prog-msg" id="prog-msg"></div>
+            </div>
+          </div>
+
+          <div class="section-head">
+            <span class="section-title">&#128218; Documents indexés</span>
+            <button class="btn-refresh" onclick="loadDocs()">&#128260; Actualiser la liste</button>
+          </div>
+          <div id="docs-grid" class="docs-grid">
+            <div class="loading">Cliquez sur Actualiser pour voir les documents...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ PANEL UTILISATEURS ═══ -->
+      <div class="panel" id="panel-users">
+        <div class="panel-inner">
+          <div class="panel-head">
+            <div class="panel-title">Utilisateurs</div>
+            <div class="panel-sub">Gestion des accès et des connexions</div>
+          </div>
+
+          <div class="auto-toggle-bar">
+            <div class="atl">
+              <span>Approbation automatique</span>
+              <small>Les nouveaux comptes Google sont approuvés sans validation manuelle</small>
+            </div>
+            <label class="tsw">
+              <input type="checkbox" id="auto-approve-chk" onchange="toggleAutoApprove(this.checked)">
+              <span class="ts-sl"></span>
+            </label>
+          </div>
+
+          <div class="users-stats-bar" id="users-stats-bar">
+            <span style="font-size:12px; color:#90A4AE; font-family:'Space Mono',monospace;">Chargement...</span>
+          </div>
+
+          <div class="users-toolbar">
+            <input class="users-search" type="text" id="user-search"
+              placeholder="Rechercher par email ou nom..."
+              oninput="renderUsers()">
+            <button class="flt-btn active" id="filter-all"      onclick="setFilter('all')">Tous</button>
+            <button class="flt-btn"        id="filter-pending"  onclick="setFilter('pending')">En attente</button>
+            <button class="flt-btn"        id="filter-approved" onclick="setFilter('approved')">Approuvés</button>
+            <button class="flt-btn"        id="filter-blocked"  onclick="setFilter('blocked')">Bloqués</button>
+            <button class="btn-refresh"    onclick="loadUsers()">&#128260;</button>
+          </div>
+
+          <div id="users-wrap">
+            <div class="loading">Chargement des utilisateurs...</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /main -->
+  </div><!-- /app-inner -->
+</div><!-- /app -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+var ADMIN_KEY     = '';
+var currentFilter = 'all';
+var allUsers      = [];
+var selDocFile    = null;
+
+/* ─── LOGIN ─── */
+async function doLogin() {
+  var key = (document.getElementById('inp-key').value || '').trim();
+  if (!key) { loginErr('Entrez la clé administrateur'); return; }
+
+  var btn = document.querySelector('.btn-login');
+  btn.textContent = 'Vérification...';
+  btn.disabled = true;
+
+  try {
+    var r = await fetch('/api/documents/list?admin_key=' + encodeURIComponent(key));
+    var d = await r.json();
+    if (d.detail && d.detail.indexOf('incorrecte') >= 0) {
+      loginErr('Clé incorrecte');
+      btn.textContent = 'ACCÉDER'; btn.disabled = false;
+      return;
+    }
+  } catch(e) { /* réseau KO → on continue quand même */ }
+
+  ADMIN_KEY = key;
+  document.getElementById('screen-login').style.display = 'none';
+  document.getElementById('app').style.display          = 'block';
+  document.getElementById('doc-admin-key').value        = key;
+  btn.textContent = 'ACCÉDER'; btn.disabled = false;
+
+  loadStats();
+  loadUsers();
+  loadAutoApprove();
+}
+
+function loginErr(msg) {
+  var el = document.getElementById('login-err');
+  el.textContent = msg;
+  setTimeout(function() { el.textContent = ''; }, 3500);
+}
+
+function logout() {
+  ADMIN_KEY = ''; allUsers = [];
+  document.getElementById('screen-login').style.display = 'flex';
+  document.getElementById('app').style.display          = 'none';
+  document.getElementById('inp-key').value              = '';
+}
+
+/* ─── NAVIGATION ─── */
+function showPanel(name) {
+  ['stats', 'documents', 'users'].forEach(function(p) {
+    var panel = document.getElementById('panel-' + p);
+    var nav   = document.getElementById('nav-' + p);
+    if (p === name) {
+      panel.className = 'panel active';
+      if (nav) nav.className = 'sb-btn active';
+    } else {
+      panel.className = 'panel';
+      if (nav) nav.className = 'sb-btn';
+    }
+  });
+  if (name === 'documents') loadDocs();
+  if (name === 'users')     loadUsers();
+}
+
+/* ─── TOAST ─── */
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  setTimeout(function() { t.className = 'toast'; }, 3500);
+}
+
+/* ─── STATISTIQUES ─── */
+async function loadStats() {
+  var el = document.getElementById('db-status');
+  try {
+    var r = await fetch('/health');
+    var d = await r.json();
+    el.innerHTML = d.status === 'healthy'
+      ? '&#9679; <span style="color:#2E7D32;font-weight:700;">Base de données connectée</span>'
+      : '&#9679; <span style="color:#C62828;">Hors ligne</span>';
+  } catch(e) {
+    el.innerHTML = '&#9679; <span style="color:#C62828;">Erreur de connexion</span>';
+  }
+  try {
+    var rd = await fetch('/api/documents/list?admin_key=' + encodeURIComponent(ADMIN_KEY));
+    var dd = await rd.json();
+    if (dd.documents) {
+      document.getElementById('st-docs').textContent = dd.total_documents || dd.documents.length;
+      var tc = dd.documents.reduce(function(s, x) { return s + (x.chunks || 0); }, 0);
+      document.getElementById('st-chunks').textContent = tc;
+    }
+  } catch(e) {}
+  try {
+    var ru = await fetch('/api/users/list', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ admin_key: ADMIN_KEY })
+    });
+    var du = await ru.json();
+    if (du.stats) {
+      document.getElementById('st-users').textContent   = du.stats.total;
+      document.getElementById('st-pending').textContent = du.stats.pending;
+    }
+  } catch(e) {}
+}
+
+/* ─── DOCUMENTS — drag & drop ─── */
+var dz = document.getElementById('drop-zone');
+var pf = document.getElementById('pdf-file');
+
+dz.addEventListener('dragover',  function(e) { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', function()  { dz.classList.remove('over'); });
+dz.addEventListener('drop', function(e) {
+  e.preventDefault(); dz.classList.remove('over');
+  if (e.dataTransfer.files[0]) setDocFile(e.dataTransfer.files[0]);
+});
+pf.addEventListener('change', function(e) {
+  if (e.target.files[0]) setDocFile(e.target.files[0]);
+});
+
+function setDocFile(f) {
+  selDocFile = f;
+  var row = document.getElementById('sel-file-row');
+  row.style.display = 'flex';
+  document.getElementById('sel-file-nm').textContent =
+    (f.type.startsWith('image/') ? '🖼 ' : '📄 ') + f.name;
+  document.getElementById('doc-name').value = f.name.replace(/\.[^.]+$/, '');
+  document.getElementById('drop-title').textContent = f.name;
+  document.getElementById('btn-upload').disabled = false;
+  pf.value = '';
+}
+
+function clearDocFile() {
+  selDocFile = null;
+  document.getElementById('sel-file-row').style.display = 'none';
+  document.getElementById('sel-file-nm').textContent    = '';
+  document.getElementById('drop-title').textContent     = 'Glissez un fichier ou cliquez pour sélectionner';
+  document.getElementById('btn-upload').disabled        = true;
+}
+
+/* ─── DOCUMENTS — upload ─── */
+async function uploadDoc() {
+  var key  = (document.getElementById('doc-admin-key').value || '').trim() || ADMIN_KEY;
+  var name = (document.getElementById('doc-name').value || '').trim();
+  var cat  = document.getElementById('doc-cat').value;
+
+  if (!key)        { showToast('Entrez la clé admin', 'err'); return; }
+  if (!selDocFile) { showToast('Sélectionnez un fichier', 'err'); return; }
+
+  var pw = document.getElementById('prog-wrap');
+  var pf2 = document.getElementById('prog-fill');
+  var pm  = document.getElementById('prog-msg');
+  pw.style.display = 'block';
+  pf2.style.width  = '15%';
+  pm.textContent   = 'Envoi en cours...';
+  pm.className     = 'prog-msg';
+  document.getElementById('btn-upload').disabled = true;
+
+  var fd = new FormData();
+  fd.append('file', selDocFile);
+  fd.append('document_name', name || selDocFile.name.replace(/\.[^.]+$/, ''));
+  fd.append('category', cat);
+  fd.append('admin_key', key);
+
+  pf2.style.width = '45%';
+  pm.textContent  = 'Indexation en cours (1 à 2 minutes)...';
+
+  try {
+    var r = await fetch('/api/documents/upload', { method: 'POST', body: fd });
+    var d = await r.json();
+    if (r.ok && d.success) {
+      pf2.style.width  = '100%';
+      pm.textContent   = '✓ ' + d.chunks_stored + ' chunks indexés avec succès !';
+      pm.className     = 'prog-msg ok';
+      showToast(d.chunks_stored + ' chunks indexés', 'ok');
+      clearDocFile();
+      setTimeout(function() { pw.style.display = 'none'; pf2.style.width = '0'; }, 5000);
+      loadDocs();
+    } else {
+      pm.textContent  = 'Erreur : ' + (d.detail || JSON.stringify(d));
+      pm.className    = 'prog-msg err';
+      pf2.style.width = '0';
+    }
+  } catch(e) {
+    pm.textContent  = 'Erreur de connexion au serveur';
+    pm.className    = 'prog-msg err';
+    pf2.style.width = '0';
+  }
+  document.getElementById('btn-upload').disabled = false;
+}
+
+/* ─── DOCUMENTS — liste ─── */
+async function loadDocs() {
+  var key  = (document.getElementById('doc-admin-key').value || '').trim() || ADMIN_KEY;
+  var grid = document.getElementById('docs-grid');
+
+  if (!key) {
+    grid.innerHTML = '<div class="loading">Entrez la clé admin dans le champ ci-dessus puis cliquez Actualiser</div>';
+    return;
+  }
+  grid.innerHTML = '<div class="loading">Chargement...</div>';
+
+  try {
+    var r = await fetch('/api/documents/list?admin_key=' + encodeURIComponent(key));
+    var d = await r.json();
+
+    if (d.detail && d.detail.indexOf('incorrecte') >= 0) {
+      grid.innerHTML = '<div class="loading" style="color:#C62828;">Clé admin incorrecte</div>';
+      return;
+    }
+    if (!d.documents || !d.documents.length) {
+      grid.innerHTML = '<div class="loading">Aucun document indexé pour l\'instant</div>';
+      return;
+    }
+
+    grid.innerHTML = '';
+    d.documents.forEach(function(doc) {
+      var card = document.createElement('div');
+      card.className = 'doc-card';
+      var nm  = htmlEsc(doc.filename || 'Sans nom');
+      var ct  = htmlEsc(doc.category || 'Général');
+      var ico = doc.file_type === 'image' ? '&#128444;' : '&#128196;';
+      card.innerHTML =
+        '<div class="doc-chunks">' + (doc.chunks || 0) + ' chunks</div>' +
+        '<div class="doc-ico">' + ico + '</div>' +
+        '<div class="doc-nm">' + nm + '</div>' +
+        '<div class="doc-ct">' + ct + '</div>' +
+        '<button class="btn-del-doc" ' +
+          'data-name="' + nm + '" data-key="' + htmlEsc(key) + '" ' +
+          'onclick="delDoc(this.dataset.name, this.dataset.key, this.closest(\'.doc-card\'))">Supprimer</button>';
+      grid.appendChild(card);
+    });
+
+    document.getElementById('st-docs').textContent = d.total_documents || d.documents.length;
+    var tc = d.documents.reduce(function(s, x) { return s + (x.chunks || 0); }, 0);
+    document.getElementById('st-chunks').textContent = tc;
+
+  } catch(e) {
+    grid.innerHTML = '<div class="loading" style="color:#C62828;">Erreur de connexion</div>';
+  }
+}
+
+async function delDoc(name, key, card) {
+  if (!confirm('Supprimer "' + name + '" de la base ?')) return;
+  try {
+    var r = await fetch('/api/documents/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: name, admin_key: key || ADMIN_KEY })
+    });
+    var d = await r.json();
+    if (d.success) {
+      card.remove();
+      showToast('Supprimé (' + (d.chunks_deleted || 0) + ' chunks)', 'ok');
+    } else {
+      showToast('Erreur : ' + (d.detail || 'échec'), 'err');
+    }
+  } catch(e) { showToast('Erreur connexion', 'err'); }
+}
+
+/* ─── UTILISATEURS ─── */
+async function loadUsers() {
+  document.getElementById('users-wrap').innerHTML = '<div class="loading">Chargement...</div>';
+  try {
+    var r = await fetch('/api/users/list', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ admin_key: ADMIN_KEY })
+    });
+    var d = await r.json();
+    if (!d.success) {
+      document.getElementById('users-wrap').innerHTML =
+        '<div class="loading" style="color:#C62828;">Erreur : ' + htmlEsc(d.detail || 'accès refusé') + '</div>';
+      return;
+    }
+    allUsers = d.users || [];
+    if (d.stats) {
+      document.getElementById('st-users').textContent   = d.stats.total;
+      document.getElementById('st-pending').textContent = d.stats.pending;
+      document.getElementById('users-stats-bar').innerHTML =
+        '<span class="upill upill-tot">'  + d.stats.total    + ' total</span>' +
+        '<span class="upill upill-ok">'   + d.stats.approved + ' approuvés</span>' +
+        '<span class="upill upill-pend">' + d.stats.pending  + ' en attente</span>' +
+        '<span class="upill upill-blk">'  + d.stats.blocked  + ' bloqués</span>';
+    }
+    renderUsers();
+  } catch(e) {
+    document.getElementById('users-wrap').innerHTML =
+      '<div class="loading" style="color:#C62828;">Erreur de connexion</div>';
+  }
+}
+
+function renderUsers() {
+  var srch = (document.getElementById('user-search').value || '').toLowerCase();
+  var list = allUsers.filter(function(u) {
+    if (currentFilter !== 'all' && u.status !== currentFilter) return false;
+    if (srch) {
+      if ((u.email || '').toLowerCase().indexOf(srch) < 0 &&
+          (u.display_name || '').toLowerCase().indexOf(srch) < 0) return false;
+    }
+    return true;
+  });
+
+  if (!list.length) {
+    document.getElementById('users-wrap').innerHTML = '<div class="loading">Aucun résultat</div>';
+    return;
+  }
+
+  var html = '<table class="utbl"><thead><tr>' +
+    '<th>Utilisateur</th><th>Email</th><th>Connexions</th><th>Statut</th><th>Actions</th>' +
+    '</tr></thead><tbody>';
+
+  list.forEach(function(u) {
+    var ini = ((u.display_name || u.email || '?').charAt(0)).toUpperCase();
+    var bdg = u.status === 'approved' ? '<span class="badge badge-ok">Approuvé</span>'
+            : u.status === 'pending'  ? '<span class="badge badge-pnd">En attente</span>'
+            :                           '<span class="badge badge-blk">Bloqué</span>';
+    var act = '';
+    if (u.status === 'pending') {
+      act += '<button class="ba ba-apr" onclick="uAction(\'approve\',\'' + htmlEsc(u.email) + '\')">Approuver</button>';
+      act += '<button class="ba ba-blk" onclick="uAction(\'block\',\''   + htmlEsc(u.email) + '\')">Bloquer</button>';
+    } else if (u.status === 'approved') {
+      act += '<button class="ba ba-blk" onclick="uAction(\'block\',\''   + htmlEsc(u.email) + '\')">Bloquer</button>';
+    } else {
+      act += '<button class="ba ba-unb" onclick="uAction(\'approve\',\'' + htmlEsc(u.email) + '\')">Débloquer</button>';
+    }
+    act += '<button class="ba ba-del" onclick="uAction(\'delete\',\'' + htmlEsc(u.email) + '\')">Suppr.</button>';
+
+    html += '<tr>' +
+      '<td><span class="uav">' + ini + '</span><strong>' + htmlEsc(u.display_name || '—') + '</strong></td>' +
+      '<td style="color:#5A7A9A;">' + htmlEsc(u.email || '—') + '</td>' +
+      '<td style="text-align:center;">' + (u.login_count || 0) + '</td>' +
+      '<td>' + bdg + '</td>' +
+      '<td>' + act + '</td>' +
+      '</tr>';
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('users-wrap').innerHTML = html;
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  ['all','pending','approved','blocked'].forEach(function(x) {
+    document.getElementById('filter-' + x).className = 'flt-btn' + (x === f ? ' active' : '');
+  });
+  renderUsers();
+}
+
+async function uAction(action, email) {
+  if (action === 'delete' && !confirm('Supprimer définitivement ' + email + ' ?')) return;
+  try {
+    var r = await fetch('/api/users/' + action, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ admin_key: ADMIN_KEY, email: email })
+    });
+    var d = await r.json();
+    if (d.success) {
+      var m = { approve: 'approuvé', block: 'bloqué', delete: 'supprimé' };
+      showToast(email + ' : ' + (m[action] || action), 'ok');
+      loadUsers();
+    } else {
+      showToast('Erreur : ' + (d.detail || 'action échouée'), 'err');
+    }
+  } catch(e) { showToast('Erreur connexion', 'err'); }
+}
+
+async function loadAutoApprove() {
+  try {
+    var r = await fetch('/api/users/config/get', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ admin_key: ADMIN_KEY, key: 'auto_approve' })
+    });
+    var d = await r.json();
+    if (d.success) document.getElementById('auto-approve-chk').checked = (d.value === 'true');
+  } catch(e) {}
+}
+
+async function toggleAutoApprove(val) {
+  try {
+    var r = await fetch('/api/users/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ admin_key: ADMIN_KEY, key: 'auto_approve', value: val ? 'true' : 'false' })
+    });
+    var d = await r.json();
+    if (d.success) showToast('Approbation auto : ' + (val ? 'activée' : 'désactivée'), 'ok');
+  } catch(e) { showToast('Erreur', 'err'); }
+}
+
+/* ─── UTILITAIRE ─── */
+function htmlEsc(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+window.addEventListener('load', function() {
+  document.getElementById('inp-key').focus();
+});
+</script>
+</body>
+</html>
