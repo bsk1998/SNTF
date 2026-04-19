@@ -1,14 +1,53 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional
-import os, requests, json, hashlib, math, re
+import os, requests, json, hashlib, math, re, time
+from collections import defaultdict
+from threading import Lock
 
 router = APIRouter()
 
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
+# RATE LIMITING — sans dépendance externe
+# Simple compteur en mémoire par IP
+# Limite : 30 requêtes / minute / IP sur /ask
+# ═══════════════════════════════════════════════════════════
+_rate_store: dict = defaultdict(list)
+_rate_lock = Lock()
+
+RATE_LIMIT_REQUESTS = 30   # max requêtes
+RATE_LIMIT_WINDOW   = 60   # sur 60 secondes
+
+def check_rate_limit(ip: str) -> None:
+    """
+    Lève HTTPException 429 si l'IP dépasse la limite.
+    Nettoyage automatique des anciennes entrées.
+    """
+    now = time.time()
+    with _rate_lock:
+        # Garder seulement les timestamps dans la fenêtre
+        _rate_store[ip] = [
+            t for t in _rate_store[ip]
+            if now - t < RATE_LIMIT_WINDOW
+        ]
+        if len(_rate_store[ip]) >= RATE_LIMIT_REQUESTS:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Trop de requêtes. Limite : {RATE_LIMIT_REQUESTS} messages par minute. Réessayez dans {RATE_LIMIT_WINDOW} secondes."
+            )
+        _rate_store[ip].append(now)
+
+def get_client_ip(request: Request) -> str:
+    """Récupère l'IP réelle même derrière un proxy Render/Cloudflare."""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+# ═══════════════════════════════════════════════════════════
 # SCHÉMAS
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 class ChatRequest(BaseModel):
     question: str
     image: Optional[str] = None
@@ -22,9 +61,9 @@ class ChatRequest(BaseModel):
 class HistoryRequest(BaseModel):
     user_email: str
 
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 # DIAGNOSTIC
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 @router.get("/test")
 def test_all():
     results = {}
@@ -62,20 +101,15 @@ def test_all():
         results["supabase_error"] = str(e)
     return results
 
-# ═══════════════════════════════════════════
-# EMBEDDING — HuggingFace (sémantique réel)
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
+# EMBEDDING
+# ═══════════════════════════════════════════════════════════
 _hf_model = None
 
 def get_embedding(text: str) -> list:
-    """
-    Embedding sémantique via HuggingFace API.
-    Fallback sur sentence-transformers local, puis hash MD5.
-    """
     global _hf_model
     hf_key = os.environ.get("HF_API_KEY", "")
 
-    # 1. HuggingFace API (priorité)
     if hf_key:
         try:
             r = requests.post(
@@ -94,7 +128,6 @@ def get_embedding(text: str) -> list:
         except Exception as e:
             print(f"[HF API] {e}")
 
-    # 2. sentence-transformers local
     if _hf_model is None:
         try:
             from sentence_transformers import SentenceTransformer
@@ -108,7 +141,7 @@ def get_embedding(text: str) -> list:
         except:
             pass
 
-    # 3. Fallback hash MD5
+    # Fallback hash
     words = text.lower().split()
     vector = [0.0] * 384
     for i, word in enumerate(words[:200]):
@@ -117,9 +150,9 @@ def get_embedding(text: str) -> list:
     norm = math.sqrt(sum(x**2 for x in vector)) or 1.0
     return [x / norm for x in vector]
 
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 # RECHERCHE DOCUMENTS
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 def search_docs(question: str, limit: int = 5) -> list:
     try:
         from database import get_db
@@ -153,9 +186,9 @@ def search_docs(question: str, limit: int = 5) -> list:
         print(f"[search_docs] {e}")
         return []
 
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 # MÉMOIRE CONVERSATION
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 def ensure_conv_table(cur, conn):
     cur.execute("""
         CREATE TABLE IF NOT EXISTS conversations (
@@ -169,7 +202,6 @@ def ensure_conv_table(cur, conn):
     conn.commit()
 
 def load_history(user_email: str, limit: int = 4) -> list:
-    """Charge les N derniers échanges pour la mémoire courte."""
     try:
         from database import get_db
         conn = get_db()
@@ -184,7 +216,6 @@ def load_history(user_email: str, limit: int = 4) -> list:
         history = []
         for r in reversed(rows):
             history.append({"role": "user", "content": r[0]})
-            # Résumé court de la réponse précédente — max 200 chars
             history.append({"role": "assistant", "content": r[1][:200]})
         return history
     except Exception as e:
@@ -206,23 +237,19 @@ def save_conv(user_email: str, question: str, answer: str):
     except Exception as e:
         print(f"[save_conv] {e}")
 
-# ═══════════════════════════════════════════
-# DÉTECTION LANGUE
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
+# DÉTECTION LANGUE ET TYPE DE QUESTION
+# ═══════════════════════════════════════════════════════════
 def detect_lang(text: str) -> str:
     arabic = sum(1 for c in text if "\u0600" <= c <= "\u06FF")
     return "ar" if arabic > len(text) * 0.3 else "fr"
 
 def classify_question(q: str) -> str:
     q_lower = q.lower().strip()
-
-    # Salutations simples
     greetings = ["salut", "bonjour", "bonsoir", "merci", "hello", "hi",
                  "ca va", "salam", "bonne journee", "bonne nuit"]
     if len(q.split()) <= 5 and any(g in q_lower for g in greetings):
         return "greeting"
-
-    # Mots d'urgence / technique
     urgent_words = [
         "panne", "urgent", "urgence", "bloqué", "bloquée", "blocage",
         "alarme", "alerte", "erreur", "code", "défaut", "incident",
@@ -233,21 +260,18 @@ def classify_question(q: str) -> str:
     ]
     if any(u in q_lower for u in urgent_words):
         return "urgent"
-
-    # Demande de source explicite
     source_words = ["source", "document", "page", "référence", "où", "dans quel"]
     if any(s in q_lower for s in source_words):
         return "source"
-
     return "question"
 
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 # GROQ VISION
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 def call_groq_vision(question: str, image_b64: str, image_type: str) -> str:
     key = os.environ.get("GROQ_API_KEY", "")
     if not key:
-        return "⚠️ Clé Groq manquante."
+        return "Clé Groq manquante."
     try:
         r = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
@@ -266,12 +290,12 @@ def call_groq_vision(question: str, image_b64: str, image_type: str) -> str:
             return r.json()["choices"][0]["message"]["content"]
         return call_groq_text(question)
     except Exception as e:
-        return f"⚠️ Erreur vision : {str(e)}"
+        return f"Erreur vision : {str(e)}"
 
 def call_groq_text(question: str) -> str:
     key = os.environ.get("GROQ_API_KEY", "")
     if not key:
-        return "⚠️ Clé Groq manquante."
+        return "Clé Groq manquante."
     try:
         r = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
@@ -283,13 +307,13 @@ def call_groq_text(question: str) -> str:
         )
         if r.status_code == 200:
             return r.json()["choices"][0]["message"]["content"]
-        return f"⚠️ Erreur {r.status_code}"
+        return f"Erreur {r.status_code}"
     except Exception as e:
-        return f"⚠️ Erreur : {str(e)}"
+        return f"Erreur : {str(e)}"
 
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 # HISTORY ENDPOINT
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 @router.post("/history")
 def get_history(req: HistoryRequest):
     try:
@@ -310,18 +334,23 @@ def get_history(req: HistoryRequest):
     except Exception as e:
         return {"success": False, "history": [], "count": 0, "error": str(e)}
 
-# ═══════════════════════════════════════════
-# ASK — ENDPOINT PRINCIPAL
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
+# ASK — ENDPOINT PRINCIPAL avec rate limiting + streaming robuste
+# ═══════════════════════════════════════════════════════════
 @router.post("/ask")
-async def ask(req: ChatRequest):
+async def ask(req: ChatRequest, request: Request):
+
+    # ── 1. RATE LIMITING ──────────────────────────────────
+    client_ip = get_client_ip(request)
+    check_rate_limit(client_ip)
+
     question = (req.question or "").strip()
-    if not question:
+    if not question and not req.image:
         raise HTTPException(400, "Question vide")
 
     key = os.environ.get("GROQ_API_KEY", "")
 
-    # ── Image ──
+    # ── 2. IMAGE ──────────────────────────────────────────
     if req.image:
         b64 = req.image
         if "base64," in b64:
@@ -331,16 +360,15 @@ async def ask(req: ChatRequest):
             save_conv(req.user_email, "[image] " + question, answer)
         return {"answer": answer, "sources": [], "mode": "vision"}
 
-    lang    = detect_lang(question)
-    q_type  = classify_question(question)
+    lang   = detect_lang(question)
+    q_type = classify_question(question)
 
-    # ── Recherche documents ──
-    docs = []
+    # ── 3. RECHERCHE DOCUMENTS ────────────────────────────
+    docs    = []
     context = ""
     if q_type in ("question", "urgent", "source"):
         docs = search_docs(question, limit=5)
         if docs:
-            # Trier par score décroissant — garder les 3 meilleurs
             docs = sorted(docs, key=lambda d: d["score"], reverse=True)[:3]
             parts = []
             for d in docs:
@@ -348,75 +376,63 @@ async def ask(req: ChatRequest):
                 parts.append(prefix + d['content'][:500])
             context = "\n---\n".join(parts)
 
-    # ── Historique court ──
+    # ── 4. HISTORIQUE ─────────────────────────────────────
     history = []
     if req.user_email and req.user_email != "admin":
         history = load_history(req.user_email, limit=4)
 
-    # ══════════════════════════════════════════════════════════════
-    # PROMPT selon le type de question
-    # ══════════════════════════════════════════════════════════════
+    # ── 5. PROMPT ─────────────────────────────────────────
     if q_type == "greeting":
         system = "Tu es l'assistant SNTF. Réponds chaleureusement en 1-2 phrases et propose ton aide pour les questions techniques ou procédures SNTF."
-
     elif q_type == "urgent":
-        system = """Assistant terrain SNTF — MODE URGENCE.
-
+        system = f"""Assistant terrain SNTF — MODE URGENCE.
 RÈGLES STRICTES :
 1. Réponds en MAX 6 lignes
-2. Si tu as la solution → étapes numérotées immédiates (1. Fais X  2. Appuie sur Y)
-3. Si info manquante → UNE seule question : "Quel code erreur ?" ou "Quelle rame ?"
-4. Jamais d'introduction. Jamais de "selon les documents". Jamais de paragraphe.
-5. Termine par : "✅ Résolu ?" ou "⚠️ Si persiste → Centre de contrôle"
-6. Langue : """ + ("arabe" if lang == "ar" else "français")
-
+2. Si tu as la solution → étapes numérotées immédiates
+3. Si info manquante → UNE seule question ciblée
+4. Jamais d'introduction. Jamais de paragraphe.
+5. Termine par : "Résolu ?" ou "Si persiste → Centre de contrôle"
+6. Langue : {"arabe" if lang == "ar" else "français"}"""
     elif q_type == "source":
-        system = """Assistant SNTF. L'utilisateur demande les sources.
-Réponds avec la réponse ET indique clairement : "📄 Source : [nom du fichier], chunk [numéro]"
-Sois précis sur l'origine de chaque information."""
-
+        system = """Assistant SNTF. Réponds avec la réponse ET indique la source : [nom du fichier], chunk [numéro]. Sois précis."""
     else:
-        system = """Assistant terrain SNTF — expert ferroviaire algérien.
-
+        system = f"""Assistant terrain SNTF — expert ferroviaire algérien.
 RÈGLES :
 1. Réponse directe et courte — max 8 lignes
 2. Procédure → étapes numérotées courtes
-3. Pas d'introduction, pas de "selon les documents"
+3. Pas d'introduction
 4. Si info insuffisante → 1 seule question ciblée
-5. Langue : """ + ("arabe" if lang == "ar" else "français")
+5. Langue : {"arabe" if lang == "ar" else "français"}"""
 
-    # ── Construction messages ──
     messages = [{"role": "system", "content": system}]
     messages.extend(history)
-
-    if context:
-        user_content = f"[Doc SNTF]: {context}\n\n[Question]: {question}"
-    else:
-        user_content = question
-
+    user_content = f"[Doc SNTF]: {context}\n\n[Question]: {question}" if context else question
     messages.append({"role": "user", "content": user_content})
 
-    # ── Boutons de suivi (générés selon contexte) ──
+    # ── 6. BOUTONS RÉPONSE RAPIDE ─────────────────────────
     def get_quick_replies(q_type: str, has_docs: bool) -> list:
         if q_type == "greeting":
             return []
-        buttons = []
         if q_type == "urgent":
-            buttons = ["✅ Résolu", "⚠️ Ça persiste", "📞 Centre de contrôle"]
-        elif has_docs:
-            buttons = ["📄 Sources du document", "🔍 Plus de détails", "📋 Étape suivante"]
-        else:
-            buttons = ["🔍 Plus de détails", "📋 Autre question", "📞 Assistance"]
-        return buttons
+            return ["Résolu", "Ça persiste", "Centre de contrôle"]
+        if has_docs:
+            return ["Sources du document", "Plus de détails", "Étape suivante"]
+        return ["Plus de détails", "Autre question", "Assistance"]
 
     quick_replies = get_quick_replies(q_type, bool(docs))
     sources = list(set(d["filename"] for d in docs if d["filename"]))
 
-    # ── Streaming ──
+    # ── 7. STREAMING ROBUSTE ──────────────────────────────
+    # Corrections vs version originale :
+    # - Timeout de 45s avec gestion explicite
+    # - Retry automatique 1 fois si timeout
+    # - Message d'erreur clair au client via SSE
+    # - Nettoyage du buffer même en cas d'exception
+
     def generate():
         full_answer = ""
 
-        # Premier chunk : métadonnées
+        # Métadonnées en premier chunk
         yield "data: " + json.dumps({
             "sources": sources,
             "web": False,
@@ -424,63 +440,105 @@ RÈGLES :
         }) + "\n\n"
 
         if not key:
-            yield "data: " + json.dumps({"token": "⚠️ GROQ_API_KEY manquante."}) + "\n\n"
+            yield "data: " + json.dumps({"token": "Clé GROQ_API_KEY manquante sur le serveur."}) + "\n\n"
             yield "data: [DONE]\n\n"
             return
 
-        try:
-            r = requests.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                json={
-                    "model": "llama-3.3-70b-versatile",
-                    "messages": messages,
-                    "max_tokens": 600,
-                    "temperature": 0.3,
-                    "stream": True
-                },
-                stream=True,
-                timeout=45
-            )
+        # Tentatives : 1 essai normal + 1 retry si timeout
+        max_attempts = 2
+        for attempt in range(max_attempts):
+            try:
+                r = requests.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                    json={
+                        "model": "llama-3.3-70b-versatile",
+                        "messages": messages,
+                        "max_tokens": 600,
+                        "temperature": 0.3,
+                        "stream": True
+                    },
+                    stream=True,
+                    timeout=45  # timeout strict
+                )
 
-            if r.status_code != 200:
-                err = f"⚠️ Erreur Groq {r.status_code}"
-                print(f"[groq] {r.text[:200]}")
-                yield "data: " + json.dumps({"token": err}) + "\n\n"
-                yield "data: [DONE]\n\n"
-                return
+                # Erreur HTTP de Groq
+                if r.status_code != 200:
+                    error_text = r.text[:300] if r.text else f"Erreur HTTP {r.status_code}"
+                    print(f"[groq] Erreur {r.status_code}: {error_text}")
 
-            for line in r.iter_lines():
-                if not line:
+                    if r.status_code == 429 and attempt < max_attempts - 1:
+                        # Quota Groq dépassé — retry après 2s
+                        import time as t
+                        t.sleep(2)
+                        continue
+
+                    yield "data: " + json.dumps({
+                        "token": f"Le service IA est temporairement indisponible (erreur {r.status_code}). Réessayez dans quelques instants."
+                    }) + "\n\n"
+                    yield "data: [DONE]\n\n"
+                    return
+
+                # Lecture du stream token par token
+                for line in r.iter_lines():
+                    if not line:
+                        continue
+                    line_str = line.decode("utf-8", errors="ignore")
+                    if not line_str.startswith("data: "):
+                        continue
+                    data = line_str[6:].strip()
+                    if data == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data)
+                        token = chunk["choices"][0]["delta"].get("content", "")
+                        if token:
+                            full_answer += token
+                            yield "data: " + json.dumps({"token": token}) + "\n\n"
+                    except (json.JSONDecodeError, KeyError, IndexError):
+                        pass
+
+                # Succès — on sort de la boucle de retry
+                break
+
+            except requests.exceptions.Timeout:
+                print(f"[groq] Timeout (tentative {attempt + 1}/{max_attempts})")
+                if attempt < max_attempts - 1:
+                    # Retry silencieux
+                    yield "data: " + json.dumps({"token": "Connexion lente, nouvelle tentative..."}) + "\n\n"
+                    full_answer = ""
                     continue
-                line = line.decode("utf-8", errors="ignore")
-                if not line.startswith("data: "):
-                    continue
-                data = line[6:].strip()
-                if data == "[DONE]":
-                    break
-                try:
-                    chunk = json.loads(data)
-                    token = chunk["choices"][0]["delta"].get("content", "")
-                    if token:
-                        full_answer += token
-                        yield "data: " + json.dumps({"token": token}) + "\n\n"
-                except:
-                    pass
+                # Dernier essai échoué
+                yield "data: " + json.dumps({
+                    "token": "\n\nLe service IA met trop de temps à répondre. Réessayez votre question."
+                }) + "\n\n"
 
-        except requests.exceptions.Timeout:
-            yield "data: " + json.dumps({"token": "⚠️ Timeout — réessayez."}) + "\n\n"
-        except Exception as e:
-            print(f"[stream] {e}")
-            yield "data: " + json.dumps({"token": f"⚠️ Erreur: {str(e)}"}) + "\n\n"
+            except requests.exceptions.ConnectionError:
+                yield "data: " + json.dumps({
+                    "token": "Impossible de joindre le service IA. Vérifiez votre connexion."
+                }) + "\n\n"
+                break
 
+            except Exception as e:
+                print(f"[stream] Exception inattendue: {e}")
+                yield "data: " + json.dumps({
+                    "token": "Une erreur inattendue s'est produite. Réessayez."
+                }) + "\n\n"
+                break
+
+        # Fin du stream
         yield "data: [DONE]\n\n"
 
-        if full_answer and req.user_email and req.user_email != "admin":
+        # Sauvegarde uniquement si on a une vraie réponse
+        if full_answer and len(full_answer) > 10 and req.user_email and req.user_email != "admin":
             save_conv(req.user_email, question, full_answer)
 
     return StreamingResponse(
         generate(),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive"
+        }
     )
