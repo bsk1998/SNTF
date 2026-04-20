@@ -6,23 +6,59 @@ from database import get_db
 
 router = APIRouter()
 
-ADMIN_KEY   = os.environ.get("ADMIN_KEY", "sntf_admin_2024")
+# ═══════════════════════════════════════════════════════════
+# HELPER CENTRAL — même logique que users.py
+# Accepte SOIT la vraie clé ADMIN_KEY SOIT un JWT valide
+# ═══════════════════════════════════════════════════════════
+def verify_admin_access(admin_key: str) -> bool:
+    if not admin_key:
+        raise HTTPException(status_code=403, detail="Clé admin incorrecte")
+
+    ADMIN_KEY = os.environ.get("ADMIN_KEY", "sntf_admin_2024")
+
+    # 1. Clé directe (upload.html / ancien système)
+    if admin_key == ADMIN_KEY:
+        return True
+
+    # 2. JWT (nouveau panneau admin sécurisé)
+    if admin_key.startswith("eyJ"):
+        try:
+            from jose import JWTError, jwt
+
+            secret = os.environ.get("JWT_SECRET", "")
+            if not secret:
+                secret = hashlib.sha256(
+                    (ADMIN_KEY + "jwt_salt").encode()
+                ).hexdigest()
+
+            payload = jwt.decode(admin_key, secret, algorithms=["HS256"])
+            if payload.get("role") == "admin":
+                return True
+        except Exception:
+            raise HTTPException(status_code=403, detail="Session expirée. Reconnectez-vous.")
+
+    raise HTTPException(status_code=403, detail="Clé admin incorrecte")
+
+
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 VECTOR_TABLE = "document_chunks"
 
-# ═══════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 # EMBEDDING
-# ═══════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 _model = None
+
 def get_embedding(text: str) -> list:
     global _model
+
     # Méthode 1 : sentence-transformers local
     try:
         if _model is None:
             from sentence_transformers import SentenceTransformer
             _model = SentenceTransformer('all-MiniLM-L6-v2')
         return _model.encode(text[:500]).tolist()
-    except: pass
+    except:
+        pass
 
     # Méthode 2 : HuggingFace API
     HF_KEY = os.environ.get("HF_API_KEY")
@@ -31,7 +67,8 @@ def get_embedding(text: str) -> list:
             r = requests.post(
                 "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",
                 headers={"Authorization": f"Bearer {HF_KEY}"},
-                json={"inputs": text[:500], "options": {"wait_for_model": True}}, timeout=60
+                json={"inputs": text[:500], "options": {"wait_for_model": True}},
+                timeout=60
             )
             if r.status_code == 200:
                 emb = r.json()
@@ -39,7 +76,8 @@ def get_embedding(text: str) -> list:
                     import numpy as np
                     emb = np.mean(emb, axis=0).tolist()
                 return emb
-        except: pass
+        except:
+            pass
 
     # Méthode 3 : Fallback hash
     words = text.lower().split()
@@ -50,11 +88,12 @@ def get_embedding(text: str) -> list:
     norm = math.sqrt(sum(x**2 for x in vector)) or 1.0
     return [x/norm for x in vector]
 
-# ═══════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════
 # EXTRACTION TEXTE PDF
-# ═══════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 def extract_text_from_pdf(pdf_bytes: bytes) -> str:
-    import re, base64
+    import re
 
     def fix_spacing(text):
         if not text:
@@ -82,14 +121,14 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
             return 0.0
         correct = [w for w in words if len(w) >= 3 and sum(c.isalpha() for c in w) >= len(w) * 0.6]
         ratio = len(correct) / len(words)
-        french = ["les", "des", "est", "que", "pour", "une", "dans", "avec", "sur", "par", "la", "le", "en"]
+        french = ["les", "des", "est", "que", "pour", "une", "dans", "avec", "sur", "par"]
         bonus = sum(1 for w in french if w in text.lower()) * 0.015
         return min(ratio + bonus, 1.0)
 
     best_text = ""
     best_score = 0.0
 
-    # METHODE 1 : pdfplumber (plusieurs tolerances)
+    # METHODE 1 : pdfplumber
     try:
         import pdfplumber
         for tol in [1, 2, 3, 5]:
@@ -102,21 +141,19 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
                             pages.append(t)
                     text = fix_spacing("\n\n".join(pages))
                     q = quality(text)
-                    print(f"pdfplumber tol={tol}: {len(text)} chars score={q:.2f}")
                     if q > best_score and len(text) >= 100:
                         best_score = q
                         best_text = text
                     if q >= 0.75:
                         break
-            except Exception as e:
-                print(f"pdfplumber tol={tol}: {e}")
+            except Exception:
+                pass
     except ImportError:
-        print("pdfplumber non dispo")
-    except Exception as e:
-        print(f"pdfplumber: {e}")
+        pass
+    except Exception:
+        pass
 
     if best_score >= 0.65 and len(best_text) >= 100:
-        print(f"OK pdfplumber score={best_score:.2f} chars={len(best_text)}")
         return best_text
 
     # METHODE 2 : pypdf
@@ -130,25 +167,22 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
                 pages.append(fix_spacing(t))
         text = "\n\n".join(p for p in pages if p)
         q = quality(text)
-        print(f"pypdf: {len(text)} chars score={q:.2f}")
         if q > best_score and len(text) >= 100:
             best_score = q
             best_text = text
-    except Exception as e:
-        print(f"pypdf: {e}")
+    except Exception:
+        pass
 
     if best_score >= 0.60 and len(best_text) >= 100:
-        print(f"OK pypdf score={best_score:.2f} chars={len(best_text)}")
         return best_text
 
-    # METHODE 3 : Groq Vision + PyMuPDF
+    # METHODE 3 : Groq Vision
     groq_key = os.environ.get("GROQ_API_KEY", "")
     if groq_key:
         try:
             import fitz
             doc_pdf = fitz.open(stream=pdf_bytes, filetype="pdf")
             pages_text = []
-            print(f"Groq Vision: {len(doc_pdf)} pages...")
             for i in range(min(len(doc_pdf), 20)):
                 page = doc_pdf[i]
                 pix = page.get_pixmap(matrix=fitz.Matrix(2.0, 2.0), colorspace=fitz.csRGB)
@@ -167,36 +201,26 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
                     timeout=60
                 )
                 if r.status_code == 200:
-                    t = r.json()["choices"][0]["message"]["content"]
-                    pages_text.append(t)
-                    print(f"Page {i+1}: {len(t)} chars")
+                    pages_text.append(r.json()["choices"][0]["message"]["content"])
             if pages_text:
-                result = "\n\n".join(pages_text)
-                print(f"OK Groq Vision: {len(result)} chars")
-                return result
-        except ImportError:
-            print("PyMuPDF non dispo")
-        except Exception as e:
-            print(f"Groq Vision: {e}")
+                return "\n\n".join(pages_text)
+        except Exception:
+            pass
 
     if best_text:
-        print(f"Fallback: {len(best_text)} chars score={best_score:.2f}")
         return best_text
 
     return ""
 
 
-
-# ═══════════════════════════════════════
-# EXTRACTION TEXTE IMAGE via Llama 4 Scout
-# ═══════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
+# EXTRACTION TEXTE IMAGE
+# ═══════════════════════════════════════════════════════════
 def extract_text_from_image(image_bytes: bytes, mime_type: str, filename: str) -> str:
     if not GROQ_API_KEY:
         raise HTTPException(500, "GROQ_API_KEY manquante pour analyser les images")
     try:
         b64 = base64.b64encode(image_bytes).decode('utf-8')
-        print(f"🖼️ Analyse image via Llama 4 Scout: {filename} ({len(image_bytes)} bytes)")
-
         r = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
@@ -206,9 +230,9 @@ def extract_text_from_image(image_bytes: bytes, mime_type: str, filename: str) -
                     {"type": "text", "text": """Analyse cette image en détail pour créer une base de connaissances.
 Extrais et décris :
 1. Tout le texte visible (tableaux, titres, données, labels)
-2. Le contenu principal de l'image (schéma, photo, graphique, document)
+2. Le contenu principal de l'image
 3. Les informations techniques ou chiffres importants
-4. Le contexte général de l'image
+4. Le contexte général
 
 Réponds en français, de façon complète et structurée. Commence par : 'Cette image montre...'"""},
                     {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{b64}"}}
@@ -219,39 +243,27 @@ Réponds en français, de façon complète et structurée. Commence par : 'Cette
         )
         if r.status_code == 200:
             description = r.json()["choices"][0]["message"]["content"]
-            print(f"✅ Image analysée: {len(description)} caractères")
             return f"[Image: {filename}]\n\n{description}"
         else:
-            print(f"❌ Groq vision erreur: {r.status_code} - {r.text[:200]}")
             raise HTTPException(500, f"Erreur analyse image: {r.status_code}")
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Image extraction failed: {e}")
         raise HTTPException(500, f"Erreur analyse image: {str(e)}")
 
-# ═══════════════════════════════════════
-# CHUNKS
-# ═══════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════
+# DÉCOUPAGE EN CHUNKS
+# ═══════════════════════════════════════════════════════════
 def split_text_into_chunks(text: str, chunk_size: int = 800, overlap: int = 100) -> list:
-    """
-    Découpage intelligent par phrases avec chevauchement.
-    - chunk_size : nombre de caractères max par chunk
-    - overlap    : chevauchement entre chunks pour ne pas couper les idées
-    """
-    # Nettoyer le texte
     import re
-    text = re.sub(r'\n{3,}', '\n\n', text)  # max 2 sauts de ligne
-    text = re.sub(r' {2,}', ' ', text)          # espaces multiples
-
-    # Découper par paragraphes d'abord
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    text = re.sub(r' {2,}', ' ', text)
     paragraphs = [p.strip() for p in re.split(r'\n\n+', text) if p.strip()]
-
     chunks = []
     current = ""
 
     for para in paragraphs:
-        # Si le paragraphe seul dépasse chunk_size, le découper par phrases
         if len(para) > chunk_size:
             sentences = re.split(r'(?<=[.!?])\s+', para)
             for sent in sentences:
@@ -260,7 +272,6 @@ def split_text_into_chunks(text: str, chunk_size: int = 800, overlap: int = 100)
                 else:
                     if current and len(current.strip()) >= 50:
                         chunks.append(current.strip())
-                    # Chevauchement : garder les derniers mots du chunk précédent
                     words = current.split()
                     overlap_text = " ".join(words[-overlap//5:]) if words else ""
                     current = (overlap_text + " " + sent).strip() if overlap_text else sent
@@ -279,9 +290,10 @@ def split_text_into_chunks(text: str, chunk_size: int = 800, overlap: int = 100)
 
     return chunks
 
-# ═══════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════
 # SAUVEGARDER CHUNKS EN BASE
-# ═══════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 def save_chunks(chunks: list, doc_name: str, category: str, source_filename: str, file_type: str) -> int:
     conn = get_db()
     cur  = conn.cursor()
@@ -304,15 +316,15 @@ def save_chunks(chunks: list, doc_name: str, category: str, source_filename: str
             (chunk, metadata, emb_str)
         )
         stored += 1
-        print(f"💾 Chunk {i+1}/{len(chunks)} sauvegardé")
     conn.commit()
     cur.close()
     conn.close()
     return stored
 
-# ═══════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════
 # ENDPOINT UPLOAD — PDF + IMAGES
-# ═══════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 @router.post("/upload")
 async def upload_file(
     file: UploadFile = File(...),
@@ -320,31 +332,25 @@ async def upload_file(
     category: str = Form(default="General"),
     admin_key: str = Form(default="")
 ):
-    if admin_key != ADMIN_KEY:
-        raise HTTPException(403, "Clé admin incorrecte")
+    verify_admin_access(admin_key)
 
     filename  = file.filename.lower()
     mime_type = file.content_type or ""
-
-    # Types acceptés
-    is_pdf   = filename.endswith('.pdf')
-    is_image = filename.endswith(('.jpg', '.jpeg', '.png', '.webp', '.bmp')) or mime_type.startswith('image/')
+    is_pdf    = filename.endswith('.pdf')
+    is_image  = filename.endswith(('.jpg', '.jpeg', '.png', '.webp', '.bmp')) or mime_type.startswith('image/')
 
     if not is_pdf and not is_image:
         raise HTTPException(400, "Types acceptés : PDF, JPG, PNG, WEBP")
 
     try:
         file_bytes = await file.read()
-        print(f"📁 Fichier reçu: {file.filename} ({len(file_bytes)} bytes) — type: {'PDF' if is_pdf else 'IMAGE'}")
 
-        # Extraire le texte selon le type
         if is_pdf:
             text = extract_text_from_pdf(file_bytes)
             file_type = "pdf"
             if not text:
                 raise HTTPException(400, "Impossible d'extraire le texte du PDF")
         else:
-            # Détecter le bon mime type
             if filename.endswith('.png'):
                 detected_mime = "image/png"
             elif filename.endswith('.webp'):
@@ -354,18 +360,13 @@ async def upload_file(
             text = extract_text_from_image(file_bytes, detected_mime, file.filename)
             file_type = "image"
 
-        print(f"📝 Texte extrait: {len(text)} caractères")
-
         chunks = split_text_into_chunks(text)
-        print(f"🔪 Chunks créés: {len(chunks)}")
-
         if not chunks:
             raise HTTPException(400, "Document trop court ou vide")
 
         doc_name = document_name if document_name else file.filename.rsplit('.', 1)[0]
         stored = save_chunks(chunks, doc_name, category, file.filename, file_type)
 
-        print(f"✅ TOTAL: {stored} chunks sauvegardés")
         return {
             "success":       True,
             "filename":      doc_name,
@@ -378,16 +379,15 @@ async def upload_file(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur: {e}")
         raise HTTPException(500, f"Erreur: {str(e)}")
 
-# ═══════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════
 # LIST
-# ═══════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 @router.get("/list")
 def list_documents(admin_key: str = ""):
-    if admin_key != ADMIN_KEY:
-        raise HTTPException(403, "Clé admin incorrecte")
+    verify_admin_access(admin_key)
     try:
         conn = get_db()
         cur  = conn.cursor()
@@ -407,20 +407,22 @@ def list_documents(admin_key: str = ""):
             "documents": [{"filename": d[0], "category": d[1],
                            "file_type": d[2] or "pdf", "chunks": int(d[3])} for d in docs]
         }
+    except HTTPException:
+        raise
     except Exception as e:
         return {"error": str(e)}
 
-# ═══════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════
 # DELETE
-# ═══════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 class DeleteRequest(BaseModel):
     filename: str
     admin_key: str = ""
 
 @router.post("/delete")
 def delete_document(req: DeleteRequest):
-    if req.admin_key != ADMIN_KEY:
-        raise HTTPException(403, "Clé admin incorrecte")
+    verify_admin_access(req.admin_key)
     try:
         conn = get_db()
         cur  = conn.cursor()
@@ -429,15 +431,15 @@ def delete_document(req: DeleteRequest):
         conn.commit()
         cur.close(); conn.close()
         return {"success": True, "chunks_deleted": deleted, "filename": req.filename}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(500, str(e))
 
 
-
-
-# ═══════════════════════════════════════
-# UPLOAD BATCH — Plusieurs fichiers en une requête
-# ═══════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
+# UPLOAD BATCH
+# ═══════════════════════════════════════════════════════════
 from typing import List
 
 @router.post("/upload-batch")
@@ -446,8 +448,7 @@ async def upload_batch(
     category: str = Form(default="General"),
     admin_key: str = Form(default="")
 ):
-    if admin_key != ADMIN_KEY:
-        raise HTTPException(403, "Clé admin incorrecte")
+    verify_admin_access(admin_key)
 
     if not files:
         raise HTTPException(400, "Aucun fichier reçu")
@@ -470,7 +471,6 @@ async def upload_batch(
 
         try:
             file_bytes = await file.read()
-            print(f"📁 Batch: {file.filename} ({len(file_bytes)} bytes)")
 
             if is_pdf:
                 text = extract_text_from_pdf(file_bytes)
@@ -488,8 +488,6 @@ async def upload_batch(
                 text = extract_text_from_image(file_bytes, detected_mime, file.filename)
                 file_type = "image"
 
-            print(f"📝 {file.filename} → {len(text)} chars")
-
             chunks = split_text_into_chunks(text)
             if not chunks:
                 results.append({"filename": file.filename, "success": False, "error": "Document vide ou trop court"})
@@ -498,7 +496,6 @@ async def upload_batch(
             doc_name = file.filename.rsplit('.', 1)[0]
             stored = save_chunks(chunks, doc_name, category, file.filename, file_type)
 
-            print(f"✅ {file.filename} → {stored} chunks")
             results.append({
                 "filename": file.filename,
                 "success": True,
@@ -507,15 +504,14 @@ async def upload_batch(
             })
 
         except Exception as e:
-            print(f"❌ {file.filename}: {e}")
             results.append({
                 "filename": file.filename,
                 "success": False,
                 "error": str(e)
             })
 
-    total_ok    = sum(1 for r in results if r.get("success"))
-    total_err   = sum(1 for r in results if not r.get("success"))
+    total_ok     = sum(1 for r in results if r.get("success"))
+    total_err    = sum(1 for r in results if not r.get("success"))
     total_chunks = sum(r.get("chunks", 0) for r in results)
 
     return {
