@@ -4,11 +4,50 @@ from typing import Optional
 import os, datetime
 
 router = APIRouter()
-ADMIN_KEY = os.environ.get("ADMIN_KEY", "sntf_admin_2024")
 
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
+# HELPER CENTRAL — vérifie l'accès admin
+# Accepte SOIT la vraie clé ADMIN_KEY (ancien système)
+# SOIT un JWT valide signé par /api/admin-auth/login (nouveau)
+# ═══════════════════════════════════════════════════════════
+def verify_admin_access(admin_key: str) -> bool:
+    """
+    Retourne True si admin_key est valide.
+    Lève HTTPException 403 sinon.
+    """
+    if not admin_key:
+        raise HTTPException(status_code=403, detail="Clé admin incorrecte")
+
+    ADMIN_KEY = os.environ.get("ADMIN_KEY", "sntf_admin_2024")
+
+    # 1. Vérification directe de la clé (ancien système / upload.html)
+    if admin_key == ADMIN_KEY:
+        return True
+
+    # 2. Vérification JWT (nouveau système sécurisé)
+    if admin_key.startswith("eyJ"):
+        try:
+            from jose import JWTError, jwt
+            import hashlib
+
+            secret = os.environ.get("JWT_SECRET", "")
+            if not secret:
+                secret = hashlib.sha256(
+                    (ADMIN_KEY + "jwt_salt").encode()
+                ).hexdigest()
+
+            payload = jwt.decode(admin_key, secret, algorithms=["HS256"])
+            if payload.get("role") == "admin":
+                return True
+        except Exception:
+            raise HTTPException(status_code=403, detail="Session expirée. Reconnectez-vous.")
+
+    raise HTTPException(status_code=403, detail="Clé admin incorrecte")
+
+
+# ═══════════════════════════════════════════════════════════
 # MODÈLES
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 class UserInfo(BaseModel):
     email: str
     display_name: str = ""
@@ -23,9 +62,10 @@ class ConfigUpdate(BaseModel):
     key: str
     value: str
 
-# ═══════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════
 # HELPERS DB
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 def get_conn():
     from database import get_db
     return get_db()
@@ -33,7 +73,6 @@ def get_conn():
 def ensure_tables():
     conn = get_conn()
     cur = conn.cursor()
-    # Table utilisateurs
     cur.execute("""
         CREATE TABLE IF NOT EXISTS sntf_users (
             id SERIAL PRIMARY KEY,
@@ -46,7 +85,6 @@ def ensure_tables():
             login_count INTEGER DEFAULT 0
         );
     """)
-    # Table config admin (auto_approve, etc.)
     cur.execute("""
         CREATE TABLE IF NOT EXISTS sntf_config (
             key TEXT PRIMARY KEY,
@@ -54,7 +92,6 @@ def ensure_tables():
             updated_at TIMESTAMP DEFAULT NOW()
         );
     """)
-    # Valeur par défaut auto_approve = true
     cur.execute("""
         INSERT INTO sntf_config (key, value)
         VALUES ('auto_approve', 'true')
@@ -75,9 +112,10 @@ def get_config(key: str, default: str = "") -> str:
     except:
         return default
 
-# ═══════════════════════════════════════════
-# ROUTE : Enregistrer/mettre à jour un user à la connexion
-# ═══════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════
+# ROUTE : Enregistrer / mettre à jour un user à la connexion
+# ═══════════════════════════════════════════════════════════
 @router.post("/register")
 async def register_user(data: UserInfo):
     try:
@@ -86,14 +124,11 @@ async def register_user(data: UserInfo):
 
         conn = get_conn()
         cur = conn.cursor()
-
-        # Vérifier si le user existe déjà
         cur.execute("SELECT status FROM sntf_users WHERE email = %s", (data.email,))
         existing = cur.fetchone()
 
         if existing:
             status = existing[0]
-            # Mettre à jour last_login et login_count
             cur.execute("""
                 UPDATE sntf_users
                 SET last_login = NOW(), login_count = login_count + 1,
@@ -102,7 +137,6 @@ async def register_user(data: UserInfo):
             """, (data.display_name, data.email))
             conn.commit()
         else:
-            # Nouveau user
             status = "approved" if auto_approve else "pending"
             cur.execute("""
                 INSERT INTO sntf_users (email, display_name, provider, status, last_login, login_count)
@@ -112,13 +146,13 @@ async def register_user(data: UserInfo):
 
         cur.close(); conn.close()
         return {"success": True, "status": status, "auto_approve": auto_approve}
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# ═══════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════
 # ROUTE : Vérifier le statut d'un user
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 @router.post("/check")
 async def check_user(data: UserInfo):
     try:
@@ -130,20 +164,19 @@ async def check_user(data: UserInfo):
         cur.close(); conn.close()
 
         if not row:
-            # Pas encore enregistré — enregistrer maintenant
             return await register_user(data)
 
         return {"success": True, "status": row[0]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# ═══════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════
 # ROUTE ADMIN : Liste tous les users
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 @router.post("/list")
 async def list_users(data: dict):
-    if data.get("admin_key") != ADMIN_KEY:
-        raise HTTPException(status_code=403, detail="Clé admin incorrecte")
+    verify_admin_access(data.get("admin_key", ""))
     try:
         ensure_tables()
         conn = get_conn()
@@ -171,7 +204,6 @@ async def list_users(data: dict):
                 "login_count": r[6] or 0
             })
 
-        # Compter par statut
         stats = {
             "total": len(users),
             "pending": sum(1 for u in users if u["status"] == "pending"),
@@ -180,16 +212,18 @@ async def list_users(data: dict):
         }
 
         return {"success": True, "users": users, "stats": stats}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# ═══════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════
 # ROUTE ADMIN : Approuver un user
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 @router.post("/approve")
 async def approve_user(data: AdminAction):
-    if data.admin_key != ADMIN_KEY:
-        raise HTTPException(status_code=403, detail="Clé admin incorrecte")
+    verify_admin_access(data.admin_key)
     try:
         conn = get_conn()
         cur = conn.cursor()
@@ -200,16 +234,18 @@ async def approve_user(data: AdminAction):
         conn.commit()
         cur.close(); conn.close()
         return {"success": True, "message": f"{data.email} approuvé"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# ═══════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════
 # ROUTE ADMIN : Bloquer un user
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 @router.post("/block")
 async def block_user(data: AdminAction):
-    if data.admin_key != ADMIN_KEY:
-        raise HTTPException(status_code=403, detail="Clé admin incorrecte")
+    verify_admin_access(data.admin_key)
     try:
         conn = get_conn()
         cur = conn.cursor()
@@ -220,16 +256,18 @@ async def block_user(data: AdminAction):
         conn.commit()
         cur.close(); conn.close()
         return {"success": True, "message": f"{data.email} bloqué"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# ═══════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════
 # ROUTE ADMIN : Supprimer un user
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 @router.post("/delete")
 async def delete_user(data: AdminAction):
-    if data.admin_key != ADMIN_KEY:
-        raise HTTPException(status_code=403, detail="Clé admin incorrecte")
+    verify_admin_access(data.admin_key)
     try:
         conn = get_conn()
         cur = conn.cursor()
@@ -237,16 +275,18 @@ async def delete_user(data: AdminAction):
         conn.commit()
         cur.close(); conn.close()
         return {"success": True, "message": f"{data.email} supprimé"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# ═══════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════
 # ROUTE ADMIN : Changer auto_approve
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 @router.post("/config")
 async def update_config(data: ConfigUpdate):
-    if data.admin_key != ADMIN_KEY:
-        raise HTTPException(status_code=403, detail="Clé admin incorrecte")
+    verify_admin_access(data.admin_key)
     try:
         ensure_tables()
         conn = get_conn()
@@ -259,19 +299,23 @@ async def update_config(data: ConfigUpdate):
         conn.commit()
         cur.close(); conn.close()
         return {"success": True}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# ═══════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════
 # ROUTE ADMIN : Lire auto_approve
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════
 @router.post("/config/get")
 async def get_config_route(data: dict):
-    if data.get("admin_key") != ADMIN_KEY:
-        raise HTTPException(status_code=403, detail="Clé admin incorrecte")
+    verify_admin_access(data.get("admin_key", ""))
     try:
         ensure_tables()
         val = get_config(data.get("key", "auto_approve"), "true")
         return {"success": True, "value": val}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
