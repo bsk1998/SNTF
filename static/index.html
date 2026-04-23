@@ -95,6 +95,7 @@ body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--txt);ove
 #admin-modal-error{font-size:11px;color:#f77;text-align:center;min-height:18px;margin-bottom:10px;font-family:'Space Mono',monospace;}
 .admin-modal-input{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(33,150,243,.15);border-radius:10px;padding:14px 16px;color:#fff;font-family:'Space Mono',monospace;font-size:13px;letter-spacing:2px;outline:none;margin-bottom:14px;display:block;}
 .btn-admin-enter{width:100%;padding:14px;background:linear-gradient(135deg,#D32F2F,#8a0012);border:none;border-radius:10px;color:#fff;font-family:'Cinzel',serif;font-size:13px;letter-spacing:3px;cursor:pointer;}
+.btn-admin-enter:disabled{opacity:.5;cursor:not-allowed;}
 .btn-admin-cancel{width:100%;padding:10px;margin-top:8px;background:none;border:none;color:#5A7A9A;font-size:12px;cursor:pointer;font-family:'Rajdhani',sans-serif;}
 
 /* INVOCATION */
@@ -167,7 +168,7 @@ body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--txt);ove
 .w-title{font-family:'Cinzel',serif;font-size:clamp(20px,5vw,36px);font-weight:700;color:var(--txt);letter-spacing:2px;margin-bottom:6px;animation:fadeUp .6s ease both;text-align:center;}
 .w-sub{font-size:11px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:20px;font-family:'Space Mono',monospace;animation:fadeUp .6s .1s ease both;text-align:center;}
 
-/* SUGGESTIONS - SCROLL HORIZONTAL MOBILE (comme Claude) */
+/* SUGGESTIONS */
 .suggestions-wrap{animation:fadeUp .6s .2s ease both;}
 .suggestions{display:flex;gap:8px;padding:4px 4px 8px;flex-wrap:wrap;justify-content:center;}
 .sug{background:var(--white);border:1.5px solid var(--blue-bd);border-radius:20px;padding:9px 16px;font-size:12px;cursor:pointer;transition:all .2s;letter-spacing:.5px;font-family:'Space Mono',monospace;color:var(--blue);white-space:nowrap;flex-shrink:0;user-select:none;-webkit-user-select:none;}
@@ -200,7 +201,7 @@ body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--txt);ove
 .qr-btn:hover,.qr-btn:active{background:var(--blue-lt);border-color:var(--blue);}
 @keyframes blink{0%,100%{opacity:1}45%,55%{opacity:0}}
 
-/* FOOTER - STYLE MESSENGER */
+/* FOOTER */
 .chat-foot{flex-shrink:0;padding:10px 14px;padding-bottom:max(10px,var(--sab));background:var(--white);border-top:1px solid var(--border);box-shadow:0 -1px 8px rgba(21,101,192,.06);}
 #img-prev-wrap{display:none;padding:0 0 8px;}
 .img-prev-inner{display:inline-flex;align-items:center;gap:10px;background:var(--blue-lt);border:1px solid var(--blue-bd);border-radius:8px;padding:7px 10px;}
@@ -237,50 +238,37 @@ body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--txt);ove
 .theme-dot{width:17px;height:17px;border-radius:50%;flex-shrink:0;border:2px solid rgba(0,0,0,.08);}
 @keyframes pulse-green{0%,100%{box-shadow:0 0 5px rgba(74,200,74,.4)}50%{box-shadow:0 0 12px rgba(74,200,74,.8)}}
 
-/* =========================================
-   RESPONSIVE MOBILE
-   ========================================= */
+/* RESPONSIVE MOBILE */
 @media (max-width: 768px) {
   html,body,#app{height:100%;height:-webkit-fill-available;}
-
-  /* SIDEBAR DRAWER */
   .sidebar{position:fixed !important;top:0;left:0;bottom:0;width:min(75vw,280px) !important;min-width:unset !important;transform:translateX(-100%) !important;transition:transform .28s cubic-bezier(.4,0,.2,1) !important;box-shadow:none;z-index:499;overflow-y:auto;-webkit-overflow-scrolling:touch;}
   .sidebar.open{transform:translateX(0) !important;box-shadow:6px 0 28px rgba(10,22,40,.35);}
-
   .main{width:100%;position:relative;z-index:1;}
   #panel-chat{height:100%;height:-webkit-fill-available;display:flex;flex-direction:column;overflow:hidden;}
-
   .mobile-header{display:flex !important;}
   .chat-head{display:none !important;}
-
   .msgs{padding:12px 10px 8px;}
   #welcome{padding:20px 4px 12px;}
   .w-title{font-size:clamp(18px,5vw,26px);margin-bottom:4px;}
   .w-sub{font-size:10px;margin-bottom:14px;}
-
-  /* SUGGESTIONS : scroll horizontal 1 ligne comme Claude */
   .suggestions{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;justify-content:flex-start;padding:4px 4px 10px;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:none;-ms-overflow-style:none;}
   .suggestions::-webkit-scrollbar{display:none;}
   .sug{font-size:11px;padding:8px 14px;white-space:nowrap;flex-shrink:0;border-radius:20px;}
-
   .msg-body{max-width:84%;}
   .msg-bbl{font-size:13px;padding:10px 13px;line-height:1.65;}
   .msg{gap:8px;margin-bottom:12px;}
   .msg-av{width:30px;height:30px;font-size:11px;}
   .quick-replies{margin-left:38px;gap:5px;}
   .qr-btn{font-size:11px;padding:5px 10px;}
-
   .chat-foot{flex-shrink:0;padding:8px 12px;padding-bottom:max(8px,var(--sab));}
   .inp-row{padding:5px 5px 5px 12px;gap:6px;border-radius:22px;}
   .chat-inp{font-size:16px !important;min-height:32px;max-height:100px;padding:3px 0;}
   #btn-send{width:36px;height:36px;font-size:15px;}
   .inp-cam-btn{width:32px;height:32px;font-size:16px;}
-
   #dikr-box{right:10px;bottom:76px;max-width:85vw;min-width:0;}
   #theme-btn{bottom:14px;right:14px;width:36px;height:36px;font-size:15px;}
   #theme-panel{bottom:58px;right:12px;min-width:180px;}
   .toast{bottom:74px;font-size:10px;padding:8px 14px;max-width:86vw;white-space:normal;text-align:center;}
-
   .login-card{margin-top:max(50px,calc(6vh + var(--sat)));padding:28px 20px 22px;}
   .login-logo-text{font-size:32px;letter-spacing:5px;}
   .gare-clock{top:10px;left:10px;width:48px;height:48px;}
@@ -378,12 +366,16 @@ body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--txt);ove
       </div>
     </div>
   </div>
+
+  <!-- MODAL ADMIN — la clé n'est JAMAIS comparée côté client -->
   <div id="admin-modal">
     <div class="admin-modal-card">
       <div class="admin-modal-title">⚙ ESPACE ADMIN</div>
       <div id="admin-modal-error"></div>
-      <input class="admin-modal-input" type="password" id="inp-admin-modal" placeholder="Clé administrateur..." onkeydown="if(event.key==='Enter') loginAdminModal()">
-      <button class="btn-admin-enter" onclick="loginAdminModal()">ACCÉDER</button>
+      <input class="admin-modal-input" type="password" id="inp-admin-modal"
+        placeholder="Clé administrateur..."
+        onkeydown="if(event.key==='Enter') loginAdminModal()">
+      <button class="btn-admin-enter" id="btn-admin-enter" onclick="loginAdminModal()">ACCÉDER</button>
       <button class="btn-admin-cancel" onclick="closeAdminModal()">Annuler</button>
     </div>
   </div>
@@ -496,12 +488,16 @@ body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--txt);ove
 
 <script>
 'use strict';
+
+/* ════ DHIKR ════ */
 var DIKR=['بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ','سُبْحَانَ اللَّهِ وَبِحَمْدِهِ\nسُبْحَانَ اللَّهِ الْعَظِيمِ','لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ\nلَهُ الْمُلْكُ وَلَهُ الْحَمْدُ','أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ\nالَّذِي لَا إِلَهَ إِلَّا هُوَ','لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ','اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَى نَبِيِّنَا مُحَمَّدٍ','سُبْحَانَ اللَّهِ\nوَالْحَمْدُ لِلَّهِ\nوَاللَّهُ أَكْبَرُ','حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ','رَبِّ زِدْنِي عِلْمًا وَارْزُقْنِي فَهْمًا','اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا\nوَرِزْقًا طَيِّبًا','سُبْحَانَكَ لَا عِلْمَ لَنَا\nإِلَّا مَا عَلَّمْتَنَا','رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً\nوَفِي الْآخِرَةِ حَسَنَةً','يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ','اللَّهُمَّ اغْفِرْ لِي وَارْحَمْنِي\nوَاهْدِنِي وَارْزُقْنِي','تَوَكَّلْتُ عَلَى اللَّهِ وَكَفَى بِاللَّهِ وَكِيلًا','الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ'];
 var dikrIdx=0,dikrTimer=null;
 function showDikr(idx,anim){var el=document.getElementById('dikr-ar-full'),ctr=document.getElementById('dikr-counter');if(!el)return;if(anim){el.classList.add('fading');setTimeout(function(){el.textContent=DIKR[idx];el.classList.remove('fading');if(ctr)ctr.textContent=(idx+1)+' / '+DIKR.length;},350);}else{el.textContent=DIKR[idx];if(ctr)ctr.textContent=(idx+1)+' / '+DIKR.length;}}
 function nextDikr(){dikrIdx=(dikrIdx+1)%DIKR.length;showDikr(dikrIdx,true);resetDikrTimer();}
 function prevDikr(){dikrIdx=(dikrIdx-1+DIKR.length)%DIKR.length;showDikr(dikrIdx,true);resetDikrTimer();}
 function resetDikrTimer(){if(dikrTimer)clearInterval(dikrTimer);dikrTimer=setInterval(function(){var n;do{n=Math.floor(Math.random()*DIKR.length);}while(n===dikrIdx);dikrIdx=n;showDikr(dikrIdx,true);},5000);}
+
+/* ════ UTILITAIRES ════ */
 function toast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+(type||'');setTimeout(function(){t.classList.remove('show');},3000);}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function detectLang(t){return(t.match(/[\u0600-\u06FF]/g)||[]).length>t.length*.2?'ar':'fr';}
@@ -510,16 +506,19 @@ function showBar(){var bar=document.getElementById('islamic-bar'),txt=document.g
 function trainSnd(){try{var ctx=new(window.AudioContext||window.webkitAudioContext)();[0,.12].forEach(function(d){var o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sawtooth';o.frequency.setValueAtTime(180,ctx.currentTime+d);o.frequency.exponentialRampToValueAtTime(120,ctx.currentTime+d+.08);g.gain.setValueAtTime(.12,ctx.currentTime+d);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+d+.1);o.start(ctx.currentTime+d);o.stop(ctx.currentTime+d+.12);});}catch(e){}}
 function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';}
 
+/* ════ FIREBASE ════ */
 firebase.initializeApp({apiKey:"AIzaSyD8sVXQs5mtLthcbZIe_JWBURH1mkBumFs",authDomain:"sntf-assistan.firebaseapp.com",projectId:"sntf-assistan",storageBucket:"sntf-assistan.firebasestorage.app",messagingSenderId:"388691776105",appId:"1:388671776105:web:c9ec06bfced2e015af08f8"});
 var auth=firebase.auth();
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-var AKEY='123456SNTF.';
+
 var userEmail='',qCount=parseInt(localStorage.getItem('sntf_qs')||'0'),selImg=null;
 var authResolved=false,authResult=null,launchOver=false;
+
 function tryShow(){if(!launchOver||!authResolved)return;if(authResult)showApp(authResult);else showLogin();}
 setTimeout(function(){launchOver=true;tryShow();},3400);
 setTimeout(showBar,4200);
 auth.onAuthStateChanged(function(u){authResolved=true;authResult=u||false;tryShow();});
+
 function showLogin(){document.getElementById('screen-login').style.display='flex';document.getElementById('app').style.display='none';}
 function showApp(user){var train=document.getElementById('train-body');if(!train.classList.contains('depart')){launchTrainAnim(function(){_openApp(user);});return;}setTimeout(function(){_openApp(user);},1400);}
 function _openApp(user){
@@ -535,7 +534,9 @@ function _openApp(user){
   setupMobileUI();
   setupKeyboardHandler();
 }
+
 function setErr(msg){document.getElementById('login-error').textContent=msg;}
+
 async function loginGoogle(){
   var btn=document.getElementById('btn-google');
   if(btn){btn.disabled=true;btn.style.opacity='.7';btn.textContent='Connexion...';}
@@ -552,23 +553,80 @@ async function loginGoogle(){
     }catch(e){setErr('Erreur : '+e.message);}
   },400);
 }
+
 function logout(){auth.signOut().catch(function(){});userEmail='';showLogin();}
 
-/* ══ SIDEBAR MOBILE FIX ══ */
+/* ════ MODAL ADMIN — CORRECTION SÉCURITÉ ════
+   La clé n'est JAMAIS comparée côté client.
+   Elle est envoyée en POST HTTPS vers /api/admin-auth/login
+   qui retourne un JWT signé côté serveur si la clé est correcte.
+   Si le JWT est valide → redirection vers /admin
+   (admin.html a son propre système de login JWT indépendant)
+   ════════════════════════════════════════════ */
+function openAdminModal(){
+  var m=document.getElementById('admin-modal');
+  if(m){m.classList.add('open');setTimeout(function(){var i=document.getElementById('inp-admin-modal');if(i)i.focus();},200);}
+}
+function closeAdminModal(){
+  var m=document.getElementById('admin-modal');
+  if(m){m.classList.remove('open');}
+  document.getElementById('admin-modal-error').textContent='';
+  document.getElementById('inp-admin-modal').value='';
+  var btn=document.getElementById('btn-admin-enter');
+  if(btn){btn.disabled=false;btn.textContent='ACCÉDER';}
+}
+async function loginAdminModal(){
+  var val=(document.getElementById('inp-admin-modal').value||'').trim();
+  if(!val)return;
+  var errEl=document.getElementById('admin-modal-error');
+  var btn=document.getElementById('btn-admin-enter');
+  /* Désactiver le bouton pendant la vérification */
+  btn.disabled=true;
+  btn.textContent='Vérification...';
+  errEl.textContent='';
+  try{
+    /* Envoyer la clé au serveur — jamais comparée localement */
+    var r=await fetch('/api/admin-auth/login',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({key:val})
+    });
+    if(r.ok){
+      /* Clé correcte : le serveur a généré un JWT
+         On redirige vers /admin qui a son propre écran de connexion.
+         L'utilisateur devra entrer sa clé à nouveau dans admin.html
+         (session séparée, stockée en mémoire uniquement) */
+      closeAdminModal();
+      window.location.href='/admin';
+    } else {
+      var d=await r.json().catch(function(){return{};});
+      errEl.textContent='✗ '+(d.detail||'Clé incorrecte');
+      setTimeout(function(){errEl.textContent='';},3000);
+      btn.disabled=false;
+      btn.textContent='ACCÉDER';
+      /* Effacer le champ après un échec */
+      document.getElementById('inp-admin-modal').value='';
+      document.getElementById('inp-admin-modal').focus();
+    }
+  }catch(err){
+    errEl.textContent='✗ Erreur de connexion au serveur';
+    setTimeout(function(){errEl.textContent='';},3000);
+    btn.disabled=false;
+    btn.textContent='ACCÉDER';
+  }
+}
+
+/* ════ SIDEBAR MOBILE ════ */
 function isMobile(){return window.innerWidth<=768;}
 function openSidebar(){
   var sb=document.getElementById('sidebar-el'),ov=document.getElementById('sidebar-overlay');
   if(!sb||!ov)return;
-  sb.classList.add('open');
-  ov.classList.add('show');
-  document.body.style.overflow='hidden';
+  sb.classList.add('open');ov.classList.add('show');document.body.style.overflow='hidden';
 }
 function closeSidebar(){
   var sb=document.getElementById('sidebar-el'),ov=document.getElementById('sidebar-overlay');
   if(!sb||!ov)return;
-  sb.classList.remove('open');
-  ov.classList.remove('show');
-  document.body.style.overflow='';
+  sb.classList.remove('open');ov.classList.remove('show');document.body.style.overflow='';
 }
 function setupMobileUI(){
   var mh=document.getElementById('mobile-header');if(!mh)return;
@@ -588,7 +646,7 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeSidebar
 })();
 window.addEventListener('resize',function(){setupMobileUI();if(!isMobile())closeSidebar();});
 
-/* ══ CLAVIER iOS VisualViewport ══ */
+/* ════ CLAVIER iOS ════ */
 function setupKeyboardHandler(){
   if(!window.visualViewport)return;
   var lastH=visualViewport.height;
@@ -601,6 +659,7 @@ function setupKeyboardHandler(){
 
 function showTab(t){document.getElementById('panel-chat').className='panel active';document.getElementById('nav-chat').className='sb-btn active';}
 
+/* ════ MÉMOIRE & HISTORIQUE ════ */
 var MEM_MAX=10,mem=JSON.parse(localStorage.getItem('sntf_mem')||'[]');
 function saveMem(q,a){mem.push({q:q,a:a,t:Date.now()});if(mem.length>MEM_MAX)mem.shift();localStorage.setItem('sntf_mem',JSON.stringify(mem));buildHistList();}
 function buildHistList(items){
@@ -622,6 +681,8 @@ async function loadRemoteHist(){
   if(!userEmail)return;
   try{var r=await fetch('/api/chat/history',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_email:userEmail})});var d=await r.json();if(d.success&&d.history&&d.history.length){mem=d.history.map(function(h){return{q:h.question,a:h.answer,t:h.time?new Date(h.time).getTime():Date.now()};});buildHistList();}}catch(e){}
 }
+
+/* ════ MESSAGES ════ */
 function addMsg(text,role,typing){
   typing=typing===undefined?false:typing;
   var wrap=document.getElementById('msgs');
@@ -647,6 +708,8 @@ function addTyping(){var wrap=document.getElementById('msgs');var div=document.c
 function copyMsg(btn){var txt=btn.closest('.msg-body').querySelector('.msg-bbl').textContent;navigator.clipboard.writeText(txt).then(function(){btn.textContent='✓';setTimeout(function(){btn.innerHTML='⌘';},2000);toast('Copié !','ok');}); }
 function speakMsg(btn){var txt=btn.closest('.msg-body').querySelector('.msg-bbl').textContent;if(!window.speechSynthesis){toast('TTS non supporté','err');return;}window.speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(txt);u.lang=detectLang(txt)==='ar'?'ar-DZ':'fr-FR';u.rate=.95;btn.textContent='⏹';u.onend=function(){btn.innerHTML='🔊';};window.speechSynthesis.speak(u);}
 function askQ(el){document.getElementById('chat-inp').value=el.textContent;send();}
+
+/* ════ ENVOI MESSAGE ════ */
 async function send(){
   var inp=document.getElementById('chat-inp');var q=inp.value.trim();if(!q&&!selImg)return;
   var w=document.getElementById('welcome');if(w)w.remove();
@@ -700,11 +763,14 @@ function newConversation(){
   document.getElementById('msgs').innerHTML='<div id="welcome"><div class="w-title">Bonjour !</div><div class="w-sub">Comment puis-je vous aider ?</div><div class="suggestions-wrap"><div class="suggestions"><div class="sug" onclick="askQ(this)">Horaires des trains</div><div class="sug" onclick="askQ(this)">Tarifs et billets</div><div class="sug" onclick="askQ(this)">Procédures de sécurité</div><div class="sug" onclick="askQ(this)">Réseau ferroviaire</div><div class="sug" onclick="askQ(this)">Signalement d\'incident</div><div class="sug" onclick="askQ(this)">Règlement intérieur</div></div></div></div>';
   buildHistList();closeSidebar();
 }
+
+/* ════ HEARTBEAT ════ */
 setInterval(function(){fetch('/health').catch(function(){});},600000);
+
+/* ════ LAUNCH SCREEN ════ */
 setTimeout(function(){var el=document.getElementById('screen-launch');if(!el)return;el.style.transition='opacity .4s ease';el.style.opacity='0';setTimeout(function(){el.style.display='none';},400);},3000);
-function openAdminModal(){var m=document.getElementById('admin-modal');if(m){m.classList.add('open');setTimeout(function(){var i=document.getElementById('inp-admin-modal');if(i)i.focus();},200);}}
-function closeAdminModal(){var m=document.getElementById('admin-modal');if(m){m.classList.remove('open');document.getElementById('admin-modal-error').textContent='';document.getElementById('inp-admin-modal').value='';}}
-function loginAdminModal(){var val=(document.getElementById('inp-admin-modal').value||'').trim();if(val===AKEY){closeAdminModal();window.location.href='/admin';}else{var e=document.getElementById('admin-modal-error');e.textContent='✗ Clé incorrecte';setTimeout(function(){e.textContent='';},2000);}}
+
+/* ════ ANIMATION TRAIN ════ */
 function launchTrainAnim(onDone){
   var smoke=document.getElementById('smoke-wrap'),train=document.getElementById('train-body'),card=document.getElementById('login-card-main');
   if(smoke)smoke.style.opacity='1';trainSnd();
@@ -712,13 +778,8 @@ function launchTrainAnim(onDone){
   setTimeout(function(){if(card){card.style.transition='opacity .6s,transform .6s';card.style.opacity='0';card.style.transform='translateY(30px) scale(.97)';}},2000);
   setTimeout(function(){if(onDone)onDone();},3200);
 }
-document.addEventListener('DOMContentLoaded',function(){
-  showDikr(0,false);resetDikrTimer();
-  function updateClock(){var el=document.getElementById('clock-display');if(!el)return;var now=new Date();el.textContent=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');}
-  updateClock();setInterval(updateClock,30000);
-  applyTheme(localStorage.getItem('sntf_theme')||'blue');
-  setupMobileUI();
-});
+
+/* ════ THÈMES ════ */
 var THEMES={
   blue:{bg:'#F0F4FF',bg2:'#EEF2FF',hd:'#FFFFFF',hdb:'#E3EAF5',msb:'#FFFFFF',msbd:'#BBDEFB',mst:'#1A237E',usb:'#1565C0',ust:'#FFFFFF',inb:'#F5F7FF',inbd:'#BBDEFB',btn:'#1565C0',acc:'#2196F3',ttl:'#1A237E'},
   dark:{bg:'#0A1628',bg2:'#0D1F3C',hd:'#0D1F3C',hdb:'rgba(255,255,255,.06)',msb:'#112850',msbd:'rgba(33,150,243,.2)',mst:'#E8EDF5',usb:'#1E4080',ust:'#FFFFFF',inb:'rgba(255,255,255,.05)',inbd:'rgba(33,150,243,.2)',btn:'#1565C0',acc:'#2196F3',ttl:'#90CAF9'},
@@ -755,6 +816,15 @@ function applyTheme(name){
 function toggleThemePanel(){document.getElementById('theme-panel').classList.toggle('open');}
 function closeThemePanel(){document.getElementById('theme-panel').classList.remove('open');}
 document.addEventListener('click',function(e){var p=document.getElementById('theme-panel'),b=document.getElementById('theme-btn');if(p&&b&&!p.contains(e.target)&&!b.contains(e.target))closeThemePanel();});
+
+/* ════ INIT ════ */
+document.addEventListener('DOMContentLoaded',function(){
+  showDikr(0,false);resetDikrTimer();
+  function updateClock(){var el=document.getElementById('clock-display');if(!el)return;var now=new Date();el.textContent=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');}
+  updateClock();setInterval(updateClock,30000);
+  applyTheme(localStorage.getItem('sntf_theme')||'blue');
+  setupMobileUI();
+});
 </script>
 </body>
 </html>
