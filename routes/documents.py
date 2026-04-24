@@ -1,14 +1,15 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from pydantic import BaseModel
-from pypdf import PdfReader
-import io, os, json, hashlib, math, requests, base64
-from database import get_db
+from typing import List
+import io, os, json, hashlib, math, requests, base64, threading
 
 router = APIRouter()
 
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+VECTOR_TABLE = "document_chunks"
+
 # ═══════════════════════════════════════════════════════════
-# HELPER CENTRAL — même logique que users.py
-# Accepte SOIT la vraie clé ADMIN_KEY SOIT un JWT valide
+# VÉRIFICATION ACCÈS ADMIN
 # ═══════════════════════════════════════════════════════════
 def verify_admin_access(admin_key: str) -> bool:
     if not admin_key:
@@ -16,21 +17,15 @@ def verify_admin_access(admin_key: str) -> bool:
 
     ADMIN_KEY = os.environ.get("ADMIN_KEY", "sntf_admin_2024")
 
-    # 1. Clé directe (upload.html / ancien système)
     if admin_key == ADMIN_KEY:
         return True
 
-    # 2. JWT (nouveau panneau admin sécurisé)
     if admin_key.startswith("eyJ"):
         try:
             from jose import JWTError, jwt
-
             secret = os.environ.get("JWT_SECRET", "")
             if not secret:
-                secret = hashlib.sha256(
-                    (ADMIN_KEY + "jwt_salt").encode()
-                ).hexdigest()
-
+                secret = hashlib.sha256((ADMIN_KEY + "jwt_salt").encode()).hexdigest()
             payload = jwt.decode(admin_key, secret, algorithms=["HS256"])
             if payload.get("role") == "admin":
                 return True
@@ -40,25 +35,31 @@ def verify_admin_access(admin_key: str) -> bool:
     raise HTTPException(status_code=403, detail="Clé admin incorrecte")
 
 
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-VECTOR_TABLE = "document_chunks"
-
 # ═══════════════════════════════════════════════════════════
-# EMBEDDING
+# EMBEDDING — _model protégé par un Lock threading
+# (même correction que routes/chat.py)
 # ═══════════════════════════════════════════════════════════
 _model = None
+_model_lock = threading.Lock()  # ← CORRECTION : lock ajouté
+
 
 def get_embedding(text: str) -> list:
     global _model
 
-    # Méthode 1 : sentence-transformers local
-    try:
+    # Méthode 1 : modèle local — chargement protégé par Lock
+    with _model_lock:
         if _model is None:
-            from sentence_transformers import SentenceTransformer
-            _model = SentenceTransformer('all-MiniLM-L6-v2')
-        return _model.encode(text[:500]).tolist()
-    except:
-        pass
+            try:
+                from sentence_transformers import SentenceTransformer
+                _model = SentenceTransformer('all-MiniLM-L6-v2')
+            except Exception:
+                _model = False
+
+    if _model:
+        try:
+            return _model.encode(text[:500]).tolist()
+        except Exception:
+            pass
 
     # Méthode 2 : HuggingFace API
     HF_KEY = os.environ.get("HF_API_KEY")
@@ -76,17 +77,17 @@ def get_embedding(text: str) -> list:
                     import numpy as np
                     emb = np.mean(emb, axis=0).tolist()
                 return emb
-        except:
+        except Exception:
             pass
 
-    # Méthode 3 : Fallback hash
+    # Méthode 3 : fallback hash MD5
     words = text.lower().split()
     vector = [0.0] * 384
     for i, word in enumerate(words[:384]):
         h = int(hashlib.md5(word.encode()).hexdigest(), 16)
         vector[h % 384] += 1.0 / (i + 1)
     norm = math.sqrt(sum(x**2 for x in vector)) or 1.0
-    return [x/norm for x in vector]
+    return [x / norm for x in vector]
 
 
 # ═══════════════════════════════════════════════════════════
@@ -128,7 +129,6 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
     best_text = ""
     best_score = 0.0
 
-    # METHODE 1 : pdfplumber
     try:
         import pdfplumber
         for tol in [1, 2, 3, 5]:
@@ -150,13 +150,10 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
                 pass
     except ImportError:
         pass
-    except Exception:
-        pass
 
     if best_score >= 0.65 and len(best_text) >= 100:
         return best_text
 
-    # METHODE 2 : pypdf
     try:
         from pypdf import PdfReader
         reader = PdfReader(io.BytesIO(pdf_bytes))
@@ -176,7 +173,6 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
     if best_score >= 0.60 and len(best_text) >= 100:
         return best_text
 
-    # METHODE 3 : Groq Vision
     groq_key = os.environ.get("GROQ_API_KEY", "")
     if groq_key:
         try:
@@ -207,10 +203,7 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
         except Exception:
             pass
 
-    if best_text:
-        return best_text
-
-    return ""
+    return best_text
 
 
 # ═══════════════════════════════════════════════════════════
@@ -227,14 +220,7 @@ def extract_text_from_image(image_bytes: bytes, mime_type: str, filename: str) -
             json={
                 "model": "meta-llama/llama-4-scout-17b-16e-instruct",
                 "messages": [{"role": "user", "content": [
-                    {"type": "text", "text": """Analyse cette image en détail pour créer une base de connaissances.
-Extrais et décris :
-1. Tout le texte visible (tableaux, titres, données, labels)
-2. Le contenu principal de l'image
-3. Les informations techniques ou chiffres importants
-4. Le contexte général
-
-Réponds en français, de façon complète et structurée. Commence par : 'Cette image montre...'"""},
+                    {"type": "text", "text": "Analyse cette image en détail. Extrais et décris : 1. Tout le texte visible 2. Le contenu principal 3. Les informations techniques. Réponds en français, commence par : 'Cette image montre...'"},
                     {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{b64}"}}
                 ]}],
                 "max_tokens": 2048
@@ -242,8 +228,7 @@ Réponds en français, de façon complète et structurée. Commence par : 'Cette
             timeout=60
         )
         if r.status_code == 200:
-            description = r.json()["choices"][0]["message"]["content"]
-            return f"[Image: {filename}]\n\n{description}"
+            return f"[Image: {filename}]\n\n{r.json()['choices'][0]['message']['content']}"
         else:
             raise HTTPException(500, f"Erreur analyse image: {r.status_code}")
     except HTTPException:
@@ -292,38 +277,36 @@ def split_text_into_chunks(text: str, chunk_size: int = 800, overlap: int = 100)
 
 
 # ═══════════════════════════════════════════════════════════
-# SAUVEGARDER CHUNKS EN BASE
+# SAUVEGARDER CHUNKS — async avec asyncpg
 # ═══════════════════════════════════════════════════════════
-def save_chunks(chunks: list, doc_name: str, category: str, source_filename: str, file_type: str) -> int:
-    conn = get_db()
-    cur  = conn.cursor()
+async def save_chunks(chunks: list, doc_name: str, category: str, source_filename: str, file_type: str) -> int:
+    from database import get_pool
+    pool = await get_pool()
     stored = 0
-    for i, chunk in enumerate(chunks):
-        embedding = get_embedding(chunk)
-        if not embedding:
-            continue
-        emb_str = "[" + ",".join(map(str, embedding)) + "]"
-        metadata = json.dumps({
-            "source":       source_filename,
-            "filename":     doc_name,
-            "category":     category,
-            "file_type":    file_type,
-            "chunk":        i + 1,
-            "total_chunks": len(chunks)
-        })
-        cur.execute(
-            f"INSERT INTO {VECTOR_TABLE} (content, metadata, embedding) VALUES (%s, %s::jsonb, %s::vector)",
-            (chunk, metadata, emb_str)
-        )
-        stored += 1
-    conn.commit()
-    cur.close()
-    conn.close()
+    async with pool.acquire() as conn:
+        for i, chunk in enumerate(chunks):
+            embedding = get_embedding(chunk)
+            if not embedding:
+                continue
+            emb_str = "[" + ",".join(map(str, embedding)) + "]"
+            metadata = json.dumps({
+                "source":       source_filename,
+                "filename":     doc_name,
+                "category":     category,
+                "file_type":    file_type,
+                "chunk":        i + 1,
+                "total_chunks": len(chunks)
+            })
+            await conn.execute(
+                f"INSERT INTO {VECTOR_TABLE} (content, metadata, embedding) VALUES ($1, $2::jsonb, $3::vector)",
+                chunk, metadata, emb_str
+            )
+            stored += 1
     return stored
 
 
 # ═══════════════════════════════════════════════════════════
-# ENDPOINT UPLOAD — PDF + IMAGES
+# UPLOAD — PDF + IMAGES
 # ═══════════════════════════════════════════════════════════
 @router.post("/upload")
 async def upload_file(
@@ -351,12 +334,7 @@ async def upload_file(
             if not text:
                 raise HTTPException(400, "Impossible d'extraire le texte du PDF")
         else:
-            if filename.endswith('.png'):
-                detected_mime = "image/png"
-            elif filename.endswith('.webp'):
-                detected_mime = "image/webp"
-            else:
-                detected_mime = "image/jpeg"
+            detected_mime = "image/png" if filename.endswith('.png') else ("image/webp" if filename.endswith('.webp') else "image/jpeg")
             text = extract_text_from_image(file_bytes, detected_mime, file.filename)
             file_type = "image"
 
@@ -365,7 +343,7 @@ async def upload_file(
             raise HTTPException(400, "Document trop court ou vide")
 
         doc_name = document_name if document_name else file.filename.rsplit('.', 1)[0]
-        stored = save_chunks(chunks, doc_name, category, file.filename, file_type)
+        stored = await save_chunks(chunks, doc_name, category, file.filename, file_type)
 
         return {
             "success":       True,
@@ -383,29 +361,33 @@ async def upload_file(
 
 
 # ═══════════════════════════════════════════════════════════
-# LIST
+# LIST — async avec asyncpg
 # ═══════════════════════════════════════════════════════════
 @router.get("/list")
-def list_documents(admin_key: str = ""):
+async def list_documents(admin_key: str = ""):
     verify_admin_access(admin_key)
     try:
-        conn = get_db()
-        cur  = conn.cursor()
-        cur.execute(f"""
-            SELECT metadata->>'filename', metadata->>'category',
-                   metadata->>'file_type', COUNT(*)
-            FROM {VECTOR_TABLE}
-            WHERE metadata->>'filename' IS NOT NULL
-            GROUP BY metadata->>'filename', metadata->>'category', metadata->>'file_type'
-            ORDER BY metadata->>'filename'
-        """)
-        docs = cur.fetchall()
-        cur.close(); conn.close()
+        from database import get_pool
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(f"""
+                SELECT metadata->>'filename'  AS filename,
+                       metadata->>'category'  AS category,
+                       metadata->>'file_type' AS file_type,
+                       COUNT(*) AS chunks
+                FROM {VECTOR_TABLE}
+                WHERE metadata->>'filename' IS NOT NULL
+                GROUP BY metadata->>'filename', metadata->>'category', metadata->>'file_type'
+                ORDER BY metadata->>'filename'
+            """)
         return {
             "success":         True,
-            "total_documents": len(docs),
-            "documents": [{"filename": d[0], "category": d[1],
-                           "file_type": d[2] or "pdf", "chunks": int(d[3])} for d in docs]
+            "total_documents": len(rows),
+            "documents": [
+                {"filename": r["filename"], "category": r["category"],
+                 "file_type": r["file_type"] or "pdf", "chunks": int(r["chunks"])}
+                for r in rows
+            ]
         }
     except HTTPException:
         raise
@@ -414,22 +396,25 @@ def list_documents(admin_key: str = ""):
 
 
 # ═══════════════════════════════════════════════════════════
-# DELETE
+# DELETE — async avec asyncpg
 # ═══════════════════════════════════════════════════════════
 class DeleteRequest(BaseModel):
     filename: str
     admin_key: str = ""
 
 @router.post("/delete")
-def delete_document(req: DeleteRequest):
+async def delete_document(req: DeleteRequest):
     verify_admin_access(req.admin_key)
     try:
-        conn = get_db()
-        cur  = conn.cursor()
-        cur.execute(f"DELETE FROM {VECTOR_TABLE} WHERE metadata->>'filename' = %s", (req.filename,))
-        deleted = cur.rowcount
-        conn.commit()
-        cur.close(); conn.close()
+        from database import get_pool
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            result = await conn.execute(
+                f"DELETE FROM {VECTOR_TABLE} WHERE metadata->>'filename' = $1",
+                req.filename
+            )
+        # asyncpg retourne "DELETE N" comme string
+        deleted = int(result.split(" ")[-1]) if result else 0
         return {"success": True, "chunks_deleted": deleted, "filename": req.filename}
     except HTTPException:
         raise
@@ -438,10 +423,8 @@ def delete_document(req: DeleteRequest):
 
 
 # ═══════════════════════════════════════════════════════════
-# UPLOAD BATCH
+# UPLOAD BATCH — async avec asyncpg
 # ═══════════════════════════════════════════════════════════
-from typing import List
-
 @router.post("/upload-batch")
 async def upload_batch(
     files: List[UploadFile] = File(...),
@@ -449,12 +432,10 @@ async def upload_batch(
     admin_key: str = Form(default="")
 ):
     verify_admin_access(admin_key)
-
     if not files:
         raise HTTPException(400, "Aucun fichier reçu")
 
     results = []
-
     for file in files:
         filename  = file.filename.lower()
         mime_type = file.content_type or ""
@@ -462,29 +443,19 @@ async def upload_batch(
         is_image  = filename.endswith(('.jpg', '.jpeg', '.png', '.webp')) or mime_type.startswith('image/')
 
         if not is_pdf and not is_image:
-            results.append({
-                "filename": file.filename,
-                "success": False,
-                "error": "Format non supporté (PDF, JPG, PNG uniquement)"
-            })
+            results.append({"filename": file.filename, "success": False, "error": "Format non supporté"})
             continue
 
         try:
             file_bytes = await file.read()
-
             if is_pdf:
                 text = extract_text_from_pdf(file_bytes)
                 file_type = "pdf"
                 if not text:
-                    results.append({"filename": file.filename, "success": False, "error": "Impossible d'extraire le texte du PDF"})
+                    results.append({"filename": file.filename, "success": False, "error": "Impossible d'extraire le texte"})
                     continue
             else:
-                if filename.endswith('.png'):
-                    detected_mime = "image/png"
-                elif filename.endswith('.webp'):
-                    detected_mime = "image/webp"
-                else:
-                    detected_mime = "image/jpeg"
+                detected_mime = "image/png" if filename.endswith('.png') else ("image/webp" if filename.endswith('.webp') else "image/jpeg")
                 text = extract_text_from_image(file_bytes, detected_mime, file.filename)
                 file_type = "image"
 
@@ -494,31 +465,21 @@ async def upload_batch(
                 continue
 
             doc_name = file.filename.rsplit('.', 1)[0]
-            stored = save_chunks(chunks, doc_name, category, file.filename, file_type)
-
-            results.append({
-                "filename": file.filename,
-                "success": True,
-                "chunks": stored,
-                "file_type": file_type
-            })
+            stored = await save_chunks(chunks, doc_name, category, file.filename, file_type)
+            results.append({"filename": file.filename, "success": True, "chunks": stored, "file_type": file_type})
 
         except Exception as e:
-            results.append({
-                "filename": file.filename,
-                "success": False,
-                "error": str(e)
-            })
+            results.append({"filename": file.filename, "success": False, "error": str(e)})
 
     total_ok     = sum(1 for r in results if r.get("success"))
     total_err    = sum(1 for r in results if not r.get("success"))
     total_chunks = sum(r.get("chunks", 0) for r in results)
 
     return {
-        "success": True,
-        "total_files": len(files),
-        "total_ok": total_ok,
+        "success":      True,
+        "total_files":  len(files),
+        "total_ok":     total_ok,
         "total_errors": total_err,
         "total_chunks": total_chunks,
-        "results": results
+        "results":      results
     }
