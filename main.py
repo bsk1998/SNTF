@@ -13,18 +13,95 @@ import time
 app = FastAPI(title="SNTF Assistant API", version="2.0.0")
 
 # ═══════════════════════════════════════════════════════════
-# CORS
+# STARTUP / SHUTDOWN — pool asyncpg + tables DB
 # ═══════════════════════════════════════════════════════════
+@app.on_event("startup")
+async def startup():
+    """
+    Initialise le pool de connexions une seule fois au démarrage.
+    Crée les tables si elles n'existent pas (remplace l'appel
+    ensure_conv_table() qui était appelé à chaque requête chat).
+    """
+    from database import create_pool
+    pool = await create_pool()
+
+    async with pool.acquire() as conn:
+        # Table conversations
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS conversations (
+                id SERIAL PRIMARY KEY,
+                user_email TEXT,
+                question TEXT,
+                answer TEXT,
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        """)
+        # Table utilisateurs
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS sntf_users (
+                id SERIAL PRIMARY KEY,
+                email TEXT UNIQUE NOT NULL,
+                display_name TEXT DEFAULT '',
+                provider TEXT DEFAULT 'google',
+                status TEXT DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT NOW(),
+                last_login TIMESTAMP,
+                login_count INTEGER DEFAULT 0
+            )
+        """)
+        # Table configuration
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS sntf_config (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TIMESTAMP DEFAULT NOW()
+            )
+        """)
+        await conn.execute("""
+            INSERT INTO sntf_config (key, value)
+            VALUES ('auto_approve', 'true')
+            ON CONFLICT (key) DO NOTHING
+        """)
+
+    print("✅ Pool asyncpg initialisé — tables vérifiées")
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    """Ferme proprement le pool à l'arrêt du serveur."""
+    from database import close_pool
+    await close_pool()
+    print("🔌 Pool asyncpg fermé")
+
+
+# ═══════════════════════════════════════════════════════════
+# CORS — origines autorisées depuis variable d'environnement
+#
+# EN PRODUCTION : définir ALLOWED_ORIGINS sur Render.com
+#   Ex: ALLOWED_ORIGINS=https://sntf-assistant.onrender.com
+#
+# EN DÉVELOPPEMENT : laisser vide → accepte tout (localhost)
+# ═══════════════════════════════════════════════════════════
+_raw_origins = os.environ.get("ALLOWED_ORIGINS", "")
+if _raw_origins.strip():
+    # Production : origines explicitement listées
+    allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+    print(f"🔒 CORS restreint à : {allowed_origins}")
+else:
+    # Développement ou Render sans variable définie
+    allowed_origins = ["*"]
+    print("⚠️  CORS ouvert (*) — définir ALLOWED_ORIGINS en production")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=allowed_origins,
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
+    allow_credentials=False,
 )
 
 # ═══════════════════════════════════════════════════════════
-# MIDDLEWARE SÉCURITÉ — headers HTTP sécurisés sur toutes
-# les réponses (protection XSS, clickjacking, sniffing)
+# MIDDLEWARE SÉCURITÉ — headers HTTP sur toutes les réponses
 # ═══════════════════════════════════════════════════════════
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
@@ -37,6 +114,7 @@ async def add_security_headers(request: Request, call_next):
     process_time = round((time.time() - start_time) * 1000, 2)
     response.headers["X-Process-Time"] = f"{process_time}ms"
     return response
+
 
 # ═══════════════════════════════════════════════════════════
 # GESTIONNAIRE D'ERREURS GLOBAL
@@ -56,6 +134,7 @@ async def server_error_handler(request: Request, exc):
         content={"success": False, "detail": "Erreur serveur interne. Réessayez."}
     )
 
+
 # ═══════════════════════════════════════════════════════════
 # ROUTES
 # ═══════════════════════════════════════════════════════════
@@ -64,6 +143,7 @@ app.include_router(chat_router,       prefix="/api/chat",       tags=["Chat"])
 app.include_router(documents_router,  prefix="/api/documents",  tags=["Documents"])
 app.include_router(users_router,      prefix="/api/users",      tags=["Users"])
 app.include_router(admin_auth_router, prefix="/api/admin-auth", tags=["AdminAuth"])
+
 
 # ═══════════════════════════════════════════════════════════
 # FICHIERS STATIQUES
@@ -94,22 +174,20 @@ def favicon():
                     headers={"Cache-Control": "public, max-age=86400"})
 
 @app.api_route("/health", methods=["GET", "HEAD"])
-def health():
+async def health():
     try:
-        from database import get_db
-        conn = get_db()
-        cur = conn.cursor()
-        cur.execute("SELECT COUNT(*) FROM document_chunks")
-        doc_count = cur.fetchone()[0]
-        cur.close()
-        conn.close()
+        from database import get_pool
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            doc_count = await conn.fetchval("SELECT COUNT(*) FROM document_chunks")
         return {
             "status": "healthy",
             "documents": doc_count,
             "groq_key": bool(os.environ.get("GROQ_API_KEY")),
             "hf_key": bool(os.environ.get("HF_API_KEY")),
             "admin_key_set": bool(os.environ.get("ADMIN_KEY")),
-            "jwt_secret_set": bool(os.environ.get("JWT_SECRET"))
+            "jwt_secret_set": bool(os.environ.get("JWT_SECRET")),
+            "db": "asyncpg pool"
         }
     except Exception as e:
         return {"status": "healthy", "db_error": str(e)[:100]}
