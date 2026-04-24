@@ -1,41 +1,28 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
-import os, datetime
+import os, hashlib
 
 router = APIRouter()
 
 # ═══════════════════════════════════════════════════════════
-# HELPER CENTRAL — vérifie l'accès admin
-# Accepte SOIT la vraie clé ADMIN_KEY (ancien système)
-# SOIT un JWT valide signé par /api/admin-auth/login (nouveau)
+# VÉRIFICATION ACCÈS ADMIN
 # ═══════════════════════════════════════════════════════════
 def verify_admin_access(admin_key: str) -> bool:
-    """
-    Retourne True si admin_key est valide.
-    Lève HTTPException 403 sinon.
-    """
     if not admin_key:
         raise HTTPException(status_code=403, detail="Clé admin incorrecte")
 
     ADMIN_KEY = os.environ.get("ADMIN_KEY", "sntf_admin_2024")
 
-    # 1. Vérification directe de la clé (ancien système / upload.html)
     if admin_key == ADMIN_KEY:
         return True
 
-    # 2. Vérification JWT (nouveau système sécurisé)
     if admin_key.startswith("eyJ"):
         try:
             from jose import JWTError, jwt
-            import hashlib
-
             secret = os.environ.get("JWT_SECRET", "")
             if not secret:
-                secret = hashlib.sha256(
-                    (ADMIN_KEY + "jwt_salt").encode()
-                ).hexdigest()
-
+                secret = hashlib.sha256((ADMIN_KEY + "jwt_salt").encode()).hexdigest()
             payload = jwt.decode(admin_key, secret, algorithms=["HS256"])
             if payload.get("role") == "admin":
                 return True
@@ -64,151 +51,103 @@ class ConfigUpdate(BaseModel):
 
 
 # ═══════════════════════════════════════════════════════════
-# HELPERS DB
+# HELPERS DB — async avec asyncpg
+#
+# CORRECTION : ensure_tables() retiré des routes.
+# Les tables sont créées au startup dans main.py.
 # ═══════════════════════════════════════════════════════════
-def get_conn():
-    from database import get_db
-    return get_db()
+async def get_pool():
+    from database import get_pool as _get_pool
+    return await _get_pool()
 
-def ensure_tables():
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS sntf_users (
-            id SERIAL PRIMARY KEY,
-            email TEXT UNIQUE NOT NULL,
-            display_name TEXT DEFAULT '',
-            provider TEXT DEFAULT 'google',
-            status TEXT DEFAULT 'pending',
-            created_at TIMESTAMP DEFAULT NOW(),
-            last_login TIMESTAMP,
-            login_count INTEGER DEFAULT 0
-        );
-    """)
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS sntf_config (
-            key TEXT PRIMARY KEY,
-            value TEXT NOT NULL,
-            updated_at TIMESTAMP DEFAULT NOW()
-        );
-    """)
-    cur.execute("""
-        INSERT INTO sntf_config (key, value)
-        VALUES ('auto_approve', 'true')
-        ON CONFLICT (key) DO NOTHING;
-    """)
-    conn.commit()
-    cur.close()
-    conn.close()
-
-def get_config(key: str, default: str = "") -> str:
+async def get_config(key: str, default: str = "") -> str:
     try:
-        conn = get_conn()
-        cur = conn.cursor()
-        cur.execute("SELECT value FROM sntf_config WHERE key = %s", (key,))
-        row = cur.fetchone()
-        cur.close(); conn.close()
-        return row[0] if row else default
-    except:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            val = await conn.fetchval("SELECT value FROM sntf_config WHERE key = $1", key)
+        return val if val is not None else default
+    except Exception:
         return default
 
 
 # ═══════════════════════════════════════════════════════════
-# ROUTE : Enregistrer / mettre à jour un user à la connexion
+# REGISTER / LOGIN — async avec asyncpg
 # ═══════════════════════════════════════════════════════════
 @router.post("/register")
 async def register_user(data: UserInfo):
     try:
-        ensure_tables()
-        auto_approve = get_config("auto_approve", "true") == "true"
-
-        conn = get_conn()
-        cur = conn.cursor()
-        cur.execute("SELECT status FROM sntf_users WHERE email = %s", (data.email,))
-        existing = cur.fetchone()
-
-        if existing:
-            status = existing[0]
-            cur.execute("""
-                UPDATE sntf_users
-                SET last_login = NOW(), login_count = login_count + 1,
-                    display_name = %s
-                WHERE email = %s
-            """, (data.display_name, data.email))
-            conn.commit()
-        else:
-            status = "approved" if auto_approve else "pending"
-            cur.execute("""
-                INSERT INTO sntf_users (email, display_name, provider, status, last_login, login_count)
-                VALUES (%s, %s, %s, %s, NOW(), 1)
-            """, (data.email, data.display_name, data.provider, status))
-            conn.commit()
-
-        cur.close(); conn.close()
+        auto_approve = await get_config("auto_approve", "true") == "true"
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            existing = await conn.fetchrow(
+                "SELECT status FROM sntf_users WHERE email = $1", data.email
+            )
+            if existing:
+                status = existing["status"]
+                await conn.execute(
+                    "UPDATE sntf_users SET last_login = NOW(), login_count = login_count + 1, display_name = $1 WHERE email = $2",
+                    data.display_name, data.email
+                )
+            else:
+                status = "approved" if auto_approve else "pending"
+                await conn.execute(
+                    "INSERT INTO sntf_users (email, display_name, provider, status, last_login, login_count) VALUES ($1, $2, $3, $4, NOW(), 1)",
+                    data.email, data.display_name, data.provider, status
+                )
         return {"success": True, "status": status, "auto_approve": auto_approve}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ═══════════════════════════════════════════════════════════
-# ROUTE : Vérifier le statut d'un user
-# ═══════════════════════════════════════════════════════════
 @router.post("/check")
 async def check_user(data: UserInfo):
     try:
-        ensure_tables()
-        conn = get_conn()
-        cur = conn.cursor()
-        cur.execute("SELECT status FROM sntf_users WHERE email = %s", (data.email,))
-        row = cur.fetchone()
-        cur.close(); conn.close()
-
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow("SELECT status FROM sntf_users WHERE email = $1", data.email)
         if not row:
             return await register_user(data)
-
-        return {"success": True, "status": row[0]}
+        return {"success": True, "status": row["status"]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 # ═══════════════════════════════════════════════════════════
-# ROUTE ADMIN : Liste tous les users
+# ADMIN — LISTE UTILISATEURS
 # ═══════════════════════════════════════════════════════════
 @router.post("/list")
 async def list_users(data: dict):
     verify_admin_access(data.get("admin_key", ""))
     try:
-        ensure_tables()
-        conn = get_conn()
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT email, display_name, provider, status,
-                   created_at, last_login, login_count
-            FROM sntf_users
-            ORDER BY
-                CASE status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END,
-                created_at DESC
-        """)
-        rows = cur.fetchall()
-        cur.close(); conn.close()
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            rows = await conn.fetch("""
+                SELECT email, display_name, provider, status,
+                       created_at, last_login, login_count
+                FROM sntf_users
+                ORDER BY
+                    CASE status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END,
+                    created_at DESC
+            """)
 
-        users = []
-        for r in rows:
-            users.append({
-                "email": r[0],
-                "display_name": r[1] or "",
-                "provider": r[2] or "google",
-                "status": r[3],
-                "created_at": r[4].isoformat() if r[4] else "",
-                "last_login": r[5].isoformat() if r[5] else "",
-                "login_count": r[6] or 0
-            })
+        users = [
+            {
+                "email":        r["email"],
+                "display_name": r["display_name"] or "",
+                "provider":     r["provider"] or "google",
+                "status":       r["status"],
+                "created_at":   r["created_at"].isoformat() if r["created_at"] else "",
+                "last_login":   r["last_login"].isoformat() if r["last_login"] else "",
+                "login_count":  r["login_count"] or 0
+            }
+            for r in rows
+        ]
 
         stats = {
-            "total": len(users),
-            "pending": sum(1 for u in users if u["status"] == "pending"),
+            "total":    len(users),
+            "pending":  sum(1 for u in users if u["status"] == "pending"),
             "approved": sum(1 for u in users if u["status"] == "approved"),
-            "blocked": sum(1 for u in users if u["status"] == "blocked"),
+            "blocked":  sum(1 for u in users if u["status"] == "blocked"),
         }
 
         return {"success": True, "users": users, "stats": stats}
@@ -219,20 +158,15 @@ async def list_users(data: dict):
 
 
 # ═══════════════════════════════════════════════════════════
-# ROUTE ADMIN : Approuver un user
+# ADMIN — ACTIONS SUR UTILISATEURS
 # ═══════════════════════════════════════════════════════════
 @router.post("/approve")
 async def approve_user(data: AdminAction):
     verify_admin_access(data.admin_key)
     try:
-        conn = get_conn()
-        cur = conn.cursor()
-        cur.execute(
-            "UPDATE sntf_users SET status = 'approved' WHERE email = %s",
-            (data.email,)
-        )
-        conn.commit()
-        cur.close(); conn.close()
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE sntf_users SET status = 'approved' WHERE email = $1", data.email)
         return {"success": True, "message": f"{data.email} approuvé"}
     except HTTPException:
         raise
@@ -240,21 +174,13 @@ async def approve_user(data: AdminAction):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ═══════════════════════════════════════════════════════════
-# ROUTE ADMIN : Bloquer un user
-# ═══════════════════════════════════════════════════════════
 @router.post("/block")
 async def block_user(data: AdminAction):
     verify_admin_access(data.admin_key)
     try:
-        conn = get_conn()
-        cur = conn.cursor()
-        cur.execute(
-            "UPDATE sntf_users SET status = 'blocked' WHERE email = %s",
-            (data.email,)
-        )
-        conn.commit()
-        cur.close(); conn.close()
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE sntf_users SET status = 'blocked' WHERE email = $1", data.email)
         return {"success": True, "message": f"{data.email} bloqué"}
     except HTTPException:
         raise
@@ -262,18 +188,13 @@ async def block_user(data: AdminAction):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ═══════════════════════════════════════════════════════════
-# ROUTE ADMIN : Supprimer un user
-# ═══════════════════════════════════════════════════════════
 @router.post("/delete")
 async def delete_user(data: AdminAction):
     verify_admin_access(data.admin_key)
     try:
-        conn = get_conn()
-        cur = conn.cursor()
-        cur.execute("DELETE FROM sntf_users WHERE email = %s", (data.email,))
-        conn.commit()
-        cur.close(); conn.close()
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute("DELETE FROM sntf_users WHERE email = $1", data.email)
         return {"success": True, "message": f"{data.email} supprimé"}
     except HTTPException:
         raise
@@ -282,22 +203,19 @@ async def delete_user(data: AdminAction):
 
 
 # ═══════════════════════════════════════════════════════════
-# ROUTE ADMIN : Changer auto_approve
+# ADMIN — CONFIGURATION
 # ═══════════════════════════════════════════════════════════
 @router.post("/config")
 async def update_config(data: ConfigUpdate):
     verify_admin_access(data.admin_key)
     try:
-        ensure_tables()
-        conn = get_conn()
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO sntf_config (key, value, updated_at)
-            VALUES (%s, %s, NOW())
-            ON CONFLICT (key) DO UPDATE SET value = %s, updated_at = NOW()
-        """, (data.key, data.value, data.value))
-        conn.commit()
-        cur.close(); conn.close()
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute("""
+                INSERT INTO sntf_config (key, value, updated_at)
+                VALUES ($1, $2, NOW())
+                ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()
+            """, data.key, data.value)
         return {"success": True}
     except HTTPException:
         raise
@@ -305,15 +223,11 @@ async def update_config(data: ConfigUpdate):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ═══════════════════════════════════════════════════════════
-# ROUTE ADMIN : Lire auto_approve
-# ═══════════════════════════════════════════════════════════
 @router.post("/config/get")
 async def get_config_route(data: dict):
     verify_admin_access(data.get("admin_key", ""))
     try:
-        ensure_tables()
-        val = get_config(data.get("key", "auto_approve"), "true")
+        val = await get_config(data.get("key", "auto_approve"), "true")
         return {"success": True, "value": val}
     except HTTPException:
         raise
