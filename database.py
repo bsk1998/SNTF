@@ -1,14 +1,8 @@
-import psycopg2
-import os
+psycopg2 bloquant dans FastAPI async → bloque le serveur entier à chaque requête DB
+Pas de pool de connexions → Supabase coupe les connexions sous charge
 
-def get_db():
-    conn = psycopg2.connect(
-        host=os.environ.get("DB_HOST", "aws-0-eu-central-1.pooler.supabase.com"),
-        database=os.environ.get("DB_NAME", "postgres"),
-        user=os.environ.get("DB_USER"),
-        password=os.environ.get("DB_PASSWORD"),
-        port=int(os.environ.get("DB_PORT", "5432")),
-        sslmode="require",
-        connect_timeout=10
-    )
-    return conn
+🟡 Important
+
+ensure_conv_table() appelé à chaque message de chat
+_hf_model sans thread lock
+CORS allow_origins=["*"]
